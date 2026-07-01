@@ -2,6 +2,7 @@ import json
 from datetime import date, datetime
 from decimal import Decimal
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
@@ -11,7 +12,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
 from . import services
-from .models import Mitarbeiter, Leistung, Klient, Leistungsart
+from .models import Mitarbeiter, Leistung, Gruppe, Klient, Leistungsart
 
 
 def _int(val, default):
@@ -45,26 +46,22 @@ def dashboard(request):
     jahr = _jahr(request)
     betreuer_id = request.GET.get("betreuer") or ""
     sichtbar = services.klienten_fuer(request.user)
+    gefiltert = sichtbar.filter(bezugsbetreuer_id=int(betreuer_id)) if betreuer_id.isdigit() else sichtbar
 
-    zeilen, summe = services.fachleistungsstunden(jahr, klienten=sichtbar)
-    if betreuer_id:
-        zeilen = [z for z in zeilen if str(z["betreuer"].id) == betreuer_id]
-        summe = summe | {
-            "kontingent_jahr": sum((z["kontingent_jahr"] for z in zeilen), Decimal("0")),
-            "ist": sum((z["ist"] for z in zeilen), Decimal("0")),
-            "rest": sum((z["rest"] for z in zeilen), Decimal("0")),
-        }
+    zeilen, summe = services.fachleistungsstunden(jahr, klienten=gefiltert)
+    zeitreihe = services.auslastung_zeitreihe(jahr, gefiltert)
 
     context = {
         "aktiv": "dashboard",
         "jahr": jahr,
         "zeilen": zeilen,
         "summe": summe,
+        "zeitreihe_json": zeitreihe,
         "betreuer_liste": Mitarbeiter.objects.filter(aktiv=True),
         "betreuer_id": betreuer_id,
         "kennzahlen": {
-            "klienten": sichtbar.count(),
-            "leistungen": Leistung.objects.filter(datum__year=jahr).count(),
+            "klienten": gefiltert.count(),
+            "leistungen": Leistung.objects.filter(datum__year=jahr, klient__in=gefiltert).count(),
             "n_donnerstage": summe["n_donnerstage"],
         },
     }
@@ -185,6 +182,50 @@ def druck(request):
         "aktiv": "druck", "jahr": jahr, "monat": monat, "klient": klient, "daten": daten,
         "klienten": sichtbar, "monate": list(range(1, 13)),
     })
+
+
+# ---------------------------------------------------------------- Gruppennachweise (Stammdaten, für alle)
+@login_required
+def gruppen(request):
+    return render(request, "nachweis/gruppen.html", {
+        "aktiv": "gruppen",
+        "gruppen": Gruppe.objects.prefetch_related("teilnehmer").order_by("-datum"),
+        "klienten": Klient.objects.order_by("nachname", "vorname"),
+        "leistungsarten": [{"v": a.value, "l": a.label} for a in Leistungsart],
+    })
+
+
+@require_POST
+@login_required
+def gruppe_save(request):
+    thema = (request.POST.get("thema") or "").strip()
+    try:
+        datum = date.fromisoformat(request.POST.get("datum"))
+    except (TypeError, ValueError):
+        datum = None
+    art = request.POST.get("leistungsart")
+    if not (thema and datum and art in Leistungsart.values):
+        messages.error(request, "Bitte Datum, Thema und Leistungsart angeben.")
+        return redirect("nachweis:gruppen")
+
+    g = Gruppe.objects.create(
+        datum=datum, thema=thema, leistungsart=art,
+        beginn=_parse_time(request.POST.get("beginn")),
+        ende=_parse_time(request.POST.get("ende")),
+        anz_ma=max(1, _int(request.POST.get("anz_ma"), 1)))
+    ids = [i for i in request.POST.getlist("teilnehmer") if i.isdigit()]
+    g.teilnehmer.set(Klient.objects.filter(pk__in=ids))
+    messages.success(request, f"Gruppe {thema} gespeichert ({g.teilnehmer.count()} Teilnehmer*innen).")
+    return redirect("nachweis:gruppen")
+
+
+@require_POST
+@login_required
+def gruppe_delete(request):
+    g = get_object_or_404(Gruppe, pk=request.POST.get("id"))
+    g.delete()
+    messages.success(request, "Gruppe gelöscht.")
+    return redirect("nachweis:gruppen")
 
 
 @login_required

@@ -1,5 +1,13 @@
 {% extends "nachweis/base.html" %}
+{% load static %}
 {% block title %}Fachleistungsstunden · FEGH-Leistungsnachweis{% endblock %}
+{% block extrahead %}<script src="{% static 'nachweis/vendor/chartjs/chart.umd.min.js' %}"></script>{% endblock %}
+{% block extrastyle %}
+  .tabs{display:flex;gap:6px}
+  .tabs .tab{background:#eef3f8;border:1px solid var(--border);color:#41546a;padding:6px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px}
+  .tabs .tab.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .chartwrap{position:relative;height:300px}
+{% endblock %}
 {% block content %}
   <h1 class="page">Fachleistungsstunden {{ jahr }}</h1>
   <p class="sub">Kontingent = AL + kLE pro Monat · Ist = erfasste Leistungen + Gruppen-Anteile + Teamsitzung</p>
@@ -9,6 +17,32 @@
     <div class="kpi"><div class="n">{{ kennzahlen.leistungen }}</div><div class="l">Leistungen {{ jahr }}</div></div>
     <div class="kpi"><div class="n">{{ summe.ist|floatformat:0 }}</div><div class="l">Ist-Stunden gesamt</div></div>
     <div class="kpi"><div class="n">{{ kennzahlen.n_donnerstage }}</div><div class="l">Teamsitzungen (Do, o. Feiertag)</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="head">
+      <h2>Auslastung {% if betreuer_id %}(gefiltert){% endif %}</h2>
+      <div class="tabs">
+        <button class="tab active" data-view="monat">Monat</button>
+        <button class="tab" data-view="woche">Woche</button>
+        <button class="tab" data-view="jahr">Jahr</button>
+      </div>
+    </div>
+    <div class="body" style="padding:16px 18px">
+      <div id="v-monat" class="chartwrap"><canvas id="c-monat"></canvas></div>
+      <div id="v-woche" class="chartwrap" style="display:none"><canvas id="c-woche"></canvas></div>
+      <div id="v-jahr" style="display:none">
+        <div style="display:flex;gap:34px;align-items:center;flex-wrap:wrap;padding:6px 4px">
+          <div style="width:210px;height:210px;position:relative"><canvas id="c-jahr"></canvas></div>
+          <div>
+            <div style="font-size:38px;font-weight:700;color:var(--brand-d);line-height:1">{{ zeitreihe_json.jahr.auslastung }} %</div>
+            <div class="muted" style="margin-bottom:10px">Jahres-Auslastung {{ jahr }}</div>
+            <div><b>Ist:</b> {{ zeitreihe_json.jahr.ist }} Std &nbsp;·&nbsp; <b>Kontingent:</b> {{ zeitreihe_json.jahr.kontingent }} Std</div>
+            <div class="muted" style="margin-top:6px">Ø Kontingent: {{ zeitreihe_json.kont_monat }} Std/Monat · {{ zeitreihe_json.kont_woche }} Std/Woche</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="panel">
@@ -74,6 +108,40 @@
     </div>
   </div>
   <p class="note">Teamsitzung: {{ summe.n_donnerstage }} Donnerstage × {{ summe.ts_dauer|floatformat:"-2" }} Std ÷ Klient*innen in Betreuung
-    = {{ summe.ts_pro_klient_jahr|floatformat:3 }} Std/Klient/Jahr (KLE, Berliner Feiertage ausgenommen).
-    {% if not darf_alles %}· Sicht: nur eigene Klient*innen.{% endif %}</p>
+    = {{ summe.ts_pro_klient_jahr|floatformat:3 }} Std/Klient/Jahr (KLE, Berliner Feiertage ausgenommen).</p>
+{% endblock %}
+
+{% block extrajs %}
+  {{ zeitreihe_json|json_script:"zr-data" }}
+  <script>
+    const ZR = JSON.parse(document.getElementById('zr-data').textContent);
+    const barColor = (arr) => arr.map(v => v > 100 ? 'rgba(192,57,43,.85)' : 'rgba(31,123,192,.85)');
+    function auslChart(id, rows){
+      const labels = rows.map(r => r.label), ausl = rows.map(r => r.auslastung), ist = rows.map(r => r.ist);
+      return new Chart(document.getElementById(id), {
+        data:{ labels, datasets:[
+          {type:'bar', label:'Auslastung %', data:ausl, backgroundColor:barColor(ausl), borderRadius:4, order:2,
+           _ist:ist},
+          {type:'line', label:'Ziel 100 %', data:labels.map(()=>100), borderColor:'#94a7b8', borderDash:[5,4], pointRadius:0, borderWidth:1.5, order:1}
+        ]},
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ labels:{ boxWidth:14 } },
+            tooltip:{ callbacks:{ afterLabel:(c)=> c.datasetIndex===0 ? ('Ist: '+ist[c.dataIndex]+' Std') : '' } } },
+          scales:{ y:{ beginAtZero:true, ticks:{ callback:v=> v+' %' } } } }
+      });
+    }
+    auslChart('c-monat', ZR.monate);
+    auslChart('c-woche', ZR.wochen);
+    new Chart(document.getElementById('c-jahr'), {
+      type:'doughnut',
+      data:{ labels:['Ist','Rest'], datasets:[{ data:[ZR.jahr.ist, Math.max(0, ZR.jahr.kontingent - ZR.jahr.ist)],
+        backgroundColor:['#1f7bc0','#e6ecf2'], borderWidth:0 }] },
+      options:{ responsive:true, maintainAspectRatio:false, cutout:'68%', plugins:{ legend:{ position:'bottom' } } }
+    });
+    document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      ['monat','woche','jahr'].forEach(v => document.getElementById('v-'+v).style.display = (v===b.dataset.view ? 'block' : 'none'));
+    }));
+  </script>
 {% endblock %}

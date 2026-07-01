@@ -1,0 +1,77 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Gruppennachweise · FEGH{% endblock %}
+
+{% block extrastyle %}
+  .gform{display:grid;grid-template-columns:repeat(6,1fr);gap:14px 16px;padding:18px}
+  .gform .full{grid-column:1 / -1}
+  .gform .w2{grid-column:span 2}
+  .gform select[multiple]{height:150px}
+  .msg{padding:10px 14px;border-radius:9px;margin-bottom:14px;font-size:13px}
+  .msg.success{background:var(--okbg);color:var(--ok)} .msg.error{background:var(--badbg);color:var(--bad)}
+  .tn{color:var(--muted);font-size:12px}
+{% endblock %}
+
+{% block content %}
+  <h1 class="page">Gruppennachweise</h1>
+  <p class="sub">Gruppenangebote anlegen – Zeit/Klient = Gesamtzeit ÷ Teilnehmer ÷ Anz. Mitarbeiter. Jede*r im Team kann Gruppen erfassen.</p>
+
+  {% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
+
+  <div class="panel">
+    <div class="head"><h2>Neue Gruppe anlegen</h2></div>
+    <form method="post" action="{% url 'nachweis:gruppe_save' %}">
+      {% csrf_token %}
+      <div class="gform">
+        <div><label class="fld">Datum</label><input type="date" name="datum" required style="width:100%"></div>
+        <div class="w2"><label class="fld">Thema</label><input type="text" name="thema" required style="width:100%" placeholder="z. B. Kochgruppe"></div>
+        <div><label class="fld">Leistungsart</label>
+          <select name="leistungsart" style="width:100%">
+            {% for a in leistungsarten %}<option value="{{ a.v }}" {% if a.v == 'FS' %}selected{% endif %}>{{ a.v }}</option>{% endfor %}
+          </select>
+        </div>
+        <div><label class="fld">Beginn</label><input type="time" name="beginn" style="width:100%"></div>
+        <div><label class="fld">Ende</label><input type="time" name="ende" style="width:100%"></div>
+        <div><label class="fld">Anz. Mitarbeiter</label><input type="number" name="anz_ma" value="1" min="1" style="width:100%"></div>
+        <div class="full"><label class="fld">Teilnehmer*innen (Mehrfachauswahl mit Strg / ⌘)</label>
+          <select name="teilnehmer" multiple style="width:100%">
+            {% for k in klienten %}<option value="{{ k.id }}">{{ k.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="full"><button class="btn" type="submit">Gruppe speichern</button></div>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="head"><h2>Erfasste Gruppen</h2></div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Datum</th><th>Thema</th><th>Art</th><th>Zeit</th><th class="num">Dauer</th>
+          <th class="num">MA</th><th class="num">Teiln.</th><th class="num">Zeit/Klient</th><th>Teilnehmer*innen</th><th></th></tr></thead>
+        <tbody>
+          {% for g in gruppen %}
+          <tr>
+            <td>{{ g.datum|date:"d.m.Y" }}</td>
+            <td>{{ g.thema }}</td>
+            <td>{{ g.leistungsart }}</td>
+            <td>{{ g.beginn|time:"H:i"|default:"–" }}–{{ g.ende|time:"H:i"|default:"–" }}</td>
+            <td class="num">{{ g.dauer_stunden|floatformat:2 }}</td>
+            <td class="num">{{ g.anz_ma }}</td>
+            <td class="num">{{ g.anzahl_teilnehmer }}</td>
+            <td class="num"><b>{{ g.zeit_pro_klient|floatformat:2 }}</b></td>
+            <td class="tn">{% for k in g.teilnehmer.all %}{{ k.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</td>
+            <td>
+              <form method="post" action="{% url 'nachweis:gruppe_delete' %}" onsubmit="return confirm('Gruppe löschen?')">
+                {% csrf_token %}<input type="hidden" name="id" value="{{ g.id }}">
+                <button class="btn ghost" style="padding:4px 9px;color:var(--bad)" type="submit">✕</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="10" class="muted" style="text-align:center;padding:22px">Noch keine Gruppen erfasst.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

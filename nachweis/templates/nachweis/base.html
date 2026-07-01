@@ -45,7 +45,9 @@
     nav.side a:hover{background:#f1f5f9;text-decoration:none}
     nav.side a.active{background:var(--brand-soft);color:var(--brand-d);font-weight:600;
       box-shadow:inset 3px 0 0 var(--brand)}
-    nav.side a .ico{width:20px;text-align:center;opacity:.85;font-size:15px}
+    nav.side a .ico{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;opacity:.85}
+    nav.side a .ico svg{width:19px;height:19px;fill:currentColor;display:block}
+    nav.side a.active .ico{opacity:1}
     main{flex:1;padding:24px 30px;min-width:0}
     h1.page{font-size:21px;margin:0 0 3px;font-weight:650;letter-spacing:.1px}
     .sub{color:var(--muted);margin:0 0 20px}
@@ -106,16 +108,23 @@
   <div class="shell">
     <nav class="side">
       <div class="grp">Auswertung</div>
-      <a href="{% url 'nachweis:dashboard' %}" class="{% if aktiv == 'dashboard' %}active{% endif %}"><span class="ico">📊</span> Fachleistungsstunden</a>
+      <a href="{% url 'nachweis:dashboard' %}" class="{% if aktiv == 'dashboard' %}active{% endif %}">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M4 9h4v11H4zM10 4h4v16h-4zM16 13h4v7h-4z"/></svg></span> Fachleistungsstunden</a>
       <div class="grp">Erfassung</div>
-      <a href="{% url 'nachweis:erfassung' %}" class="{% if aktiv == 'erfassung' %}active{% endif %}"><span class="ico">📝</span> Leistungsnachweis</a>
-      <a href="{% url 'nachweis:druck' %}" class="{% if aktiv == 'druck' %}active{% endif %}"><span class="ico">🖨️</span> Druck-Nachweis</a>
+      <a href="{% url 'nachweis:erfassung' %}" class="{% if aktiv == 'erfassung' %}active{% endif %}">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></span> Leistungsnachweis</a>
+      <a href="{% url 'nachweis:druck' %}" class="{% if aktiv == 'druck' %}active{% endif %}">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7a1 1 0 110-2 1 1 0 010 2zm-1-9H6v4h12V3z"/></svg></span> Druck-Nachweis</a>
+      <div class="grp">Stammdaten</div>
+      <a href="{% url 'nachweis:gruppen' %}" class="{% if aktiv == 'gruppen' %}active{% endif %}">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span> Gruppennachweise</a>
       {% if user.is_staff %}
-      <div class="grp">Stammdaten (Leitung)</div>
-      <a href="{% url 'admin:nachweis_klient_changelist' %}"><span class="ico">🗂️</span> Belegungsliste</a>
-      <a href="{% url 'admin:nachweis_gruppe_changelist' %}"><span class="ico">👥</span> Gruppennachweise</a>
-      <a href="{% url 'admin:nachweis_mitarbeiter_changelist' %}"><span class="ico">👤</span> Mitarbeiter</a>
-      <a href="{% url 'admin:index' %}"><span class="ico">🔧</span> Admin-Bereich</a>
+      <a href="{% url 'admin:nachweis_klient_changelist' %}">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM7 7h10v2H7zm0 4h10v2H7zm0 4h7v2H7z"/></svg></span> Belegungsliste</a>
+      <a href="{% url 'admin:nachweis_mitarbeiter_changelist' %}">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span> Mitarbeiter</a>
+      <a href="{% url 'admin:index' %}">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg></span> Admin-Bereich</a>
       {% endif %}
     </nav>
     <main>

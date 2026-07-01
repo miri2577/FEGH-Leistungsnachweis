@@ -10,6 +10,9 @@ urlpatterns = [
     path("erfassung/", views.erfassung, name="erfassung"),
     path("druck/", views.druck, name="druck"),
     path("druck/pdf/", views.druck_pdf, name="druck_pdf"),
+    path("gruppen/", views.gruppen, name="gruppen"),
+    path("gruppen/save/", views.gruppe_save, name="gruppe_save"),
+    path("gruppen/delete/", views.gruppe_delete, name="gruppe_delete"),
 
     # API (Erfassungs-Grid)
     path("api/leistungen/", views.api_leistungen, name="api_leistungen"),

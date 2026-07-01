@@ -7,7 +7,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 import holidays as _holidays
 
-from .models import Klient, Gruppe, Parameter, Leistungsart, Mitarbeiter, Rolle, FLS_ARTEN, Status
+from .models import Klient, Gruppe, Leistung, Parameter, Leistungsart, Mitarbeiter, Rolle, FLS_ARTEN, Status
 
 Q3 = Decimal("0.001")
 
@@ -156,6 +156,60 @@ def fachleistungsstunden(jahr: int, klienten=None):
         "ts_dauer": get_parameter(jahr).teamsitzung_dauer_std,
     }
     return zeilen, summe
+
+
+def auslastung_zeitreihe(jahr: int, klienten):
+    """Ist-FLS & Auslastung je Kalenderwoche / Monat / Jahr für die (gefilterten) Klient*innen.
+    Berücksichtigt manuelle Leistungen, Gruppen-Anteile und Teamsitzung – auf deren echten Daten."""
+    kl_ids = set(klienten.values_list("id", flat=True))
+    kl_list = list(klienten)
+    kont_monat = sum((k.fls_gesamt for k in kl_list), Decimal("0"))
+    kont_jahr = kont_monat * 12
+    kont_woche = (kont_jahr / Decimal(52)) if kont_jahr else Decimal("0")
+
+    ist_monat = [Decimal("0")] * 13          # Index 1..12
+    ist_woche = defaultdict(lambda: Decimal("0"))
+
+    def add(d, betrag):
+        ist_monat[d.month] += betrag
+        ist_woche[d.isocalendar()[1]] += betrag
+
+    for l in Leistung.objects.filter(klient_id__in=kl_ids, datum__year=jahr).exclude(auto=True):
+        add(l.datum, l.dauer_stunden)
+
+    for g in Gruppe.objects.filter(datum__year=jahr).prefetch_related("teilnehmer"):
+        anteil = g.zeit_pro_klient
+        if not anteil:
+            continue
+        n = sum(1 for k in g.teilnehmer.all() if k.id in kl_ids)
+        if n:
+            add(g.datum, anteil * n)
+
+    n_active = sum(1 for k in kl_list if k.status == Status.BETREUUNG)
+    if n_active:
+        p = get_parameter(jahr)
+        n_glob = anzahl_klienten()
+        share = (p.teamsitzung_dauer_std / Decimal(n_glob)).quantize(Q3, ROUND_HALF_UP) if n_glob else Decimal("0")
+        for d in teamsitzungstage(jahr, p.teamsitzung_wochentag):
+            add(d, share * n_active)
+
+    def pct(ist, kont):
+        return round(float(ist / kont * 100), 1) if kont else 0.0
+
+    monate = [{"label": f"{m:02d}", "ist": round(float(ist_monat[m]), 2),
+               "auslastung": pct(ist_monat[m], kont_monat)} for m in range(1, 13)]
+    wochen = [{"label": f"KW{w}", "ist": round(float(ist_woche.get(w, 0)), 2),
+               "auslastung": pct(ist_woche.get(w, Decimal("0")), kont_woche)} for w in range(1, 53)]
+    jahr_ist = sum((ist_monat[m] for m in range(1, 13)), Decimal("0"))
+
+    return {
+        "monate": monate,
+        "wochen": wochen,
+        "kont_monat": round(float(kont_monat), 2),
+        "kont_woche": round(float(kont_woche), 2),
+        "jahr": {"ist": round(float(jahr_ist), 2), "kontingent": round(float(kont_jahr), 2),
+                 "auslastung": pct(jahr_ist, kont_jahr)},
+    }
 
 
 def druck_nachweis(klient, jahr: int, monat: int):
