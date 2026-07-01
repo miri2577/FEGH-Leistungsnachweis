@@ -1,0 +1,16 @@
+{% extends "nachweis/_2fa_base.html" %}
+{% block title %}Code eingeben · FEGH{% endblock %}
+{% block heading %}Bestätigungscode{% endblock %}
+{% block sub %}Gib den 6-stelligen Code aus deiner Authenticator-App ein{% endblock %}
+{% block card %}
+  <form method="post">
+    {% csrf_token %}
+    {% if messages %}{% for m in messages %}<div class="err">{{ m }}</div>{% endfor %}{% endif %}
+    <label for="token">6-stelliger Code</label>
+    <input type="text" name="token" id="token" inputmode="numeric" autocomplete="one-time-code"
+           maxlength="8" pattern="[0-9A-Za-z]*" autofocus required>
+    <button class="primary" type="submit">Anmelden</button>
+    <p class="muted" style="margin-top:14px">Kein Zugriff auf die App? Gib einen deiner <b>Recovery-Codes</b> ein.</p>
+    <a class="link" href="{% url 'nachweis:logout' %}">Abmelden</a>
+  </form>
+{% endblock %}

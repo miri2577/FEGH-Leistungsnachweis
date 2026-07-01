@@ -75,6 +75,14 @@ class Command(BaseCommand):
             for M in (Stempelung, Arbeitszeit, Abwesenheit, Leistung, Gruppe, Klient,
                       Mitarbeiter, Team, Parameter):
                 M.objects.all().delete()
+            # 2FA-Geräte zurücksetzen -> Demo-Logins bleiben ohne 2FA nutzbar (OTP_REQUIRED=0)
+            try:
+                from django_otp.plugins.otp_totp.models import TOTPDevice
+                from django_otp.plugins.otp_static.models import StaticDevice
+                TOTPDevice.objects.all().delete()
+                StaticDevice.objects.all().delete()
+            except Exception:
+                pass
             self.stdout.write("Vorhandene Demodaten gelöscht.")
 
         Parameter.objects.get_or_create(

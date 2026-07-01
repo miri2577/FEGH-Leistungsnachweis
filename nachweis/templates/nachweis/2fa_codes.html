@@ -1,0 +1,22 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Recovery-Codes · FEGH{% endblock %}
+{% block extrastyle %}
+  .codes{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 20px;max-width:420px;
+    font-family:Consolas,monospace;font-size:15px;letter-spacing:.06em;margin:8px 0 4px}
+  .codes span{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Zwei-Faktor aktiviert ✓</h1>
+  <p class="sub">Bewahre diese <b>Recovery-Codes</b> sicher auf – jeder funktioniert genau einmal, falls du dein Handy verlierst.</p>
+  <div class="panel">
+    <div class="head"><h2>Deine 10 Recovery-Codes</h2></div>
+    <div class="body" style="padding:16px 18px">
+      <div class="codes">{% for c in codes %}<span>{{ c }}</span>{% endfor %}</div>
+      <p class="note">Drucke sie aus oder speichere sie in einem Passwort-Manager. Sie werden <b>nicht erneut angezeigt</b>.</p>
+      <div style="margin-top:14px;display:flex;gap:10px">
+        <button class="btn" onclick="window.print()">Drucken</button>
+        <a class="btn ghost" href="{% url 'nachweis:2fa_status' %}">Ich habe sie notiert</a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Zwei-Faktor · FEGH{% endblock %}
+{% block content %}
+  <h1 class="page">Zwei-Faktor-Authentifizierung</h1>
+  <p class="sub">Zusätzliche Sicherheit für deinen Zugang zu sensiblen Daten.</p>
+
+  <div class="grid-dash">
+    <div class="kpi {% if aktiv %}k-green{% else %}k-orange{% endif %}">
+      <div class="top">
+        <span class="chip"><svg viewBox="0 0 24 24"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg></span>
+        <span class="l">Status</span>
+      </div>
+      <div class="n" style="font-size:18px;{% if aktiv %}color:var(--ok){% else %}color:var(--warn){% endif %}">
+        {% if aktiv %}aktiviert{% else %}nicht aktiviert{% endif %}</div>
+    </div>
+    {% if aktiv %}
+    <div class="kpi k-blue">
+      <div class="top"><span class="chip"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3z"/></svg></span>
+        <span class="l">verbleibende Recovery-Codes</span></div>
+      <div class="n">{{ rest_codes }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    <div class="body" style="padding:16px 18px">
+      {% if aktiv %}
+        <p>Deine Anmeldung ist mit einem Einmalcode aus deiner Authenticator-App geschützt.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+          <a class="btn ghost" href="{% url 'nachweis:2fa_setup' %}">Neu einrichten (Gerät wechseln)</a>
+          <form method="post" action="{% url 'nachweis:2fa_deaktivieren' %}" onsubmit="return confirm('Zwei-Faktor wirklich deaktivieren?')" style="margin:0">
+            {% csrf_token %}<button class="btn" style="background:var(--bad)">Deaktivieren</button>
+          </form>
+        </div>
+      {% else %}
+        <p>Aktiviere die Zwei-Faktor-Authentifizierung, um deinen Zugang zusätzlich zu schützen.</p>
+        <a class="btn" href="{% url 'nachweis:2fa_setup' %}">Jetzt einrichten</a>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

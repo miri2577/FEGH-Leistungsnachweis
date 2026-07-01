@@ -1,5 +1,7 @@
 Django>=5.1,<5.2
 holidays>=0.50
+django-otp>=1.5
+qrcode>=7.4
 
 # --- Produktion / später ---
 # gunicorn            # WSGI-Server

@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import views
+from . import views, views_2fa
 
 app_name = "nachweis"
 
@@ -36,4 +36,10 @@ urlpatterns = [
     path("login/", auth_views.LoginView.as_view(
         template_name="nachweis/login.html"), name="login"),
     path("logout/", auth_views.LogoutView.as_view(next_page="nachweis:login"), name="logout"),
+
+    # Zwei-Faktor (TOTP)
+    path("2fa/setup/", views_2fa.zwei_faktor_setup, name="2fa_setup"),
+    path("2fa/verify/", views_2fa.zwei_faktor_verify, name="2fa_verify"),
+    path("2fa/status/", views_2fa.zwei_faktor_status, name="2fa_status"),
+    path("2fa/deaktivieren/", views_2fa.zwei_faktor_deaktivieren, name="2fa_deaktivieren"),
 ]

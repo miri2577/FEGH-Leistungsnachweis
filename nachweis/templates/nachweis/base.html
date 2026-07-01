@@ -182,6 +182,9 @@
       <span class="chip">Team TBEW · Berlin</span>
       {% if user.is_authenticated %}
         <span>{{ user.get_full_name|default:user.username }}{% if user.mitarbeiter_profil %} · {{ user.mitarbeiter_profil.get_rolle_display }}{% endif %}</span>
+        <a href="{% url 'nachweis:2fa_status' %}" title="Zwei-Faktor-Sicherheit"
+           style="color:#fff;display:inline-flex;align-items:center;opacity:.9">
+          <svg viewBox="0 0 24 24" width="18" height="18" style="fill:currentColor"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></a>
         <form method="post" action="{% url 'nachweis:logout' %}">{% csrf_token %}<button type="submit">Abmelden</button></form>
       {% endif %}
     </div>

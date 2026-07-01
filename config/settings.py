@@ -36,6 +36,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'django_otp.plugins.otp_static',
     'nachweis',
 ]
 
@@ -45,6 +48,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django_otp.middleware.OTPMiddleware',            # NACH AuthenticationMiddleware
+    'nachweis.middleware.OTPErzwingenMiddleware',     # NACH OTPMiddleware
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -129,3 +134,9 @@ LOGOUT_REDIRECT_URL = 'nachweis:login'
 
 # Externes Wiki (Material for MkDocs, GitHub Pages) – Link in der Sidebar
 WIKI_URL = os.environ.get("WIKI_URL", "https://miri2577.github.io/FEGH-Leistungsnachweis/")
+
+# Zwei-Faktor (django-otp / TOTP)
+OTP_TOTP_ISSUER = "FEGH-Leistungsnachweis"     # Anzeigename in der Authenticator-App
+# Prototyp: 0 = optional (Opt-in, wer ein Gerät einrichtet wird gefragt).
+# Prod: DJANGO_OTP_REQUIRED=1 -> Pflicht für ALLE (außer Break-Glass-Superuser).
+OTP_REQUIRED = os.environ.get("DJANGO_OTP_REQUIRED", "0") == "1"
