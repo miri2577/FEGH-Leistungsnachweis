@@ -7,9 +7,38 @@ from decimal import Decimal
 
 import holidays as _holidays
 
-from .models import Klient, Gruppe, Parameter, Leistungsart, FLS_ARTEN, Status
+from .models import Klient, Gruppe, Parameter, Leistungsart, Mitarbeiter, Rolle, FLS_ARTEN, Status
 
 Q3 = Decimal("0.001")
+
+
+# --------------------------------------------------------------------------
+#  Rollen / Sichtbarkeit
+# --------------------------------------------------------------------------
+def mitarbeiter_fuer(user):
+    """Das Mitarbeiter-Profil zum eingeloggten User (oder None)."""
+    try:
+        return user.mitarbeiter_profil
+    except (Mitarbeiter.DoesNotExist, AttributeError):
+        return None
+
+
+def darf_alles(user) -> bool:
+    """Superuser oder Teamleitung sehen den ganzen Team-Bestand."""
+    if user.is_superuser:
+        return True
+    m = mitarbeiter_fuer(user)
+    return bool(m and m.rolle == Rolle.TEAMLEITUNG)
+
+
+def klienten_fuer(user):
+    """QuerySet der sichtbaren Klient*innen: alle (Leitung) oder nur eigene (Betreuer*in)."""
+    if darf_alles(user):
+        return Klient.objects.all()
+    m = mitarbeiter_fuer(user)
+    if m:
+        return Klient.objects.filter(bezugsbetreuer=m)
+    return Klient.objects.none()
 
 
 def berliner_feiertage(jahr: int):
@@ -82,13 +111,15 @@ def gruppen_anteile(jahr: int):
     return d
 
 
-def fachleistungsstunden(jahr: int):
+def fachleistungsstunden(jahr: int, klienten=None):
     """Auswertung je Klient (wie Tab 'Fachleistungsstunden' der Excel).
-    Rückgabe: (zeilen, summe)."""
+    Teamsitzung wird immer durch ALLE Klienten geteilt; `klienten` schränkt nur die
+    angezeigten Zeilen ein (z. B. auf die eigenen). Rückgabe: (zeilen, summe)."""
     ts_pro, n_do = teamsitzung_pro_klient(jahr)
     gruppen = gruppen_anteile(jahr)
+    qs = klienten if klienten is not None else Klient.objects.all()
     zeilen = []
-    for k in Klient.objects.select_related("bezugsbetreuer").all():
+    for k in qs.select_related("bezugsbetreuer"):
         manual = list(k.leistungen.filter(datum__year=jahr))
         ist_manual = sum((l.dauer_stunden for l in manual), Decimal("0"))
         fz = sum((l.dauer_stunden for l in manual if l.leistungsart == Leistungsart.FZ), Decimal("0"))
@@ -123,3 +154,49 @@ def fachleistungsstunden(jahr: int):
         "ts_pro_klient_jahr": ts_pro,
     }
     return zeilen, summe
+
+
+def druck_nachweis(klient, jahr: int, monat: int):
+    """Amtlicher Leistungsnachweis je Klient*in & Monat:
+    Einzelnachweis (manuell + Gruppen-Anteile + Teamsitzung je Do) + Kategorie-Summen + Σ FLS."""
+    p = get_parameter(jahr)
+    n = anzahl_klienten()
+    eintraege = []
+
+    for l in klient.leistungen.filter(datum__year=jahr, datum__month=monat):
+        eintraege.append({
+            "datum": l.datum, "leistungsart": l.leistungsart, "bezeichnung": l.taetigkeit,
+            "beginn": l.beginn, "ende": l.ende, "stunden": l.dauer_stunden, "auto": False})
+
+    for g in klient.gruppen.filter(datum__year=jahr, datum__month=monat):
+        eintraege.append({
+            "datum": g.datum, "leistungsart": g.leistungsart, "bezeichnung": f"Gruppe: {g.thema}",
+            "beginn": g.beginn, "ende": g.ende, "stunden": g.zeit_pro_klient, "auto": True})
+
+    ts_share = (p.teamsitzung_dauer_std / Decimal(n)).quantize(Q3) if n else Decimal("0")
+    for d in teamsitzungstage(jahr, p.teamsitzung_wochentag):
+        if d.month == monat:
+            eintraege.append({
+                "datum": d, "leistungsart": Leistungsart.KLE, "bezeichnung": "Teamsitzung",
+                "beginn": None, "ende": None, "stunden": ts_share, "auto": True})
+
+    eintraege.sort(key=lambda e: (e["datum"], e["beginn"] or __import__("datetime").time(0, 0)))
+
+    labels = dict(Leistungsart.choices)
+    summen = []
+    total_fls = Decimal("0")
+    total_alle = Decimal("0")
+    for art in Leistungsart:
+        s = sum((e["stunden"] for e in eintraege if e["leistungsart"] == art), Decimal("0"))
+        summen.append({"art": art, "label": labels[art], "stunden": s.quantize(Q3),
+                       "ist_fls": art in FLS_ARTEN})
+        total_alle += s
+        if art in FLS_ARTEN:
+            total_fls += s
+
+    return {
+        "klient": klient, "jahr": jahr, "monat": monat,
+        "monat_text": f"{monat:02d}.{jahr}",
+        "eintraege": eintraege, "summen": summen,
+        "fls_summe": total_fls.quantize(Q3), "gesamt": total_alle.quantize(Q3),
+    }

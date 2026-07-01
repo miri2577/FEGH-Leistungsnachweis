@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<style>
+  @page{size:A4;margin:18mm 16mm}
+  body{font-family:"Segoe UI",Arial,sans-serif;color:#1e2a37;font-size:11pt}
+  h2{font-size:16pt;color:#00539f;margin:0 0 2px}
+  .meta{margin:8px 0 16px;font-size:10pt;line-height:1.7}
+  .meta b{color:#555}
+  table{width:100%;border-collapse:collapse;font-size:10pt;margin:6px 0}
+  th,td{border:1px solid #bcd;padding:5px 8px}
+  th{background:#eef4fa;text-align:left}
+  td.num{text-align:right}
+  .fls{background:#eef6ef}
+  .sumfls td{background:#00539f;color:#fff;font-weight:700}
+  .sign{display:flex;gap:50px;margin-top:40px}
+  .sign div{flex:1;border-top:1px solid #444;padding-top:5px;color:#666;font-size:9pt}
+  .legal{margin-top:16px;color:#666;font-size:8.5pt;line-height:1.6}
+</style></head>
+<body>
+  <h2>Leistungsnachweis</h2>
+  <div class="meta">
+    <b>Träger / Team:</b> TBEW · Berliner Eingliederungshilfe &nbsp;&nbsp;
+    <b>Monat:</b> {{ daten.monat_text }}<br>
+    <b>Klient*in:</b> {{ klient.name }} &nbsp;&nbsp; <b>Person-ID:</b> {{ klient.person_id|default:"—" }}
+    &nbsp;&nbsp; <b>Bezugsbetreuer*in:</b> {{ klient.bezugsbetreuer }}
+  </div>
+
+  <table>
+    <thead><tr><th style="width:60px">Art</th><th>Bezeichnung</th><th class="num" style="width:110px">Stunden</th></tr></thead>
+    <tbody>
+      {% for s in daten.summen %}{% if s.stunden %}
+      <tr class="{% if s.ist_fls %}fls{% endif %}"><td>{{ s.art }}</td><td>{{ s.label }}</td><td class="num">{{ s.stunden|floatformat:2 }}</td></tr>
+      {% endif %}{% endfor %}
+      <tr class="sumfls"><td colspan="2">Σ Fachleistungsstunden (FS + WFS + BAO)</td><td class="num">{{ daten.fls_summe|floatformat:2 }}</td></tr>
+      <tr><td colspan="2"><b>Σ Gesamt</b></td><td class="num"><b>{{ daten.gesamt|floatformat:2 }}</b></td></tr>
+    </tbody>
+  </table>
+
+  <h3 style="font-size:11pt;margin:18px 0 4px">Einzelnachweis</h3>
+  <table>
+    <thead><tr><th style="width:80px">Datum</th><th style="width:50px">Art</th><th>Bezeichnung</th>
+      <th style="width:52px">Beginn</th><th style="width:52px">Ende</th><th class="num" style="width:64px">Std</th></tr></thead>
+    <tbody>
+      {% for e in daten.eintraege %}
+      <tr><td>{{ e.datum|date:"d.m.Y" }}</td><td>{{ e.leistungsart }}</td><td>{{ e.bezeichnung|default:"—" }}</td>
+        <td>{{ e.beginn|time:"H:i"|default:"—" }}</td><td>{{ e.ende|time:"H:i"|default:"—" }}</td>
+        <td class="num">{{ e.stunden|floatformat:2 }}</td></tr>
+      {% empty %}<tr><td colspan="6" style="text-align:center">Keine Einträge.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <div class="sign"><div>Betreuer*in / Datum</div><div>Klient*in / Datum</div></div>
+  <p class="legal">Rechtsgrundlage: Handreichung „weitere fallspezifische Leistungen", Beschluss Nr. 3/2026
+    (örV EGH, § 113 i. V. m. § 78 SGB IX) · Berlin.</p>
+</body></html>

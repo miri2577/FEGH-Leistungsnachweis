@@ -1,0 +1,135 @@
+{% extends "nachweis/base.html" %}
+{% load static %}
+{% block title %}Leistungsnachweis erfassen · FEGH{% endblock %}
+
+{% block extrahead %}
+  <link rel="stylesheet" href="{% static 'nachweis/vendor/tabulator/tabulator.min.css' %}">
+  <script src="{% static 'nachweis/vendor/tabulator/tabulator.min.js' %}"></script>
+{% endblock %}
+
+{% block extrastyle %}
+  #grid{background:#fff}
+  .tabulator{border:0;font-size:13px}
+  .tabulator .tabulator-header{background:#f5f9fc}
+  .tabulator-row.tabulator-row-even{background:#fbfdff}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .del-btn{color:#c0392b;cursor:pointer;font-weight:700}
+  .hint{color:#697786;font-size:12.5px;margin:10px 2px 0}
+{% endblock %}
+
+{% block content %}
+  <h1 class="page">Leistungsnachweis erfassen</h1>
+  <p class="sub">Direkt in der Tabelle tippen – Änderungen werden automatisch gespeichert. Dauer rechnet der Server.</p>
+
+  {{ klienten_json|json_script:"klienten-data" }}
+  {{ leistungsarten_json|json_script:"arten-data" }}
+
+  <div class="panel">
+    <div class="head">
+      <div class="toolbar">
+        <button class="btn" id="add">+ Neue Zeile</button>
+        <span class="muted">|</span>
+        <label class="fld" style="margin:0">Monat
+          <select id="f-monat" style="margin-left:6px">
+            <option value="">alle</option>
+            {% for m in monate %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="fld" style="margin:0">Klient*in
+          <select id="f-klient" style="margin-left:6px">
+            <option value="">alle</option>
+            {% for k in klienten %}<option value="{{ k.id }}">{{ k.name }}</option>{% endfor %}
+          </select>
+        </label>
+        <input type="number" id="f-jahr" value="{{ jahr }}" style="width:88px" title="Jahr">
+        <button class="btn ghost" id="reload">Aktualisieren</button>
+      </div>
+      <span id="status" class="muted"></span>
+    </div>
+    <div class="body"><div id="grid"></div></div>
+  </div>
+  <p class="hint">FS/WFS/BAO zählen als Fachleistungsstunden · FZ = Fahrtzeit · KLE = kalkulatorisch · FH = Freihaltung (50 %).</p>
+{% endblock %}
+
+{% block extrajs %}
+<script>
+const KLIENTEN = JSON.parse(document.getElementById('klienten-data').textContent);
+const ARTEN    = JSON.parse(document.getElementById('arten-data').textContent);
+const klientMap = {}; KLIENTEN.forEach(k => klientMap[k.id] = k.name);
+const artMap = {}; ARTEN.forEach(a => artMap[a.v] = a.v);        // Anzeige = Kürzel
+const artValues = {}; ARTEN.forEach(a => artValues[a.v] = a.l);
+
+function getCookie(name){
+  const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return m ? m.pop() : '';
+}
+const CSRF = getCookie('csrftoken');
+const setStatus = (t) => { document.getElementById('status').textContent = t; };
+
+async function api(url, body){
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':CSRF}, body:JSON.stringify(body)});
+  if(!r.ok){ setStatus('⚠ '+(await r.text()||('Fehler '+r.status))); throw new Error(r.status); }
+  return r.json();
+}
+
+const table = new Tabulator("#grid", {
+  layout:"fitColumns", height:"62vh", placeholder:"Keine Einträge – „+ Neue Zeile“ anlegen.",
+  columns:[
+    {title:"Datum", field:"datum", editor:"date", width:120,
+     editorParams:{format:"yyyy-MM-dd"}},
+    {title:"Klient*in", field:"klient", editor:"list", width:190,
+     editorParams:{values:klientMap, autocomplete:true, listOnEmpty:true},
+     formatter:(c)=> klientMap[c.getValue()] || ""},
+    {title:"Leistung", field:"leistungsart", editor:"list", width:95,
+     editorParams:{values:artValues}, formatter:(c)=> c.getValue() || ""},
+    {title:"Tätigkeit", field:"taetigkeit", editor:"input"},
+    {title:"Beginn", field:"beginn", editor:"time", width:90, editorParams:{format:"HH:mm"}},
+    {title:"Ende", field:"ende", editor:"time", width:90, editorParams:{format:"HH:mm"}},
+    {title:"Dauer", field:"dauer", width:80, hozAlign:"right", editor:false,
+     formatter:(c)=> (c.getValue()!=null ? Number(c.getValue()).toFixed(2) : "")},
+    {title:"", field:"_del", width:44, hozAlign:"center", headerSort:false,
+     formatter:()=> '<span class="del-btn" title="Löschen">✕</span>',
+     cellClick:(e,cell)=> delRow(cell.getRow())},
+  ],
+});
+
+table.on("cellEdited", async (cell) => {
+  const d = cell.getRow().getData();
+  if(!d.datum || !d.klient || !d.leistungsart){ setStatus("Datum, Klient*in und Leistung nötig …"); return; }
+  try{
+    setStatus("speichere …");
+    const saved = await api("{% url 'nachweis:api_leistung_save' %}", d);
+    cell.getRow().update(saved);
+    setStatus("✓ gespeichert " + new Date().toLocaleTimeString());
+  }catch(e){}
+});
+
+async function delRow(row){
+  const d = row.getData();
+  if(d.id){ if(!confirm("Eintrag löschen?")) return; try{ await api("{% url 'nachweis:api_leistung_delete' %}", {id:d.id}); }catch(e){ return; } }
+  row.delete(); setStatus("gelöscht");
+}
+
+async function load(){
+  const p = new URLSearchParams({
+    jahr: document.getElementById('f-jahr').value,
+    monat: document.getElementById('f-monat').value,
+    klient: document.getElementById('f-klient').value,
+  });
+  const r = await fetch("{% url 'nachweis:api_leistungen' %}?"+p.toString());
+  const j = await r.json();
+  table.setData(j.data);
+  setStatus(j.data.length + " Einträge");
+}
+
+document.getElementById('add').addEventListener('click', async () => {
+  const today = new Date().toISOString().slice(0,10);
+  const row = await table.addRow({datum:today, klient:"", leistungsart:"FS", taetigkeit:"", beginn:"", ende:"", dauer:null}, true);
+  row.getCell("klient").edit();
+});
+document.getElementById('reload').addEventListener('click', load);
+document.getElementById('f-monat').addEventListener('change', load);
+document.getElementById('f-klient').addEventListener('change', load);
+table.on("tableBuilt", load);
+</script>
+{% endblock %}

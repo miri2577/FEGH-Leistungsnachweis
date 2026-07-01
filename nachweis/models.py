@@ -10,6 +10,7 @@ Alle Zeit-/Betragsgrößen als Decimal (keine Floats) – abrechnungsrelevant.
 from datetime import datetime, date
 from decimal import Decimal, ROUND_HALF_UP
 
+from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator
 
@@ -51,12 +52,18 @@ class Status(models.TextChoices):
 
 
 class Mitarbeiter(models.Model):
-    """Teammitglied. Im Prototyp eigenständig; später an Django-User koppelbar."""
+    """Teammitglied, verknüpft mit einem Login (Django-User)."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                null=True, blank=True, related_name="mitarbeiter_profil")
     name = models.CharField("Nachname", max_length=80)
     vorname = models.CharField("Vorname", max_length=80, blank=True)
     kuerzel = models.CharField("Kürzel", max_length=10, blank=True)
     rolle = models.CharField(max_length=20, choices=Rolle.choices, default=Rolle.BETREUER)
     aktiv = models.BooleanField(default=True)
+
+    @property
+    def ist_teamleitung(self):
+        return self.rolle == Rolle.TEAMLEITUNG
 
     class Meta:
         verbose_name = "Mitarbeiter*in"

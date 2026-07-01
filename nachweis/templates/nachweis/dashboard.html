@@ -5,29 +5,30 @@
   <p class="sub">Kontingent = AL + kLE pro Monat · Ist = erfasste Leistungen + Gruppen-Anteile + Teamsitzung</p>
 
   <div class="cards">
-    <div class="kpi"><div class="n">{{ kennzahlen.klienten }}</div><div class="l">Klient*innen</div></div>
-    <div class="kpi"><div class="n">{{ kennzahlen.mitarbeiter }}</div><div class="l">Mitarbeiter*innen</div></div>
+    <div class="kpi"><div class="n">{{ kennzahlen.klienten }}</div><div class="l">{% if darf_alles %}Klient*innen{% else %}meine Klient*innen{% endif %}</div></div>
     <div class="kpi"><div class="n">{{ kennzahlen.leistungen }}</div><div class="l">Leistungen {{ jahr }}</div></div>
-    <div class="kpi"><div class="n">{{ kennzahlen.gruppen }}</div><div class="l">Gruppen {{ jahr }}</div></div>
-    <div class="kpi"><div class="n">{{ summe.n_donnerstage }}</div><div class="l">Teamsitzungen (Do, o. Feiertag)</div></div>
+    <div class="kpi"><div class="n">{{ summe.ist|floatformat:0 }}</div><div class="l">Ist-Stunden gesamt</div></div>
+    <div class="kpi"><div class="n">{{ kennzahlen.n_donnerstage }}</div><div class="l">Teamsitzungen (Do, o. Feiertag)</div></div>
   </div>
 
   <div class="panel">
     <div class="head">
       <h2>Übersicht je Klient*in</h2>
       <form class="filter" method="get">
+        {% if darf_alles %}
         <select name="betreuer">
           <option value="">Alle Betreuer*innen</option>
           {% for m in betreuer_liste %}
             <option value="{{ m.id }}" {% if betreuer_id == m.id|stringformat:'s' %}selected{% endif %}>{{ m }}</option>
           {% endfor %}
         </select>
+        {% endif %}
         <input type="number" name="jahr" value="{{ jahr }}" style="width:90px" title="Jahr">
         <button class="btn" type="submit">Filtern</button>
       </form>
     </div>
     <div class="body">
-      <table>
+      <table class="grid">
         <thead>
           <tr>
             <th>Klient*in</th><th>Betreuer*in</th>
@@ -74,6 +75,7 @@
       </table>
     </div>
   </div>
-  <p class="note">Teamsitzung: {{ summe.n_donnerstage }} Donnerstage × 3 Std ÷ {{ kennzahlen.klienten }} Klient*innen
-    = {{ summe.ts_pro_klient_jahr|floatformat:3 }} Std/Klient/Jahr (KLE, Berliner Feiertage ausgenommen).</p>
+  <p class="note">Teamsitzung: {{ summe.n_donnerstage }} Donnerstage × 3 Std ÷ alle Klient*innen
+    = {{ summe.ts_pro_klient_jahr|floatformat:3 }} Std/Klient/Jahr (KLE, Berliner Feiertage ausgenommen).
+    {% if not darf_alles %}· Sicht: nur eigene Klient*innen.{% endif %}</p>
 {% endblock %}

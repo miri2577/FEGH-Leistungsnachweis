@@ -121,6 +121,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Login (Prototyp: Admin-Login mitnutzen)
-LOGIN_URL = 'admin:login'
+# Login
+LOGIN_URL = 'nachweis:login'
 LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = 'nachweis:login'

@@ -66,10 +66,21 @@ class Command(BaseCommand):
             jahr=JAHR,
             defaults=dict(teamsitzung_wochentag=3, teamsitzung_dauer_std=Decimal("3.0")))
 
+        User = get_user_model()
         mitarbeiter = []
         for nn, vn, rolle in MA_NAMEN:
+            uname = nn.lower()
+            is_leitung = rolle == Rolle.TEAMLEITUNG
+            user = User.objects.filter(username=uname).first()
+            if not user:
+                user = User.objects.create_user(uname, f"{uname}@example.com", "demo12345")
+            user.first_name, user.last_name = vn, nn
+            user.is_staff = is_leitung          # Teamleitung darf in den Admin
+            user.is_superuser = is_leitung
+            user.save()
             m = Mitarbeiter.objects.create(
-                name=nn, vorname=vn, kuerzel=(nn[:3] + vn[:2]).lower(), rolle=rolle)
+                user=user, name=nn, vorname=vn,
+                kuerzel=(nn[:3] + vn[:2]).lower(), rolle=rolle)
             mitarbeiter.append(m)
         betreuer = [m for m in mitarbeiter if m.rolle == Rolle.BETREUER]
 
@@ -137,3 +148,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"Fertig: {len(mitarbeiter)} Mitarbeiter, {len(klienten)} Klienten, "
             f"{n_leist} Leistungen, 2 Gruppen."))
+        self.stdout.write("Demo-Logins (Passwort: demo12345):")
+        for m in mitarbeiter:
+            rolle = "Teamleitung" if m.rolle == Rolle.TEAMLEITUNG else "Betreuer*in"
+            self.stdout.write(f"  {m.user.username:12s} · {rolle} · {m.klienten.count()} eigene Klient*innen")

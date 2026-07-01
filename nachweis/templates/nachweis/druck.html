@@ -1,0 +1,110 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Druck-Nachweis · FEGH{% endblock %}
+
+{% block extrastyle %}
+  .form-doc{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+    padding:30px 34px;max-width:820px;margin-top:16px}
+  .form-doc h2{font-size:20px;margin:0 0 2px;color:var(--brand-d)}
+  .doc-meta{display:flex;flex-wrap:wrap;gap:8px 34px;margin:14px 0 22px;font-size:13.5px}
+  .doc-meta b{color:var(--muted);font-weight:600;margin-right:6px}
+  table.doc{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 4px}
+  table.doc th,table.doc td{border:1px solid #d9e2ea;padding:7px 10px}
+  table.doc th{background:#f2f7fb;text-align:left;font-weight:600}
+  table.doc td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .fls-row{background:#eef6ef}
+  .sum-fls td{background:#00539f;color:#fff;font-weight:700;border-color:#00539f}
+  .sign{display:flex;gap:60px;margin-top:46px}
+  .sign div{flex:1;border-top:1px solid #444;padding-top:6px;color:var(--muted);font-size:12.5px}
+  .legal{margin-top:22px;color:var(--muted);font-size:11.5px;line-height:1.6}
+  @media print{
+    header.top,nav.side,.no-print{display:none !important}
+    body{background:#fff}
+    main{padding:0}
+    .form-doc{border:0;box-shadow:none;border-radius:0;max-width:none;padding:0}
+  }
+{% endblock %}
+
+{% block content %}
+  <h1 class="page no-print">Druck-Nachweis</h1>
+  <p class="sub no-print">Amtlicher Leistungsnachweis je Klient*in & Monat – Zusammenfassung, Einzelnachweis, Unterschrift.</p>
+
+  <div class="panel no-print">
+    <div class="head">
+      <h2>Auswahl</h2>
+      <form class="filter" method="get">
+        <select name="klient" required>
+          <option value="">Klient*in wählen …</option>
+          {% for k in klienten %}<option value="{{ k.id }}" {% if klient and klient.id == k.id %}selected{% endif %}>{{ k.name }}</option>{% endfor %}
+        </select>
+        <select name="monat">
+          {% for m in monate %}<option value="{{ m }}" {% if m == monat %}selected{% endif %}>{{ m }}</option>{% endfor %}
+        </select>
+        <input type="number" name="jahr" value="{{ jahr }}" style="width:88px">
+        <button class="btn" type="submit">Anzeigen</button>
+      </form>
+    </div>
+  </div>
+
+  {% if daten %}
+  <div style="margin:14px 0" class="no-print">
+    <button class="btn" onclick="window.print()">🖨️ Drucken / als PDF speichern</button>
+    <a class="btn ghost" href="{% url 'nachweis:druck_pdf' %}?klient={{ klient.id }}&monat={{ monat }}&jahr={{ jahr }}">PDF herunterladen</a>
+  </div>
+
+  <div class="form-doc">
+    <h2>Leistungsnachweis</h2>
+    <div class="doc-meta">
+      <span><b>Träger / Team:</b> TBEW · Berliner Eingliederungshilfe</span>
+      <span><b>Klient*in:</b> {{ klient.name }}</span>
+      <span><b>Person-ID:</b> {{ klient.person_id|default:"—" }}</span>
+      <span><b>Monat:</b> {{ daten.monat_text }}</span>
+      <span><b>Bezugsbetreuer*in:</b> {{ klient.bezugsbetreuer }}</span>
+    </div>
+
+    <table class="doc">
+      <thead><tr><th style="width:70px">Art</th><th>Bezeichnung</th><th class="num" style="width:120px">Stunden (dez.)</th></tr></thead>
+      <tbody>
+        {% for s in daten.summen %}
+          {% if s.stunden %}
+          <tr class="{% if s.ist_fls %}fls-row{% endif %}">
+            <td><b>{{ s.art }}</b></td><td>{{ s.label }}</td><td class="num">{{ s.stunden|floatformat:2 }}</td>
+          </tr>
+          {% endif %}
+        {% endfor %}
+        <tr class="sum-fls"><td colspan="2">Σ Fachleistungsstunden (FS + WFS + BAO)</td><td class="num">{{ daten.fls_summe|floatformat:2 }}</td></tr>
+        <tr><td colspan="2"><b>Σ Gesamt (alle Leistungen)</b></td><td class="num"><b>{{ daten.gesamt|floatformat:2 }}</b></td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:14px;margin:22px 0 6px">Einzelnachweis der Leistungen</h3>
+    <table class="doc">
+      <thead><tr><th style="width:92px">Datum</th><th style="width:60px">Art</th><th>Bezeichnung</th>
+        <th style="width:60px">Beginn</th><th style="width:60px">Ende</th><th class="num" style="width:80px">Std</th></tr></thead>
+      <tbody>
+        {% for e in daten.eintraege %}
+        <tr>
+          <td>{{ e.datum|date:"d.m.Y" }}</td>
+          <td>{{ e.leistungsart }}{% if e.auto %} <span class="muted" title="automatisch">•</span>{% endif %}</td>
+          <td>{{ e.bezeichnung|default:"—" }}</td>
+          <td>{{ e.beginn|time:"H:i"|default:"—" }}</td>
+          <td>{{ e.ende|time:"H:i"|default:"—" }}</td>
+          <td class="num">{{ e.stunden|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center;color:#697786">Keine Einträge in diesem Monat.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="sign">
+      <div>Betreuer*in / Datum</div>
+      <div>Klient*in / Datum</div>
+    </div>
+    <p class="legal">FS = fallspezifisch · WFS = Vor-/Nachbereitung, Fallbesprechung, Doku · BAO = Betreuung am anderen Ort ·
+      KLE = kalkulatorische Leistungseinheit (u. a. Teamsitzung) · FH = Freihaltung (50 % anrechenbar). „•“ = automatisch (Gruppe/Teamsitzung).<br>
+      Rechtsgrundlage: Handreichung „weitere fallspezifische Leistungen", Beschluss Nr. 3/2026 (örV EGH, § 113 i. V. m. § 78 SGB IX) · Berlin.</p>
+  </div>
+  {% elif klient is None %}
+  <p class="note no-print">Bitte oben Klient*in und Monat wählen.</p>
+  {% endif %}
+{% endblock %}
