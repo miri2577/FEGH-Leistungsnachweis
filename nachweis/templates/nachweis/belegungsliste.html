@@ -1,0 +1,42 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Belegungsliste · FEGH{% endblock %}
+{% block extrastyle %}
+  .st{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600}
+  .st.ok{background:var(--okbg);color:var(--ok)} .st.end{background:var(--badbg);color:var(--bad)}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Belegungsliste</h1>
+  <p class="sub">Klient*innen deines Teams pflegen: Bezugsbetreuer*in, bewilligte FLS (AL + kLE/Monat), HBG, KÜ, Status.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div style="margin-bottom:14px"><a class="btn" href="{% url 'nachweis:klient_neu' %}">+ Klient*in anlegen</a></div>
+
+  <div class="panel">
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Klient*in</th><th>Team</th><th>Bezugsbetreuer*in</th>
+          <th class="num">AL</th><th class="num">kLE</th><th class="num">FLS/Monat</th>
+          <th class="num">HBG</th><th>KÜ bis</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for k in klienten %}
+          <tr>
+            <td><b>{{ k.name }}</b></td>
+            <td class="muted">{{ k.team.name|default:"—" }}</td>
+            <td class="muted">{{ k.bezugsbetreuer }}</td>
+            <td class="num">{{ k.al|floatformat:3 }}</td>
+            <td class="num">{{ k.kle|floatformat:3 }}</td>
+            <td class="num"><b>{{ k.fls_gesamt|floatformat:3 }}</b></td>
+            <td class="num">{{ k.hbg|default:"—" }}</td>
+            <td>{{ k.kue_bis|date:"d.m.Y"|default:"—" }}</td>
+            <td>{% if k.status == 'Beendigung' %}<span class="st end">Beendigung</span>{% else %}<span class="st ok">Betreuung</span>{% endif %}</td>
+            <td><a class="btn ghost" style="padding:4px 10px;font-size:12px" href="{% url 'nachweis:klient_bearbeiten' k.id %}">Bearbeiten</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="10" class="muted" style="text-align:center;padding:20px">Noch keine Klient*innen in deinem Team.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

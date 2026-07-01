@@ -18,13 +18,71 @@ from django.utils.http import urlsafe_base64_decode
 from django.views.decorators.http import require_POST
 
 from . import accounts, services
-from .models import Mitarbeiter, Team, Rolle
+from .models import Mitarbeiter, Team, Teamtyp, Rolle
 
 User = get_user_model()
 
 
 def _nur_admin(request):
     return services.ist_admin(request.user) or request.user.is_superuser
+
+
+# ---------------------------------------------------------------- Admin: Teams
+@login_required
+def teams_liste(request):
+    if not _nur_admin(request):
+        return HttpResponseForbidden()
+    teams = [{"t": t, "mitglieder": t.mitglieder.count(), "klienten": t.klienten.count()}
+             for t in Team.objects.all()]
+    bearbeiten = Team.objects.filter(pk=request.GET.get("edit")).first() if request.GET.get("edit") else None
+    return render(request, "nachweis/teams_liste.html", {
+        "aktiv": "teams", "teams": teams, "typen": Teamtyp.choices, "bearbeiten": bearbeiten,
+    })
+
+
+@require_POST
+@login_required
+def team_speichern(request):
+    if not _nur_admin(request):
+        return HttpResponseForbidden()
+    name = (request.POST.get("name") or "").strip()
+    typ = request.POST.get("typ")
+    if not name or typ not in Teamtyp.values:
+        messages.error(request, "Bitte Name und Typ angeben.")
+        return redirect("nachweis:teams_liste")
+    tid = request.POST.get("id")
+    if tid:
+        t = get_object_or_404(Team, pk=tid)
+        t.name, t.typ = name, typ
+        t.aktiv = request.POST.get("aktiv") == "on"
+        t.save()
+        messages.success(request, f"Team „{name}“ gespeichert.")
+    else:
+        if Team.objects.filter(name=name).exists():
+            messages.error(request, "Ein Team mit diesem Namen existiert bereits.")
+        else:
+            Team.objects.create(name=name, typ=typ)
+            messages.success(request, f"Team „{name}“ angelegt.")
+    return redirect("nachweis:teams_liste")
+
+
+@require_POST
+@login_required
+def team_aktion(request):
+    if not _nur_admin(request):
+        return HttpResponseForbidden()
+    t = get_object_or_404(Team, pk=request.POST.get("id"))
+    if request.POST.get("aktion") == "toggle":
+        t.aktiv = not t.aktiv
+        t.save(update_fields=["aktiv"])
+        messages.success(request, f"Team „{t.name}“ {'aktiviert' if t.aktiv else 'deaktiviert'}.")
+    elif request.POST.get("aktion") == "loeschen":
+        if t.mitglieder.exists() or t.klienten.exists():
+            messages.error(request, "Team nicht löschbar – es sind noch Mitglieder oder Klient*innen zugeordnet.")
+        else:
+            name = t.name; t.delete()
+            messages.success(request, f"Team „{name}“ gelöscht.")
+    return redirect("nachweis:teams_liste")
 
 
 def _mail_link(user, link, betreff, art):

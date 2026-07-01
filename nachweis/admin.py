@@ -28,6 +28,11 @@ class MitarbeiterAdmin(admin.ModelAdmin):
     search_fields = ("name", "vorname", "kuerzel")
     autocomplete_fields = ("user",)
     filter_horizontal = ("leitet",)
+
+    def has_add_permission(self, request):
+        # Anlegen ausschließlich über die App-Seite "Mitarbeiter-Verwaltung"
+        # (mit Aktivierungslink) – keine Dopplung im Django-Admin.
+        return False
     fieldsets = (
         ("Person", {"fields": ("user", "name", "vorname", "kuerzel", "aktiv")}),
         ("Rolle & Team", {"fields": ("rolle", "team", "leitet")}),

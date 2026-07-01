@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import views, views_2fa, views_onboarding
+from . import views, views_2fa, views_onboarding, views_stammdaten
 
 app_name = "nachweis"
 
@@ -37,6 +37,17 @@ urlpatterns = [
         template_name="nachweis/login.html"), name="login"),
     path("logout/", auth_views.LogoutView.as_view(next_page="nachweis:login"), name="logout"),
 
+    # Stammdaten (Leitung)
+    path("belegungsliste/", views_stammdaten.belegungsliste, name="belegungsliste"),
+    path("belegungsliste/neu/", views_stammdaten.klient_form, name="klient_neu"),
+    path("belegungsliste/<int:pk>/", views_stammdaten.klient_form, name="klient_bearbeiten"),
+    path("belegungsliste/speichern/", views_stammdaten.klient_speichern, name="klient_speichern"),
+    path("parameter/", views_stammdaten.parameter, name="parameter"),
+
+    # Teams (Admin)
+    path("teams/", views_onboarding.teams_liste, name="teams_liste"),
+    path("teams/speichern/", views_onboarding.team_speichern, name="team_speichern"),
+    path("teams/aktion/", views_onboarding.team_aktion, name="team_aktion"),
     # Onboarding / Mitarbeiter-Verwaltung (Admin)
     path("mitarbeiter/", views_onboarding.mitarbeiter_liste, name="mitarbeiter_liste"),
     path("mitarbeiter/neu/", views_onboarding.mitarbeiter_neu, name="mitarbeiter_neu"),

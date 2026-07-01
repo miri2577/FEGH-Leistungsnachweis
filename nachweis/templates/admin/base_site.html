@@ -1,0 +1,43 @@
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} · FEGH-Leistungsnachweis{% endblock %}
+
+{% block branding %}
+  <div id="site-name"><a href="{% url 'admin:index' %}">FEGH-Leistungsnachweis · Verwaltung</a></div>
+{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+  /* Django-Admin auf helles Vivendi-Design zwingen (auch bei OS-/Toggle-Dunkelmodus) */
+  html{color-scheme:light !important}
+  :root,
+  html[data-theme="dark"],
+  html[data-theme="light"]{
+    --primary:#00539f; --secondary:#eef3f8; --accent:#1f7bc0;
+    --primary-fg:#ffffff;
+    --header-bg:#00539f; --header-color:#ffffff; --header-branding-color:#ffffff; --header-link-color:#dbe8f5;
+    --breadcrumbs-bg:#eef3f8; --breadcrumbs-fg:#33414f; --breadcrumbs-link-fg:#00539f;
+    --link-fg:#00539f; --link-hover-color:#003d78; --link-selected-fg:#003d78;
+    --body-bg:#eef2f6; --body-fg:#1e2a37; --body-quiet-color:#5b6b7a; --body-loud-color:#12202c;
+    --module-bg:#ffffff; --hairline-color:#e6edf3; --border-color:#d9e2ea;
+    --darkened-bg:#f4f7fa; --selected-bg:#eef3f8; --selected-row:#fbf7e0;
+    --button-bg:#00539f; --button-fg:#fff; --button-hover-bg:#003d78;
+    --default-button-bg:#1f7bc0; --default-button-hover-bg:#0f5c9c;
+    --close-button-bg:#8a97a6; --close-button-hover-bg:#5b6b7a;
+    --delete-button-bg:#c0392b; --delete-button-hover-bg:#9c2f23;
+    --object-tools-bg:#41546a; --object-tools-fg:#fff; --object-tools-hover-bg:#33414f;
+    --message-success-bg:#e6f4ee; --message-warning-bg:#fbf1dd; --message-error-bg:#fbeae8;
+  }
+  body{background:var(--body-bg)}
+  #header{box-shadow:0 2px 8px rgba(0,45,92,.18)}
+  /* Modul-Kopfzeilen & Tabellen ruhiger */
+  .module h2, .module caption, .inline-group h2{background:#41546a}
+  div.breadcrumbs{border-bottom:1px solid var(--border-color)}
+  .button, input[type=submit], input[type=button], .submit-row input, a.button{border-radius:8px}
+  #content-main .module{border:1px solid var(--border-color);border-radius:10px;box-shadow:0 1px 2px rgba(12,34,58,.05)}
+  #changelist table thead th{background:#f5f9fc}
+  /* Dark-Mode-Umschalter oben ausblenden (wir erzwingen hell) */
+  button.theme-toggle{display:none !important}
+</style>
+{% endblock %}
