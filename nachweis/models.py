@@ -64,6 +64,13 @@ class Status(models.TextChoices):
     BEENDIGUNG = "Beendigung", "Beendigung"
 
 
+class Genehmigungsstatus(models.TextChoices):
+    """Freigabe-Status für Arbeitszeiten und Abwesenheiten (Leitung genehmigt)."""
+    BEANTRAGT = "beantragt", "beantragt"
+    GENEHMIGT = "genehmigt", "genehmigt"
+    ABGELEHNT = "abgelehnt", "abgelehnt"
+
+
 class Team(models.Model):
     """Organisatorische Einheit. Mitarbeiter*innen und Klient*innen gehören zu einem Team.
     Der Typ steuert später u. a. die Stempeluhr (Verwaltung = fester Arbeitsplatz)."""
@@ -283,6 +290,8 @@ class Arbeitszeit(models.Model):
     ende = models.TimeField(null=True, blank=True)
     pause_min = models.PositiveSmallIntegerField("Pause (Min)", default=0)
     notiz = models.CharField(max_length=200, blank=True)
+    status = models.CharField(max_length=12, choices=Genehmigungsstatus.choices,
+                              default=Genehmigungsstatus.BEANTRAGT)
 
     class Meta:
         verbose_name = "Arbeitszeit"
@@ -336,10 +345,8 @@ class AbwesenheitArt(models.TextChoices):
     SONSTIGE = "Sonstige", "Sonstige"
 
 
-class AbwesenheitStatus(models.TextChoices):
-    BEANTRAGT = "beantragt", "beantragt"
-    GENEHMIGT = "genehmigt", "genehmigt"
-    ABGELEHNT = "abgelehnt", "abgelehnt"
+# Rückwärtskompatibler Alias (gleiche Werte) – von Views importiert
+AbwesenheitStatus = Genehmigungsstatus
 
 
 class Abwesenheit(models.Model):

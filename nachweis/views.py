@@ -14,7 +14,8 @@ from django.views.decorators.http import require_POST
 
 from . import services
 from .models import (Mitarbeiter, Team, Leistung, Gruppe, Klient, Leistungsart,
-                     Arbeitszeit, Abwesenheit, AbwesenheitArt, AbwesenheitStatus)
+                     Arbeitszeit, Abwesenheit, AbwesenheitArt, AbwesenheitStatus,
+                     Genehmigungsstatus)
 
 MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
                "August", "September", "Oktober", "November", "Dezember"]
@@ -382,6 +383,7 @@ def _az_row(a):
         "beginn": a.beginn.strftime("%H:%M") if a.beginn else "",
         "ende": a.ende.strftime("%H:%M") if a.ende else "",
         "pause_min": a.pause_min, "dauer": float(a.dauer_stunden), "notiz": a.notiz,
+        "status": a.status, "status_label": a.get_status_display(),
     }
 
 
@@ -422,6 +424,8 @@ def api_arbeitszeit_save(request):
     a.ende = _parse_time(p.get("ende"))
     a.pause_min = max(0, _int(p.get("pause_min"), 0))
     a.notiz = (p.get("notiz") or "").strip()
+    # jede Eingabe/Änderung geht (erneut) zur Genehmigung an die Leitung
+    a.status = Genehmigungsstatus.BEANTRAGT
     a.save()
     return JsonResponse(_az_row(a))
 
@@ -439,6 +443,49 @@ def api_arbeitszeit_delete(request):
         return HttpResponseForbidden()
     a.delete()
     return JsonResponse({"ok": True})
+
+
+# ---------------------------------------------------------------- Arbeitszeit-Freigaben (Leitung)
+@login_required
+def arbeitszeit_freigaben(request):
+    if not services.ist_leitung(request.user):
+        return HttpResponseForbidden()
+    teams = services.teams_fuer(request.user)
+    offen = (Arbeitszeit.objects.filter(status=Genehmigungsstatus.BEANTRAGT,
+                                        mitarbeiter__team__in=teams)
+             .select_related("mitarbeiter").order_by("mitarbeiter__name", "-datum", "beginn"))
+    # nach Mitarbeiter*in gruppieren
+    gruppen = {}
+    for a in offen:
+        gruppen.setdefault(a.mitarbeiter, []).append(a)
+    gruppiert = [{"ma": ma, "eintraege": eintr, "summe": sum((x.dauer_stunden for x in eintr), 0)}
+                 for ma, eintr in gruppen.items()]
+    return render(request, "nachweis/arbeitszeit_freigaben.html", {
+        "aktiv": "az_freigaben", "gruppiert": gruppiert, "anzahl": offen.count(),
+    })
+
+
+@require_POST
+@login_required
+def arbeitszeit_status(request):
+    if not services.ist_leitung(request.user):
+        return HttpResponseForbidden()
+    teams = services.teams_fuer(request.user)
+    scope = Arbeitszeit.objects.filter(mitarbeiter__team__in=teams)
+    aktion = request.POST.get("aktion")
+    if aktion in ("alle_genehmigen", "alle_ablehnen"):
+        ma_id = request.POST.get("mitarbeiter")
+        neu = Genehmigungsstatus.GENEHMIGT if aktion == "alle_genehmigen" else Genehmigungsstatus.ABGELEHNT
+        n = scope.filter(mitarbeiter_id=ma_id, status=Genehmigungsstatus.BEANTRAGT).update(status=neu)
+        messages.success(request, f"{n} Arbeitszeit-Einträge {neu}.")
+    else:
+        a = get_object_or_404(scope, pk=request.POST.get("id"))
+        st = request.POST.get("status")
+        if st in Genehmigungsstatus.values:
+            a.status = st
+            a.save(update_fields=["status"])
+            messages.success(request, f"Eintrag {a.get_status_display()}.")
+    return redirect("nachweis:arbeitszeit_freigaben")
 
 
 # ---------------------------------------------------------------- Abwesenheiten (Urlaub / Freizeitausgleich)

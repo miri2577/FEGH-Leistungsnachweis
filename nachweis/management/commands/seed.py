@@ -211,7 +211,8 @@ class Command(BaseCommand):
         if wolf:
             wolf.wochenstunden = Decimal("30.0"); wolf.save()
 
-        # Arbeitszeiten für Juni 2026 (voller Monat), Juli bewusst leer -> "fehlende Nachweise"
+        # Arbeitszeiten für Juni 2026 (voller Monat, bereits GENEHMIGT), Juli leer -> "fehlende Nachweise"
+        from nachweis.models import Genehmigungsstatus
         n_az = 0
         for m in mitarbeiter:
             soll_h = float(m.wochenstunden) / 5
@@ -221,7 +222,17 @@ class Command(BaseCommand):
                 d = date(JAHR, 6, tag)
                 if d.weekday() < 5:
                     Arbeitszeit.objects.create(mitarbeiter=m, datum=d, beginn=time(8, 0),
-                                               ende=ende, pause_min=30)
+                                               ende=ende, pause_min=30,
+                                               status=Genehmigungsstatus.GENEHMIGT)
+                    n_az += 1
+        # ein paar OFFENE Freigaben (Anfang Juli) für zwei TBEW-Mitarbeiter -> Leitung berger sieht sie
+        for m in [x for x in mitarbeiter if x.name in ("Neumann", "Schuster")]:
+            for tag in (1, 2, 3):
+                d = date(JAHR, 7, tag)
+                if d.weekday() < 5:
+                    Arbeitszeit.objects.create(mitarbeiter=m, datum=d, beginn=time(8, 0),
+                                               ende=time(16, 30), pause_min=30,
+                                               status=Genehmigungsstatus.BEANTRAGT)
                     n_az += 1
 
         # Abwesenheiten: 1 genehmigt, 1 beantragt

@@ -93,8 +93,9 @@ class ParameterAdmin(admin.ModelAdmin):
 
 @admin.register(Arbeitszeit)
 class ArbeitszeitAdmin(admin.ModelAdmin):
-    list_display = ("mitarbeiter", "datum", "beginn", "ende", "pause_min", "dauer_display")
-    list_filter = ("mitarbeiter", "datum")
+    list_display = ("mitarbeiter", "datum", "beginn", "ende", "pause_min", "dauer_display", "status")
+    list_filter = ("status", "mitarbeiter", "datum")
+    list_editable = ("status",)
     date_hierarchy = "datum"
     autocomplete_fields = ("mitarbeiter",)
 

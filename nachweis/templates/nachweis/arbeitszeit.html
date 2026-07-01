@@ -67,6 +67,12 @@ const table=new Tabulator("#grid",{layout:"fitColumns",height:"58vh",placeholder
     {title:"Pause (Min)",field:"pause_min",editor:"number",width:110,hozAlign:"right"},
     {title:"Dauer",field:"dauer",width:90,hozAlign:"right",editor:false,formatter:c=> c.getValue()!=null?Number(c.getValue()).toFixed(2):""},
     {title:"Notiz",field:"notiz",editor:"input"},
+    {title:"Freigabe",field:"status",width:110,editor:false,hozAlign:"center",formatter:function(c){
+      var s=c.getValue()||"beantragt";
+      var col={genehmigt:["#e6f4ee","#1e8a63"],abgelehnt:["#fbeae8","#c0392b"]}[s]||["#fbf1dd","#a9760a"];
+      var t=c.getRow().getData().status_label||s;
+      return '<span style="background:'+col[0]+';color:'+col[1]+';border-radius:999px;padding:2px 9px;font-size:11.5px;font-weight:600">'+t+'</span>';
+    }},
     {title:"",field:"_del",width:44,hozAlign:"center",headerSort:false,formatter:()=>'<span class="del-btn">✕</span>',cellClick:(e,cell)=>delRow(cell.getRow())},
   ]});
 table.on("cellEdited",async cell=>{

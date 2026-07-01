@@ -23,6 +23,10 @@ urlpatterns = [
     path("api/arbeitszeit/save/", views.api_arbeitszeit_save, name="api_arbeitszeit_save"),
     path("api/arbeitszeit/delete/", views.api_arbeitszeit_delete, name="api_arbeitszeit_delete"),
 
+    # Arbeitszeit-Freigaben (Leitung)
+    path("arbeitszeit/freigaben/", views.arbeitszeit_freigaben, name="arbeitszeit_freigaben"),
+    path("arbeitszeit/status/", views.arbeitszeit_status, name="arbeitszeit_status"),
+
     # Abwesenheiten (Urlaub / Freizeitausgleich)
     path("abwesenheit/", views.abwesenheit, name="abwesenheit"),
     path("abwesenheit/save/", views.abwesenheit_save, name="abwesenheit_save"),

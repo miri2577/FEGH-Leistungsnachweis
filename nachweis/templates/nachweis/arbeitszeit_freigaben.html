@@ -1,0 +1,56 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Arbeitszeit-Freigaben · FEGH{% endblock %}
+{% block extrastyle %}
+  td form{display:inline;margin:0}
+  td .mini{padding:4px 9px;font-size:12px}
+  .ph{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Arbeitszeit-Freigaben</h1>
+  <p class="sub">Von Mitarbeiter*innen eingereichte Arbeitszeiten prüfen und genehmigen – wie bei Urlaubsanträgen.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  {% if not gruppiert %}
+    <div class="panel"><div class="empty">✓ Aktuell keine offenen Arbeitszeit-Freigaben.</div></div>
+  {% endif %}
+
+  {% for g in gruppiert %}
+  <div class="panel">
+    <div class="head ph">
+      <h2>{{ g.ma }} · {{ g.eintraege|length }} Eintrag(e) · {{ g.summe|floatformat:2 }} Std</h2>
+      <form method="post" action="{% url 'nachweis:arbeitszeit_status' %}">
+        {% csrf_token %}<input type="hidden" name="mitarbeiter" value="{{ g.ma.id }}">
+        <button class="btn mini" name="aktion" value="alle_genehmigen">Alle genehmigen</button>
+        <button class="btn ghost mini" name="aktion" value="alle_ablehnen" style="color:var(--bad)"
+          onclick="return confirm('Alle Einträge ablehnen?')">Alle ablehnen</button>
+      </form>
+    </div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Datum</th><th>Beginn</th><th>Ende</th><th class="num">Pause</th>
+          <th class="num">Dauer</th><th>Notiz</th><th>Freigabe</th></tr></thead>
+        <tbody>
+          {% for a in g.eintraege %}
+          <tr>
+            <td>{{ a.datum|date:"d.m.Y" }} ({{ a.datum|date:"D" }})</td>
+            <td>{{ a.beginn|time:"H:i"|default:"–" }}</td>
+            <td>{{ a.ende|time:"H:i"|default:"–" }}</td>
+            <td class="num">{{ a.pause_min }} min</td>
+            <td class="num"><b>{{ a.dauer_stunden|floatformat:2 }}</b></td>
+            <td class="muted">{{ a.notiz }}</td>
+            <td>
+              <form method="post" action="{% url 'nachweis:arbeitszeit_status' %}" style="display:inline">
+                {% csrf_token %}<input type="hidden" name="id" value="{{ a.id }}">
+                <button class="btn mini" name="status" value="genehmigt">✓</button>
+                <button class="btn ghost mini" name="status" value="abgelehnt" style="color:var(--bad)">✕</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+{% endblock %}
