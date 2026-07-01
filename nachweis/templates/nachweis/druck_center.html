@@ -1,0 +1,106 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Druck-Nachweise · FEGH{% endblock %}
+
+{% block extrastyle %}
+  .dcg{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px;margin-top:16px}
+  .dcard{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+    padding:18px 20px;display:flex;flex-direction:column;gap:12px}
+  .dcard h2{font-size:16px;margin:0;display:flex;align-items:center;gap:9px;color:var(--brand-d)}
+  .dcard h2 .ico{width:22px;height:22px;display:inline-flex;color:var(--brand)}
+  .dcard h2 .ico svg{width:22px;height:22px;fill:currentColor}
+  .dcard p.hint{margin:0;color:var(--muted);font-size:12.5px;line-height:1.5}
+  .dcard .row{display:flex;flex-wrap:wrap;gap:8px}
+  .dcard select,.dcard input{flex:1;min-width:120px;padding:8px 10px;border:1px solid var(--border);
+    border-radius:8px;font-family:inherit;font-size:13.5px;background:#fff}
+  .dcard .go{margin-top:auto}
+  .dcard.leer{opacity:.6}
+{% endblock %}
+
+{% block content %}
+  <h1 class="page">Druck-Nachweise</h1>
+  <p class="sub">Alle Nachweise zum Ausdrucken oder als PDF: Klient*in · Arbeitszeit · Kasse · Gruppe. Auswahl treffen und „Öffnen".</p>
+
+  <div class="dcg">
+
+    {% if not ohne_klienten %}
+    <div class="dcard {% if not klienten %}leer{% endif %}">
+      <h2><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span> Klienten-Nachweis</h2>
+      <p class="hint">Amtlicher Fachleistungs-Nachweis je Klient*in und Monat (Zusammenfassung + Einzelnachweis + Unterschrift).</p>
+      {% if klienten %}
+      <form class="go" method="get" action="{% url 'nachweis:druck' %}">
+        <div class="row" style="margin-bottom:8px">
+          <select name="klient" required>
+            <option value="">Klient*in wählen …</option>
+            {% for k in klienten %}<option value="{{ k.id }}">{{ k.nachname }}, {{ k.vorname }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="row">
+          <select name="monat">{% for m,n in monate %}<option value="{{ m }}" {% if m == monat %}selected{% endif %}>{{ n }}</option>{% endfor %}</select>
+          <select name="jahr">{% for j in jahre %}<option value="{{ j }}" {% if j == jahr %}selected{% endif %}>{{ j }}</option>{% endfor %}</select>
+          <button class="btn" type="submit">Öffnen</button>
+        </div>
+      </form>
+      {% else %}<p class="hint"><i>Keine Klient*innen sichtbar.</i></p>{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="dcard {% if not mitarbeiter %}leer{% endif %}">
+      <h2><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></span> Arbeitszeit-Nachweis</h2>
+      <p class="hint">Monatliche Ist-/Soll-Arbeitszeit mit allen erfassten Tagen und Freigabe-Status.</p>
+      {% if mitarbeiter %}
+      <form class="go" method="get" action="{% url 'nachweis:arbeitszeit_druck' %}">
+        {% if mitarbeiter|length > 1 %}
+        <div class="row" style="margin-bottom:8px">
+          <select name="mitarbeiter">
+            {% for m in mitarbeiter %}<option value="{{ m.id }}" {% if me and m.id == me.id %}selected{% endif %}>{{ m.name }}, {{ m.vorname }}</option>{% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        <div class="row">
+          <select name="monat">{% for m,n in monate %}<option value="{{ m }}" {% if m == monat %}selected{% endif %}>{{ n }}</option>{% endfor %}</select>
+          <select name="jahr">{% for j in jahre %}<option value="{{ j }}" {% if j == jahr %}selected{% endif %}>{{ j }}</option>{% endfor %}</select>
+          <button class="btn" type="submit">Öffnen</button>
+        </div>
+      </form>
+      {% else %}<p class="hint"><i>Kein Mitarbeitendenprofil hinterlegt.</i></p>{% endif %}
+    </div>
+
+    {% if kassen %}
+    <div class="dcard">
+      <h2><span class="ico"><svg viewBox="0 0 24 24"><path d="M21 7.28V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-2.28A2 2 0 0022 15V9a2 2 0 00-1-1.72zM20 9v6h-7V9h7zM5 19V5h14v2h-6a2 2 0 00-2 2v6a2 2 0 002 2h6v2H5zm11-5.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/></svg></span> Kassen-Nachweis</h2>
+      <p class="hint">Kassenblatt (Buchungen + laufender Bestand) <b>und</b> Zählprotokoll des Monats auf einem Beleg.</p>
+      <form class="go" method="get" action="{% url 'nachweis:kasse_druck' %}">
+        <div class="row" style="margin-bottom:8px">
+          <select name="kasse">
+            {% for k in kassen %}<option value="{{ k.id }}">{{ k.bezeichnung|default:k.team.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="row">
+          <select name="monat">{% for m,n in monate %}<option value="{{ m }}" {% if m == kasse_monat %}selected{% endif %}>{{ n }}</option>{% endfor %}</select>
+          <select name="jahr">{% for j in jahre %}<option value="{{ j }}" {% if j == kasse_jahr %}selected{% endif %}>{{ j }}</option>{% endfor %}</select>
+          <button class="btn" type="submit">Öffnen</button>
+        </div>
+      </form>
+      <p class="hint" style="margin-top:2px">Vorbelegt: zuletzt abgeschlossener Monat.</p>
+    </div>
+    {% endif %}
+
+    {% if not ohne_klienten %}
+    <div class="dcard {% if not gruppen %}leer{% endif %}">
+      <h2><span class="ico"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span> Gruppen-Nachweis</h2>
+      <p class="hint">Einzelner Gruppennachweis mit Teilnehmer*innen und angerechneter Zeit pro Klient*in.</p>
+      {% if gruppen %}
+      <div class="go">
+        <div class="row">
+          <select id="gruppe-sel">
+            {% for g in gruppen %}<option value="{{ g.id }}">{{ g.datum|date:"d.m.Y" }} · {{ g.thema }}</option>{% endfor %}
+          </select>
+          <button class="btn" type="button" onclick="var s=document.getElementById('gruppe-sel');if(s.value)location.href='/gruppen/'+s.value+'/druck/';">Öffnen</button>
+        </div>
+      </div>
+      {% else %}<p class="hint"><i>Noch keine Gruppen erfasst.</i></p>{% endif %}
+    </div>
+    {% endif %}
+
+  </div>
+{% endblock %}

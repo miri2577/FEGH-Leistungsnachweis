@@ -19,7 +19,10 @@
 
   {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
-  <div style="margin-bottom:14px"><a class="btn ghost" href="{% url 'nachweis:kasse' %}?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}">← Zum Kassenblatt</a></div>
+  <div style="margin-bottom:14px;display:flex;gap:8px">
+    <a class="btn ghost" href="{% url 'nachweis:kasse' %}?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}">← Zum Kassenblatt</a>
+    <a class="btn ghost" href="{% url 'nachweis:kasse_druck' %}?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}" title="Kassenblatt + Zählprotokoll drucken">🖨️ Drucken</a>
+  </div>
 
   <form method="post" id="zform">
     {% csrf_token %}

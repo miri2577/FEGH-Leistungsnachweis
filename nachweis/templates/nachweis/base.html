@@ -209,8 +209,6 @@
       <div class="grp">Erfassung</div>
       <a href="{% url 'nachweis:erfassung' %}" class="{% if aktiv == 'erfassung' %}active{% endif %}">
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></span> Leistungsnachweis</a>
-      <a href="{% url 'nachweis:druck' %}" class="{% if aktiv == 'druck' %}active{% endif %}">
-        <span class="ico"><svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7a1 1 0 110-2 1 1 0 010 2zm-1-9H6v4h12V3z"/></svg></span> Druck-Nachweis</a>
       <a href="{% url 'nachweis:gruppen' %}" class="{% if aktiv == 'gruppen' %}active{% endif %}">
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span> Gruppennachweise</a>
       {% endif %}
@@ -246,6 +244,10 @@
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg></span> Django-Admin</a>
       {% endif %}
       {% endif %}
+      <div class="grp">Nachweise &amp; Druck</div>
+      <a href="{% url 'nachweis:druck_center' %}" class="{% if aktiv == 'druck' %}active{% endif %}" title="Alle Nachweise zum Drucken (Klient · Arbeitszeit · Kasse · Gruppe)">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7a1 1 0 110-2 1 1 0 010 2zm-1-9H6v4h12V3z"/></svg></span> Druck-Nachweise</a>
+
       <div class="grp">Hilfe</div>
       <a href="{{ WIKI_URL }}" target="_blank" rel="noopener" title="Wiki / Handbuch (GitHub)">
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg></span> Wiki&nbsp;↗</a>

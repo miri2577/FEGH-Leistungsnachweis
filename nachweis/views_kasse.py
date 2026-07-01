@@ -188,3 +188,33 @@ def zaehlprotokoll(request):
         "jahr": jahr, "monat": monat, "monat_name": MONATSNAMEN[monat],
         "noten": noten, "muenzen": muenzen,
     })
+
+
+# ---------------------------------------------------------------- Druck: Kassenblatt + Zählprotokoll
+@login_required
+def kasse_druck(request):
+    kasse = _kasse_or_403(request, request.GET.get("kasse"))
+    if not kasse:
+        return HttpResponseForbidden()
+    if request.GET.get("monat"):
+        jahr = _int(request.GET.get("jahr"), date.today().year)
+        monat = min(12, max(1, _int(request.GET.get("monat"), date.today().month)))
+    else:
+        # Ohne expliziten Monat: den zuletzt abgeschlossenen Monat vorbelegen.
+        jahr, monat = services.letzter_kassenabschluss(kasse)
+    km = services.kassenmonat(kasse, jahr, monat)
+    z = Zaehlprotokoll.objects.filter(monat=km).first()
+    # Zählprotokoll gehört als Monatsabschluss immer auf den Druck. Ist noch keins
+    # erfasst, drucken wir ein leeres Formular (transiente, nicht gespeicherte Instanz).
+    z_erfasst = bool(z and (z.datum or z.bargeld_gesamt))
+    if z is None:
+        z = Zaehlprotokoll(monat=km)
+    noten = [(w, getattr(z, f), w * getattr(z, f)) for w, f in GELDSTUECKELUNG if w >= 5]
+    muenzen = [(w, getattr(z, f), w * getattr(z, f)) for w, f in GELDSTUECKELUNG if w < 5]
+    return render(request, "nachweis/kasse_druck.html", {
+        "kasse": kasse, "km": km, "z": z, "z_erfasst": z_erfasst,
+        "jahr": jahr, "monat": monat, "monat_name": MONATSNAMEN[monat],
+        "zeilen": services.kassenblatt_zeilen(km),
+        "noten": noten, "muenzen": muenzen,
+        "kann_buha": services.kann_buha(request.user),
+    })

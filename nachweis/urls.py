@@ -15,6 +15,12 @@ urlpatterns = [
     path("gruppen/save/", views.gruppe_save, name="gruppe_save"),
     path("gruppen/delete/", views.gruppe_delete, name="gruppe_delete"),
 
+    # Druck-Center (Sammelseite unten in der Sidebar) + weitere Druck-Nachweise
+    path("nachweise/", views.druck_center, name="druck_center"),
+    path("arbeitszeit/druck/", views.arbeitszeit_druck, name="arbeitszeit_druck"),
+    path("gruppen/<int:pk>/druck/", views.gruppe_druck, name="gruppe_druck"),
+    path("kasse/druck/", views_kasse.kasse_druck, name="kasse_druck"),
+
     # Arbeitszeit (Selfservice)
     path("versendet/", views.versendet_setzen, name="versendet_setzen"),
     path("stempeln/", views.stempeln, name="stempeln"),

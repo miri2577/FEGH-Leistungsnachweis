@@ -1,0 +1,134 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Kassen-Nachweis · FEGH{% endblock %}
+
+{% block extrastyle %}
+  .form-doc{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+    padding:30px 34px;max-width:900px;margin-top:16px}
+  .form-doc h2{font-size:20px;margin:0 0 2px;color:var(--brand-d)}
+  .form-doc h3{font-size:14px;margin:26px 0 6px}
+  .doc-meta{display:flex;flex-wrap:wrap;gap:8px 34px;margin:14px 0 20px;font-size:13.5px}
+  .doc-meta b{color:var(--muted);font-weight:600;margin-right:6px}
+  table.doc{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0 4px}
+  table.doc th,table.doc td{border:1px solid #d9e2ea;padding:6px 9px}
+  table.doc th{background:#f2f7fb;text-align:left;font-weight:600}
+  table.doc td.num,table.doc th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .vortrag td{background:#f7fbf7;font-weight:600}
+  .sum-row td{background:#00539f;color:#fff;font-weight:700;border-color:#00539f}
+  .zgrid{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+  .zeile{display:flex;justify-content:space-between;padding:5px 2px;border-bottom:1px solid #e7eef4;font-size:13px}
+  .zeile b{font-variant-numeric:tabular-nums}
+  .diff-ok{color:#1a7f37} .diff-bad{color:#b42318}
+  .sign{display:flex;gap:60px;margin-top:44px}
+  .sign div{flex:1;border-top:1px solid #444;padding-top:6px;color:var(--muted);font-size:12.5px}
+  @media print{
+    header.top,nav.side,.no-print{display:none !important}
+    body{background:#fff} main{padding:0}
+    .form-doc{border:0;box-shadow:none;border-radius:0;max-width:none;padding:0}
+  }
+{% endblock %}
+
+{% block content %}
+  <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <div><h1 class="page">Kassen-Nachweis</h1>
+      <p class="sub">{{ kasse.bezeichnung|default:kasse.team.name }} · {{ monat_name }} {{ jahr }} — Kassenblatt & Zählprotokoll zum Ausdrucken.</p></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="window.print()">🖨️ Drucken / PDF</button>
+      <a class="btn ghost" href="{% url 'nachweis:kasse' %}?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}">← Zurück</a>
+    </div>
+  </div>
+
+  <div class="form-doc">
+    <h2>Kassenblatt</h2>
+    <div class="doc-meta">
+      <span><b>Träger / Team:</b> {{ kasse.team.name }} · Berliner Eingliederungshilfe</span>
+      <span><b>Kasse:</b> {{ kasse.bezeichnung }}</span>
+      <span><b>Kostenstelle:</b> {{ kasse.kostenstelle|default:"—" }}</span>
+      <span><b>Zeitraum:</b> {{ monat_name }} {{ jahr }}</span>
+    </div>
+
+    <table class="doc">
+      <thead>
+        <tr>
+          <th style="width:52px">Beleg</th><th style="width:80px">Datum</th><th>Text</th>
+          <th class="num" style="width:82px">Einnahme</th><th class="num" style="width:82px">Ausgabe</th>
+          {% if kann_buha %}<th style="width:72px">Buch.-Dat.</th><th style="width:66px">Konto</th><th style="width:66px">KoSt</th>{% endif %}
+          <th class="num" style="width:88px">Bestand</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="vortrag">
+          <td>—</td><td>{{ jahr }}-{{ monat }}-01</td><td>Kassenvortrag (Übernahme Vormonat)</td>
+          <td class="num"></td><td class="num"></td>
+          {% if kann_buha %}<td></td><td></td><td></td>{% endif %}
+          <td class="num">{{ km.vortrag|floatformat:2 }}</td>
+        </tr>
+        {% for z in zeilen %}
+        <tr>
+          <td>{{ z.b.bel_nr }}</td>
+          <td>{{ z.b.datum|date:"d.m.Y" }}</td>
+          <td>{{ z.b.text }}</td>
+          <td class="num">{% if z.b.einnahme %}{{ z.b.einnahme|floatformat:2 }}{% endif %}</td>
+          <td class="num">{% if z.b.ausgabe %}{{ z.b.ausgabe|floatformat:2 }}{% endif %}</td>
+          {% if kann_buha %}
+            <td>{{ z.b.buchungsdatum|date:"d.m.y"|default:"" }}</td>
+            <td>{{ z.b.kontonr|default:"" }}</td>
+            <td>{{ z.b.kostenstelle|default:"" }}</td>
+          {% endif %}
+          <td class="num">{{ z.bestand|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="{% if kann_buha %}9{% else %}6{% endif %}" style="text-align:center;color:#697786">Keine Buchungen in diesem Monat.</td></tr>
+        {% endfor %}
+        <tr class="sum-row">
+          <td colspan="3">Summen / Endbestand</td>
+          <td class="num">{{ km.einnahmen|floatformat:2 }}</td>
+          <td class="num">{{ km.ausgaben|floatformat:2 }}</td>
+          {% if kann_buha %}<td colspan="3"></td>{% endif %}
+          <td class="num">{{ km.endbestand|floatformat:2 }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Zählprotokoll (Monatsabschluss)</h3>
+    <div class="doc-meta">
+      {% if z_erfasst and z.datum %}<span><b>Gezählt am:</b> {{ z.datum|date:"d.m.Y" }}</span>
+      {% else %}<span><b>Gezählt am:</b> ________________ <i class="muted">(noch nicht abgeschlossen)</i></span>{% endif %}
+    </div>
+    <div class="zgrid">
+      <div>
+        <table class="doc">
+          <thead><tr><th>Stückelung</th><th class="num" style="width:60px">Stück</th><th class="num" style="width:88px">Wert €</th></tr></thead>
+          <tbody>
+            {% for wert,anz,summe in noten %}<tr><td>{{ wert|floatformat:"-2" }} € (Note)</td><td class="num">{{ anz }}</td><td class="num">{{ summe|floatformat:2 }}</td></tr>{% endfor %}
+            {% for wert,anz,summe in muenzen %}<tr><td>{{ wert|floatformat:"-2" }} € (Münze)</td><td class="num">{{ anz }}</td><td class="num">{{ summe|floatformat:2 }}</td></tr>{% endfor %}
+            <tr class="sum-row"><td colspan="2">Bargeld gezählt</td><td class="num">{{ z.bargeld_gesamt|floatformat:2 }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="zeile"><span>Alter Bestand (Vortrag)</span><b>{{ km.vortrag|floatformat:2 }} €</b></div>
+        <div class="zeile"><span>+ Einnahmen</span><b>{{ km.einnahmen|floatformat:2 }} €</b></div>
+        <div class="zeile"><span>− Ausgaben</span><b>{{ km.ausgaben|floatformat:2 }} €</b></div>
+        <div class="zeile"><span>− nicht eingetragene Belege</span><b>{{ z.nicht_eingetragene|floatformat:2 }} €</b></div>
+        <div class="zeile" style="border-bottom:2px solid #333"><span><b>Buchbestand (Soll)</b></span><b>{{ z.neuer_bestand|floatformat:2 }} €</b></div>
+        {% if z_erfasst %}
+        <div class="zeile"><span>Bargeld gezählt (Ist)</span><b>{{ z.bargeld_gesamt|floatformat:2 }} €</b></div>
+        <div class="zeile" style="border-bottom:2px solid #333;font-size:15px">
+          <span><b>Differenz</b></span>
+          <b class="{% if z.differenz == 0 %}diff-ok{% else %}diff-bad{% endif %}">{{ z.differenz|floatformat:2 }} €</b>
+        </div>
+        {% if z.vermerke %}<p style="margin-top:12px;font-size:12.5px"><b class="muted">Vermerke:</b> {{ z.vermerke }}</p>{% endif %}
+        {% else %}
+        <div class="zeile"><span>Bargeld gezählt (Ist)</span><b>____________ €</b></div>
+        <div class="zeile" style="border-bottom:2px solid #333"><span><b>Differenz</b></span><b>____________ €</b></div>
+        <p style="margin-top:10px;font-size:12px;color:#697786"><i>Für diesen Monat wurde noch kein Zählprotokoll gespeichert – Formular zum Ausfüllen.</i></p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="sign">
+      <div>Kassenverantwortliche*r / Datum</div>
+      <div>Prüfung Verwaltung (FiBu) / Datum</div>
+    </div>
+  </div>
+{% endblock %}

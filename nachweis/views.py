@@ -363,6 +363,82 @@ def druck_pdf(request):
     return resp
 
 
+# ---------------------------------------------------------------- Druck-Center (Sammelseite, unten in der Sidebar)
+def _druck_mitarbeiter(request):
+    """Für den Druck auswählbare Mitarbeiter*innen: Leitung → ganzes Team, sonst nur selbst."""
+    me = services.mitarbeiter_fuer(request.user)
+    if services.ist_leitung(request.user):
+        return Mitarbeiter.objects.filter(
+            aktiv=True, team__in=services.teams_fuer(request.user)).order_by("name", "vorname")
+    if me:
+        return Mitarbeiter.objects.filter(pk=me.pk)
+    return Mitarbeiter.objects.none()
+
+
+@login_required
+def druck_center(request):
+    """Sammelseite: bündelt alle druckbaren Nachweise (Klient · Arbeitszeit · Kasse · Gruppe)."""
+    me = services.mitarbeiter_fuer(request.user)
+    ohne_klienten = services.ohne_klientenarbeit(request.user)
+    sichtbar = services.klienten_fuer(request.user)
+    gruppen_qs = (Gruppe.objects.filter(teilnehmer__in=sichtbar).distinct()
+                  .order_by("-datum")[:60] if not ohne_klienten else Gruppe.objects.none())
+    kassen = services.kassen_fuer(request.user)
+    # Kassen-Karte auf den zuletzt abgeschlossenen Monat vorbelegen (statt aktueller Monat).
+    if kassen.exists():
+        kasse_jahr, kasse_monat = services.letzter_kassenabschluss(kassen.first())
+    else:
+        kasse_jahr, kasse_monat = _jahr(request), _monat(request)
+    return render(request, "nachweis/druck_center.html", {
+        "aktiv": "druck",
+        "jahr": _jahr(request), "monat": _monat(request),
+        "kasse_jahr": kasse_jahr, "kasse_monat": kasse_monat,
+        "monate": [(m, MONATSNAMEN[m]) for m in range(1, 13)],
+        "jahre": range(date.today().year, date.today().year - 3, -1),
+        "ohne_klienten": ohne_klienten,
+        "klienten": sichtbar.order_by("nachname", "vorname"),
+        "mitarbeiter": _druck_mitarbeiter(request),
+        "kassen": kassen,
+        "gruppen": gruppen_qs,
+        "me": me,
+    })
+
+
+@login_required
+def arbeitszeit_druck(request):
+    """Monats-Arbeitszeitnachweis (druckbar). Leitung darf ?mitarbeiter= des eigenen Teams drucken."""
+    ziel = services.mitarbeiter_fuer(request.user)
+    mid = request.GET.get("mitarbeiter")
+    if mid and services.ist_leitung(request.user):
+        cand = Mitarbeiter.objects.filter(
+            pk=mid, team__in=services.teams_fuer(request.user)).first()
+        if cand:
+            ziel = cand
+    if not ziel:
+        return HttpResponseForbidden()
+    jahr, monat = _jahr(request), _monat(request)
+    eintraege = list(ziel.arbeitszeiten.filter(datum__year=jahr, datum__month=monat)
+                     .order_by("datum", "beginn"))
+    return render(request, "nachweis/arbeitszeit_druck.html", {
+        "ziel": ziel, "jahr": jahr, "monat": monat, "monat_name": MONATSNAMEN[monat],
+        "eintraege": eintraege, "az": services.arbeitszeit_monat(ziel, jahr, monat),
+    })
+
+
+@login_required
+def gruppe_druck(request, pk):
+    """Einzelner Gruppennachweis (druckbar) – nur bei sichtbaren Teilnehmer*innen (Team-Scoping)."""
+    if services.ohne_klientenarbeit(request.user):
+        return HttpResponseForbidden()
+    sichtbar = services.klienten_fuer(request.user)
+    g = get_object_or_404(
+        Gruppe.objects.filter(teilnehmer__in=sichtbar).distinct().prefetch_related("teilnehmer"),
+        pk=pk)
+    return render(request, "nachweis/gruppe_druck.html", {
+        "g": g, "teilnehmer": g.teilnehmer.order_by("nachname", "vorname"),
+    })
+
+
 # ---------------------------------------------------------------- Arbeitszeiterfassung (Selfservice)
 @ensure_csrf_cookie
 @login_required

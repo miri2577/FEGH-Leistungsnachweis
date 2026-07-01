@@ -60,8 +60,9 @@
             <td class="num">{{ g.anzahl_teilnehmer }}</td>
             <td class="num"><b>{{ g.zeit_pro_klient|floatformat:2 }}</b></td>
             <td class="tn">{% for k in g.teilnehmer.all %}{{ k.name }}{% if not forloop.last %} · {% endif %}{% endfor %}</td>
-            <td>
-              <form method="post" action="{% url 'nachweis:gruppe_delete' %}" onsubmit="return confirm('Gruppe löschen?')">
+            <td style="white-space:nowrap">
+              <a class="btn ghost" style="padding:4px 9px" href="{% url 'nachweis:gruppe_druck' g.id %}" title="Gruppennachweis drucken">🖨️</a>
+              <form method="post" action="{% url 'nachweis:gruppe_delete' %}" onsubmit="return confirm('Gruppe löschen?')" style="display:inline">
                 {% csrf_token %}<input type="hidden" name="id" value="{{ g.id }}">
                 <button class="btn ghost" style="padding:4px 9px;color:var(--bad)" type="submit">✕</button>
               </form>

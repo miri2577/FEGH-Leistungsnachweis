@@ -131,6 +131,26 @@ def kassenblatt_zeilen(monat):
     return zeilen
 
 
+def letzter_kassenabschluss(kasse):
+    """(jahr, monat) für die Druck-Vorbelegung: der zuletzt *abgeschlossene* Monat.
+    1) neuester Monat mit erfasstem Zählprotokoll (Datum oder gezähltes Bargeld),
+    2) sonst neuester Monat mit Buchungen, 3) sonst der Vormonat."""
+    from .models import Kassenmonat, Zaehlprotokoll
+    if kasse is None:
+        heute = date.today()
+        return (heute.year - 1, 12) if heute.month == 1 else (heute.year, heute.month - 1)
+    for z in (Zaehlprotokoll.objects.filter(monat__kasse=kasse)
+              .select_related("monat").order_by("-monat__jahr", "-monat__monat")):
+        if z.datum or z.bargeld_gesamt:
+            return z.monat.jahr, z.monat.monat
+    km = (Kassenmonat.objects.filter(kasse=kasse, buchungen__isnull=False)
+          .order_by("-jahr", "-monat").distinct().first())
+    if km:
+        return km.jahr, km.monat
+    heute = date.today()
+    return (heute.year - 1, 12) if heute.month == 1 else (heute.year, heute.month - 1)
+
+
 def berichte_faellig(klienten, stichtag=None):
     """Liste der Klient*innen, deren Entwicklungsbericht ansteht (10 Wochen vor KÜ-Ende)."""
     return [k for k in klienten.exclude(kue_bis__isnull=True) if k.bericht_offen(stichtag)]
