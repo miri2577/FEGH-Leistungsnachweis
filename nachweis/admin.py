@@ -1,31 +1,50 @@
 from django.contrib import admin
 
 from .models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
-                     Arbeitszeit, Abwesenheit)
+                     Arbeitszeit, Abwesenheit, Team)
+
+
+@admin.register(Team)
+class TeamAdmin(admin.ModelAdmin):
+    list_display = ("name", "typ", "aktiv", "anzahl_mitglieder", "anzahl_klienten")
+    list_filter = ("typ", "aktiv")
+    search_fields = ("name",)
+
+    @admin.display(description="Mitglieder")
+    def anzahl_mitglieder(self, obj):
+        return obj.mitglieder.count()
+
+    @admin.display(description="Klient*innen")
+    def anzahl_klienten(self, obj):
+        return obj.klienten.count()
 
 
 @admin.register(Mitarbeiter)
 class MitarbeiterAdmin(admin.ModelAdmin):
-    list_display = ("name", "vorname", "kuerzel", "rolle", "wochenstunden", "urlaubstage", "aktiv")
-    list_editable = ("wochenstunden", "urlaubstage")
-    list_filter = ("rolle", "aktiv")
+    list_display = ("name", "vorname", "kuerzel", "rolle", "team",
+                    "wochenstunden", "urlaubstage", "aktiv")
+    list_editable = ("rolle", "team", "wochenstunden", "urlaubstage")
+    list_filter = ("rolle", "team", "aktiv")
     search_fields = ("name", "vorname", "kuerzel")
+    autocomplete_fields = ("user",)
+    filter_horizontal = ("leitet",)
     fieldsets = (
-        ("Person", {"fields": ("user", "name", "vorname", "kuerzel", "rolle", "aktiv")}),
+        ("Person", {"fields": ("user", "name", "vorname", "kuerzel", "aktiv")}),
+        ("Rolle & Team", {"fields": ("rolle", "team", "leitet")}),
         ("Arbeitszeit & Urlaub (Selfservice)", {"fields": ("wochenstunden", "urlaubstage")}),
     )
 
 
 @admin.register(Klient)
 class KlientAdmin(admin.ModelAdmin):
-    list_display = ("nachname", "vorname", "bezugsbetreuer", "al", "kle",
-                    "fls_gesamt_display", "hbg", "status")
-    list_filter = ("status", "bezugsbetreuer", "hbg")
+    list_display = ("nachname", "vorname", "team", "bezugsbetreuer", "al", "kle",
+                    "fls_gesamt_display", "hbg", "kue_bis", "status")
+    list_filter = ("status", "team", "bezugsbetreuer", "hbg")
     search_fields = ("nachname", "vorname", "person_id")
     autocomplete_fields = ("bezugsbetreuer", "vertretung1", "vertretung2")
     fieldsets = (
         ("Person", {"fields": ("nachname", "vorname", "geburtsdatum", "person_id")}),
-        ("Betreuung", {"fields": ("bezugsbetreuer", "vertretung1", "vertretung2", "status")}),
+        ("Team & Betreuung", {"fields": ("team", "bezugsbetreuer", "vertretung1", "vertretung2", "status")}),
         ("Fachleistungsstunden (pro Monat)", {"fields": ("al", "kle", "hbg")}),
         ("Verwaltung", {"fields": ("kue_bis", "brp_bis", "versendet_am", "thfd", "kommentar")}),
     )

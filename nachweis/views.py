@@ -12,7 +12,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
 from . import services
-from .models import (Mitarbeiter, Leistung, Gruppe, Klient, Leistungsart,
+from .models import (Mitarbeiter, Team, Leistung, Gruppe, Klient, Leistungsart,
                      Arbeitszeit, Abwesenheit, AbwesenheitArt, AbwesenheitStatus)
 
 MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
@@ -50,8 +50,10 @@ def mein_ueberblick(request):
     jahr = _jahr(request)
     monat = _monat(request)
     me = services.mitarbeiter_fuer(request.user)
-    eigene = Klient.objects.filter(bezugsbetreuer=me) if me else Klient.objects.none()
+    eigene = services.eigene_klienten(request.user)
     zeilen, summe = services.fachleistungsstunden(jahr, klienten=eigene)
+    # Berichte: eigene zuerst, sonst alle im Team-Zugriff (Vertretung)
+    berichte = services.berichte_faellig(eigene) or services.berichte_faellig(services.klienten_fuer(request.user))
     return render(request, "nachweis/mein_ueberblick.html", {
         "aktiv": "start",
         "jahr": jahr, "monat": monat, "monat_name": MONATSNAMEN[monat],
@@ -60,17 +62,32 @@ def mein_ueberblick(request):
         "summe": summe,
         "az": services.arbeitszeit_monat(me, jahr, monat) if me else None,
         "urlaub": services.urlaub_uebersicht(me, jahr) if me else None,
+        "berichte": berichte,
+        "ist_leitung": services.ist_leitung(request.user),
+        "ist_verwaltung": bool(me and me.ist_verwaltung),
         "offene_antraege": me.abwesenheiten.filter(status=AbwesenheitStatus.BEANTRAGT).count() if me else 0,
     })
 
 
-# ---------------------------------------------------------------- Fachleistungsstunden (Team-Übersicht)
+# ---------------------------------------------------------------- Fachleistungsstunden (Leitungs-Übersicht)
 @login_required
 def dashboard(request):
+    # Nur Leitung/Superuser: differenzierte Auslastung aller Klient*innen mit Filter.
+    if not services.ist_leitung(request.user):
+        messages.info(request, "Die Team-Auswertung ist der Leitung vorbehalten.")
+        return redirect("nachweis:start")
+
     jahr = _jahr(request)
     betreuer_id = request.GET.get("betreuer") or ""
+    team_id = request.GET.get("team") or ""
     sichtbar = services.klienten_fuer(request.user)
-    gefiltert = sichtbar.filter(bezugsbetreuer_id=int(betreuer_id)) if betreuer_id.isdigit() else sichtbar
+    teams = services.teams_fuer(request.user)
+
+    gefiltert = sichtbar
+    if team_id.isdigit():
+        gefiltert = gefiltert.filter(team_id=int(team_id))
+    if betreuer_id.isdigit():
+        gefiltert = gefiltert.filter(bezugsbetreuer_id=int(betreuer_id))
 
     zeilen, summe = services.fachleistungsstunden(jahr, klienten=gefiltert)
     zeitreihe = services.auslastung_zeitreihe(jahr, gefiltert)
@@ -81,7 +98,9 @@ def dashboard(request):
         "zeilen": zeilen,
         "summe": summe,
         "zeitreihe_json": zeitreihe,
-        "betreuer_liste": Mitarbeiter.objects.filter(aktiv=True),
+        "team_liste": teams,
+        "team_id": team_id,
+        "betreuer_liste": Mitarbeiter.objects.filter(aktiv=True, team__in=teams).distinct(),
         "betreuer_id": betreuer_id,
         "kennzahlen": {
             "klienten": gefiltert.count(),
@@ -357,7 +376,7 @@ def abwesenheit(request):
     me = services.mitarbeiter_fuer(request.user)
     jahr = _jahr(request)
     alle_offen = None
-    if services.ist_teamleitung(request.user):
+    if services.ist_leitung(request.user):
         alle_offen = Abwesenheit.objects.filter(
             status=AbwesenheitStatus.BEANTRAGT).select_related("mitarbeiter")
     return render(request, "nachweis/abwesenheit.html", {
@@ -366,7 +385,7 @@ def abwesenheit(request):
         "alle_offen": alle_offen,
         "arten": AbwesenheitArt.choices,
         "urlaub": services.urlaub_uebersicht(me, jahr) if me else None,
-        "ist_leitung": services.ist_teamleitung(request.user),
+        "ist_leitung": services.ist_leitung(request.user),
     })
 
 
@@ -398,7 +417,7 @@ def abwesenheit_save(request):
 @require_POST
 @login_required
 def abwesenheit_status(request):
-    if not services.ist_teamleitung(request.user):
+    if not services.ist_leitung(request.user):
         return HttpResponseForbidden()
     a = get_object_or_404(Abwesenheit, pk=request.POST.get("id"))
     st = request.POST.get("status")

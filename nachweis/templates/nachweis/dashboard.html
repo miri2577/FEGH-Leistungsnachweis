@@ -49,6 +49,14 @@
     <div class="head">
       <h2>Übersicht je Klient*in</h2>
       <form class="filter" method="get">
+        {% if team_liste|length > 1 %}
+        <select name="team" title="nach Team filtern">
+          <option value="">Alle Teams</option>
+          {% for t in team_liste %}
+            <option value="{{ t.id }}" {% if team_id == t.id|stringformat:'s' %}selected{% endif %}>{{ t.name }}</option>
+          {% endfor %}
+        </select>
+        {% endif %}
         <select name="betreuer" title="nach Betreuer*in filtern">
           <option value="">Alle Betreuer*innen</option>
           {% for m in betreuer_liste %}

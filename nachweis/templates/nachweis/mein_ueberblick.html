@@ -2,13 +2,24 @@
 {% block title %}Mein Überblick · FEGH{% endblock %}
 
 {% block extrastyle %}
-  .alert{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;margin-bottom:18px;font-size:13.5px}
+  .alert{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;margin-bottom:14px;font-size:13.5px}
   .alert.warn{background:var(--warnbg);color:var(--warn);border:1px solid #f0dca6}
   .alert.ok{background:var(--okbg);color:var(--ok);border:1px solid #cbe8d8}
+  .alert.info{background:#eaf2fb;color:var(--brand-d);border:1px solid #cfe0f2}
+  .alert a{margin-left:auto;white-space:nowrap}
   .kpi .sub2{font-size:12px;color:var(--muted);margin-top:2px}
-  .kpi.big{grid-column:span 1}
+  /* dezente Farbakzente je Kachel (Vivendi-Anmutung) */
+  .kpi{border-top:3px solid transparent}
+  .kpi.k-klient{border-top-color:#3f7cc0}
+  .kpi.k-zeit{border-top-color:#2e8b6f}
+  .kpi.k-fehlt{border-top-color:#c0783a}
+  .kpi.k-urlaub{border-top-color:#7a5cc4}
+  .kpi.k-antrag{border-top-color:#b8860b}
   .barwrap{height:8px;background:#eef2f6;border-radius:99px;overflow:hidden;margin-top:8px}
   .barwrap>i{display:block;height:100%;background:var(--brand-l)}
+  .u-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:16px 18px}
+  .u-box{text-align:center;padding:12px;border-radius:10px;background:#f6f9fc}
+  .u-box .n{font-size:24px;font-weight:700}.u-box .l{font-size:12px;color:var(--muted)}
 {% endblock %}
 
 {% block content %}
@@ -26,16 +37,31 @@
     <div class="alert ok">✓ Alle Arbeitszeitnachweise dieses Monats sind erfasst.</div>
   {% endif %}
 
+  {% for k in berichte %}
+    <div class="alert info">📄 Entwicklungsbericht für <b>{{ k.name }}</b> fällig – KÜ endet am {{ k.kue_bis|date:"d.m.Y" }} (Vorlauf 10 Wochen).
+      <a href="{% url 'nachweis:druck' %}?klient={{ k.id }}">Zum Klienten →</a></div>
+  {% endfor %}
+
   <div class="cards">
-    <div class="kpi"><div class="n">{{ eigene_zeilen|length }}</div><div class="l">meine Klient*innen</div></div>
-    <div class="kpi">
+    <div class="kpi k-klient"><div class="n">{{ eigene_zeilen|length }}</div><div class="l">meine Klient*innen</div></div>
+    <div class="kpi k-zeit">
       <div class="n">{{ az.ist|floatformat:1 }}<span style="font-size:15px;color:var(--muted)"> / {{ az.soll|floatformat:1 }}</span></div>
       <div class="l">Arbeitszeit {{ monat_name }} (Std)</div>
       {% if az.soll %}{% widthratio az.ist az.soll 100 as azp %}<div class="barwrap"><i style="width:{% if azp > 100 %}100{% else %}{{ azp }}{% endif %}%"></i></div>{% endif %}
     </div>
-    <div class="kpi"><div class="n" {% if az.fehlende_tage %}style="color:var(--bad)"{% endif %}>{{ az.fehlende_tage }}</div><div class="l">fehlende Nachweise ({{ monat_name }})</div></div>
-    <div class="kpi"><div class="n">{{ urlaub.rest }}</div><div class="l">Resturlaub (Tage)</div><div class="sub2">von {{ urlaub.anspruch }} · genommen {{ urlaub.genommen }}{% if urlaub.beantragt %} · beantragt {{ urlaub.beantragt }}{% endif %}</div></div>
-    {% if offene_antraege %}<div class="kpi"><div class="n" style="color:var(--warn)">{{ offene_antraege }}</div><div class="l">meine offenen Anträge</div></div>{% endif %}
+    <div class="kpi k-fehlt"><div class="n" {% if az.fehlende_tage %}style="color:var(--bad)"{% endif %}>{{ az.fehlende_tage }}</div><div class="l">fehlende Nachweise ({{ monat_name }})</div></div>
+    <div class="kpi k-urlaub"><div class="n">{{ urlaub.rest }}</div><div class="l">Resturlaub (Tage)</div><div class="sub2">von {{ urlaub.anspruch }} Tagen</div></div>
+    {% if offene_antraege %}<div class="kpi k-antrag"><div class="n" style="color:var(--warn)">{{ offene_antraege }}</div><div class="l">meine offenen Anträge</div></div>{% endif %}
+  </div>
+
+  <div class="panel">
+    <div class="head"><h2>Urlaubskonto {{ jahr }}</h2>
+      <a class="btn ghost" href="{% url 'nachweis:abwesenheit' %}">Antrag stellen →</a></div>
+    <div class="u-grid">
+      <div class="u-box"><div class="n" style="color:#2e8b6f">{{ urlaub.rest }}</div><div class="l">Resturlaub (Tage)</div></div>
+      <div class="u-box"><div class="n">{{ urlaub.genommen }}</div><div class="l">genommen</div></div>
+      <div class="u-box"><div class="n" style="color:var(--warn)">{{ urlaub.beantragt }}</div><div class="l">offen / beantragt</div></div>
+    </div>
   </div>
 
   <div class="panel">

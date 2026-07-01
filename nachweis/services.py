@@ -7,13 +7,17 @@ from decimal import Decimal, ROUND_HALF_UP
 
 import holidays as _holidays
 
-from .models import Klient, Gruppe, Leistung, Parameter, Leistungsart, Mitarbeiter, Rolle, FLS_ARTEN, Status
+from .models import (Klient, Gruppe, Leistung, Parameter, Leistungsart,
+                     Mitarbeiter, Team, Rolle, FLS_ARTEN, Status)
 
 Q3 = Decimal("0.001")
 
 
 # --------------------------------------------------------------------------
 #  Rollen / Sichtbarkeit
+#  User    = Betreuer*in: eigenes Team (Vertretung), Dashboard nur eigene Klient*innen
+#  Leitung = Klient*innen der geleiteten Team(s), Filter Mitarbeiter/Team
+#  Admin   = verwaltet Teams & Mitarbeiter, KEIN Klientenzugriff (DSGVO-Trennung)
 # --------------------------------------------------------------------------
 def mitarbeiter_fuer(user):
     """Das Mitarbeiter-Profil zum eingeloggten User (oder None)."""
@@ -23,20 +27,59 @@ def mitarbeiter_fuer(user):
         return None
 
 
-def ist_teamleitung(user) -> bool:
-    """Nur relevant für Stammdaten-Pflege (Admin), nicht für den Klientenzugriff."""
-    if user.is_superuser:
-        return True
+def ist_admin(user) -> bool:
+    """App-Rolle Admin – hat KEINEN Klientenzugriff (DSGVO-Trennung), auch nicht als Superuser."""
     m = mitarbeiter_fuer(user)
-    return bool(m and m.rolle == Rolle.TEAMLEITUNG)
+    return bool(m and m.rolle == Rolle.ADMIN)
+
+
+def _superuser_ohne_profil(user) -> bool:
+    """Technischer Break-Glass-Superuser OHNE Mitarbeiter-Profil (Notzugang)."""
+    return bool(user.is_superuser and mitarbeiter_fuer(user) is None)
+
+
+def ist_leitung(user) -> bool:
+    """Leitung – für Team-Auswertung & Genehmigungen. Die App-Rolle ist maßgeblich."""
+    m = mitarbeiter_fuer(user)
+    if m:
+        return m.rolle == Rolle.LEITUNG
+    return _superuser_ohne_profil(user)
+
+
+def teams_fuer(user):
+    """Teams, deren Klient*innen der/die Nutzer*in sehen darf.
+    Admin: keine (kein Klientenzugriff). Leitung: geleitete Team(s) + eigenes.
+    User: nur eigenes Team. Break-Glass-Superuser: alle."""
+    m = mitarbeiter_fuer(user)
+    if m is None:
+        return Team.objects.all() if _superuser_ohne_profil(user) else Team.objects.none()
+    if m.rolle == Rolle.ADMIN:
+        return Team.objects.none()
+    ids = set(m.leitet.values_list("id", flat=True)) if m.rolle == Rolle.LEITUNG else set()
+    if m.team_id:
+        ids.add(m.team_id)
+    return Team.objects.filter(id__in=ids)
 
 
 def klienten_fuer(user):
-    """ALLE Klient*innen sind für jedes Teammitglied zugänglich – wie in der Excel,
-    damit im Vertretungsfall jede*r die Nachweise führen kann. Nur Filtern schränkt die Anzeige ein."""
-    if user.is_authenticated:
+    """Klient*innen im Zugriff: alle des/der eigenen bzw. geleiteten Team(s).
+    Innerhalb des Teams sieht jede*r alle (Vertretung). Admin: keine."""
+    if not user.is_authenticated or ist_admin(user):
+        return Klient.objects.none()
+    if _superuser_ohne_profil(user):
         return Klient.objects.all()
-    return Klient.objects.none()
+    return Klient.objects.filter(team__in=teams_fuer(user))
+
+
+def eigene_klienten(user):
+    """Nur die Klient*innen, für die der/die Nutzer*in Bezugsbetreuer*in ist."""
+    m = mitarbeiter_fuer(user)
+    return Klient.objects.filter(bezugsbetreuer=m) if m else Klient.objects.none()
+
+
+def berichte_faellig(klienten, stichtag=None):
+    """Liste der Klient*innen, deren Entwicklungsbericht ansteht (10 Wochen vor KÜ-Ende)."""
+    return [k for k in klienten.exclude(kue_bis__isnull=True) if k.bericht_offen(stichtag)]
 
 
 def berliner_feiertage(jahr: int):

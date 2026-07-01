@@ -7,7 +7,7 @@ Gruppennachweise · Teamsitzung · Fachleistungsstunden-Auswertung.
 Fachliche Grundlage: Berlin ab 01.01.2026, Beschluss 3/2026.
 Alle Zeit-/Betragsgrößen als Decimal (keine Floats) – abrechnungsrelevant.
 """
-from datetime import datetime, date
+from datetime import datetime, date, timedelta as _td
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.conf import settings
@@ -46,13 +46,42 @@ FLS_ARTEN = {Leistungsart.FS, Leistungsart.WFS, Leistungsart.BAO}
 
 
 class Rolle(models.TextChoices):
-    BETREUER = "betreuer", "Betreuer*in"
-    TEAMLEITUNG = "teamleitung", "Teamleitung"
+    """Systemrolle. User = Betreuer*in (eigene Klient*innen), Leitung = Team(s),
+    Admin = Teams/Mitarbeiter verwalten (KEIN Klientenzugriff, DSGVO-Trennung)."""
+    USER = "user", "User (Betreuer*in)"
+    LEITUNG = "leitung", "Leitung"
+    ADMIN = "admin", "Administration"
+
+
+class Teamtyp(models.TextChoices):
+    BEW = "BEW", "Betreutes Einzelwohnen (BEW)"
+    WG = "WG", "Wohngemeinschaft (WG)"
+    VERWALTUNG = "Verwaltung", "Verwaltung"
 
 
 class Status(models.TextChoices):
     BETREUUNG = "Betreuung", "Betreuung"
     BEENDIGUNG = "Beendigung", "Beendigung"
+
+
+class Team(models.Model):
+    """Organisatorische Einheit. Mitarbeiter*innen und Klient*innen gehören zu einem Team.
+    Der Typ steuert später u. a. die Stempeluhr (Verwaltung = fester Arbeitsplatz)."""
+    name = models.CharField(max_length=80, unique=True)
+    typ = models.CharField(max_length=20, choices=Teamtyp.choices, default=Teamtyp.BEW)
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Team"
+        verbose_name_plural = "Teams"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def ist_verwaltung(self):
+        return self.typ == Teamtyp.VERWALTUNG
 
 
 class Mitarbeiter(models.Model):
@@ -62,7 +91,12 @@ class Mitarbeiter(models.Model):
     name = models.CharField("Nachname", max_length=80)
     vorname = models.CharField("Vorname", max_length=80, blank=True)
     kuerzel = models.CharField("Kürzel", max_length=10, blank=True)
-    rolle = models.CharField(max_length=20, choices=Rolle.choices, default=Rolle.BETREUER)
+    rolle = models.CharField(max_length=20, choices=Rolle.choices, default=Rolle.USER)
+    team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True,
+                             related_name="mitglieder", verbose_name="Team (Zugehörigkeit)")
+    leitet = models.ManyToManyField(Team, blank=True, related_name="leitungen",
+                                    verbose_name="leitet Team(s)",
+                                    help_text="Nur für Rolle Leitung: welche Teams diese Person leitet.")
     aktiv = models.BooleanField(default=True)
     # Selfservice-Vorgaben (in der Verwaltung/Admin pflegbar)
     wochenstunden = models.DecimalField("Wochen-Soll (Std)", max_digits=4, decimal_places=1,
@@ -70,8 +104,16 @@ class Mitarbeiter(models.Model):
     urlaubstage = models.PositiveSmallIntegerField("Urlaubstage/Jahr", default=30)
 
     @property
-    def ist_teamleitung(self):
-        return self.rolle == Rolle.TEAMLEITUNG
+    def ist_leitung(self):
+        return self.rolle == Rolle.LEITUNG
+
+    @property
+    def ist_admin(self):
+        return self.rolle == Rolle.ADMIN
+
+    @property
+    def ist_verwaltung(self):
+        return bool(self.team and self.team.ist_verwaltung)
 
     @property
     def tagessoll(self):
@@ -92,6 +134,8 @@ class Klient(models.Model):
     nachname = models.CharField(max_length=80)
     vorname = models.CharField(max_length=80, blank=True)
     geburtsdatum = models.DateField("geb. am", null=True, blank=True)
+    team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True,
+                             related_name="klienten", verbose_name="Team")
     bezugsbetreuer = models.ForeignKey(
         Mitarbeiter, on_delete=models.PROTECT, related_name="klienten",
         verbose_name="Bezugsbetreuer*in")
@@ -137,6 +181,25 @@ class Klient(models.Model):
     def kle_anteil(self) -> Decimal:
         g = self.fls_gesamt
         return (self.kle / g).quantize(Decimal("0.001")) if g else Decimal("0")
+
+    # Frist für den Entwicklungsbericht: 10 Wochen (70 Tage) vor Ende der
+    # Kostenübernahme (KÜ) muss der Bericht an den Träger geschrieben sein.
+    BERICHT_VORLAUF_TAGE = 70
+
+    @property
+    def bericht_faellig_am(self):
+        """Datum, ab dem der Bericht geschrieben werden sollte (KÜ-Ende − 10 Wochen)."""
+        if not self.kue_bis:
+            return None
+        return self.kue_bis - _td(self.BERICHT_VORLAUF_TAGE)
+
+    def bericht_offen(self, stichtag=None):
+        """True, wenn wir im 10-Wochen-Fenster vor KÜ-Ende sind und der Status Betreuung ist."""
+        if not self.kue_bis or self.status != Status.BETREUUNG:
+            return False
+        stichtag = stichtag or date.today()
+        start = self.kue_bis - _td(self.BERICHT_VORLAUF_TAGE)
+        return start <= stichtag <= self.kue_bis
 
 
 class Leistung(models.Model):

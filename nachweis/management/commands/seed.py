@@ -14,20 +14,23 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 
 from nachweis.models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
-                             Leistungsart, Rolle, Status, Arbeitszeit,
+                             Leistungsart, Rolle, Status, Team, Teamtyp, Arbeitszeit,
                              Abwesenheit, AbwesenheitArt, AbwesenheitStatus)
 
 JAHR = 2026
 RNG = random.Random(42)
 
+# (Nachname, Vorname, Rolle, Team-Schlüssel)  – Teams: "TBEW", "WG", "VW" (Verwaltung)
 MA_NAMEN = [
-    ("Berger", "Katrin", Rolle.TEAMLEITUNG),
-    ("Neumann", "Stefan", Rolle.BETREUER),
-    ("Schuster", "Melanie", Rolle.BETREUER),
-    ("Kaiser", "Tobias", Rolle.BETREUER),
-    ("Lorenz", "Sabine", Rolle.BETREUER),
-    ("Hartmann", "David", Rolle.BETREUER),
-    ("Wolf", "Nadja", Rolle.BETREUER),
+    ("Berger", "Katrin", Rolle.LEITUNG, "TBEW"),     # leitet TBEW + WG
+    ("Neumann", "Stefan", Rolle.USER, "TBEW"),
+    ("Schuster", "Melanie", Rolle.USER, "TBEW"),
+    ("Kaiser", "Tobias", Rolle.USER, "TBEW"),
+    ("Lorenz", "Sabine", Rolle.USER, "TBEW"),
+    ("Hartmann", "David", Rolle.USER, "WG"),
+    ("Wolf", "Nadja", Rolle.USER, "WG"),
+    ("Sander", "Ulrike", Rolle.ADMIN, "VW"),          # Systemadministration (kein Klientenzugriff)
+    ("Peters", "Frank", Rolle.USER, "VW"),            # Verwaltung (fester Arbeitsplatz)
 ]
 
 # frei erfundene Klient-Namen
@@ -51,6 +54,16 @@ TAETIGKEITEN_FS = ["Hausbesuch", "direkte Betreuung", "Begleitung Amt", "Kriseng
 TAETIGKEITEN_WFS = ["Verlaufsdokumentation", "Fallbesprechung", "Bericht an THFD"]
 
 
+def _gruppe(name, modelle):
+    """Django-Gruppe mit allen Rechten (add/change/delete/view) auf die genannten Modelle."""
+    from django.contrib.auth.models import Group, Permission
+    g, _ = Group.objects.get_or_create(name=name)
+    perms = Permission.objects.filter(content_type__app_label="nachweis",
+                                      content_type__model__in=modelle)
+    g.permissions.set(perms)
+    return g
+
+
 class Command(BaseCommand):
     help = "Befüllt die DB mit fiktiven Demodaten."
 
@@ -59,7 +72,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **opts):
         if not opts["keep"]:
-            for M in (Arbeitszeit, Abwesenheit, Leistung, Gruppe, Klient, Mitarbeiter, Parameter):
+            for M in (Arbeitszeit, Abwesenheit, Leistung, Gruppe, Klient, Mitarbeiter, Team, Parameter):
                 M.objects.all().delete()
             self.stdout.write("Vorhandene Demodaten gelöscht.")
 
@@ -67,38 +80,76 @@ class Command(BaseCommand):
             jahr=JAHR,
             defaults=dict(teamsitzung_wochentag=3, teamsitzung_dauer_std=Decimal("3.0")))
 
+        # Teams
+        team_tbew = Team.objects.create(name="TBEW", typ=Teamtyp.BEW)
+        team_wg = Team.objects.create(name="WG Lindenhof", typ=Teamtyp.WG)
+        team_vw = Team.objects.create(name="Verwaltung", typ=Teamtyp.VERWALTUNG)
+        TEAMS = {"TBEW": team_tbew, "WG": team_wg, "VW": team_vw}
+
+        # Django-Gruppen mit gezielten Rechten (DSGVO: Admin verwaltet Teams/MA, NICHT Klienten)
+        gruppe_admin = _gruppe("Administration", ["team", "mitarbeiter"])
+        gruppe_leitung = _gruppe("Leitung",
+                                 ["klient", "gruppe", "parameter", "leistung", "abwesenheit"])
+
         User = get_user_model()
         mitarbeiter = []
-        for nn, vn, rolle in MA_NAMEN:
+        for nn, vn, rolle, tkey in MA_NAMEN:
             uname = nn.lower()
-            is_leitung = rolle == Rolle.TEAMLEITUNG
             user = User.objects.filter(username=uname).first()
             if not user:
                 user = User.objects.create_user(uname, f"{uname}@example.com", "demo12345")
             user.first_name, user.last_name = vn, nn
-            user.is_staff = is_leitung          # Teamleitung darf in den Admin
-            user.is_superuser = is_leitung
+            user.is_staff = rolle in (Rolle.LEITUNG, Rolle.ADMIN)   # dürfen in den Django-Admin
+            user.is_superuser = False                               # kein Superuser (Rechte via Gruppe)
             user.save()
+            user.groups.clear()
+            if rolle == Rolle.ADMIN:
+                user.groups.add(gruppe_admin)
+            elif rolle == Rolle.LEITUNG:
+                user.groups.add(gruppe_leitung)
             m = Mitarbeiter.objects.create(
-                user=user, name=nn, vorname=vn,
-                kuerzel=(nn[:3] + vn[:2]).lower(), rolle=rolle)
+                user=user, name=nn, vorname=vn, kuerzel=(nn[:3] + vn[:2]).lower(),
+                rolle=rolle, team=TEAMS[tkey])
             mitarbeiter.append(m)
-        betreuer = [m for m in mitarbeiter if m.rolle == Rolle.BETREUER]
 
+        # Break-Glass: technischer Superuser OHNE Mitarbeiter-Profil (Notzugang)
+        if not User.objects.filter(username="root").exists():
+            User.objects.create_superuser("root", "root@example.com", "root12345")
+
+        # Berger leitet TBEW + WG
+        berger = next(m for m in mitarbeiter if m.name == "Berger")
+        berger.leitet.set([team_tbew, team_wg])
+
+        betr_tbew = [m for m in mitarbeiter if m.team == team_tbew and m.rolle == Rolle.USER] or [berger]
+        betr_wg = [m for m in mitarbeiter if m.team == team_wg and m.rolle == Rolle.USER] or betr_tbew
+
+        heute = date.today()
         klienten = []
+        cnt = {"tbew": 0, "wg": 0}
         for i in range(33):
             hbg = RNG.choice([1, 1, 2, 2, 2, 3, 3, 4])
             al, kle = HBG_WERTE[hbg]
-            bez = betreuer[i % len(betreuer)]
+            in_wg = (i % 4 == 0)
+            team = team_wg if in_wg else team_tbew
+            pool = betr_wg if in_wg else betr_tbew
+            key = "wg" if in_wg else "tbew"
+            bez = pool[cnt[key] % len(pool)]
+            cnt[key] += 1
+            kue = None
+            if i % 5 == 0:
+                kue = heute + timedelta(days=RNG.choice([25, 40, 55]))     # Bericht fällig (<10 Wochen)
+            elif i % 5 == 1:
+                kue = heute + timedelta(days=RNG.choice([120, 160, 200]))  # noch nicht fällig
             k = Klient.objects.create(
                 nachname=NACHNAMEN[i % len(NACHNAMEN)],
                 vorname=VORNAMEN[i % len(VORNAMEN)],
                 geburtsdatum=date(RNG.randint(1965, 2002), RNG.randint(1, 12), RNG.randint(1, 28)),
-                bezugsbetreuer=bez, al=al, kle=kle, hbg=hbg,
+                team=team, bezugsbetreuer=bez, al=al, kle=kle, hbg=hbg, kue_bis=kue,
                 status=Status.BEENDIGUNG if i in (7, 18, 30) else Status.BETREUUNG,
                 person_id=f"BE-{100000 + i}",
             )
             klienten.append(k)
+        betreuer = [m for m in mitarbeiter if m.rolle == Rolle.USER and m.team != team_vw]
 
         # Leistungen: je Klient einige Einträge über Jan–Jun 2026
         n_leist = 0
@@ -181,5 +232,5 @@ class Command(BaseCommand):
             f"{n_leist} Leistungen, 2 Gruppen, {n_az} Arbeitszeiten, 3 Abwesenheiten."))
         self.stdout.write("Demo-Logins (Passwort: demo12345):")
         for m in mitarbeiter:
-            rolle = "Teamleitung" if m.rolle == Rolle.TEAMLEITUNG else "Betreuer*in"
-            self.stdout.write(f"  {m.user.username:12s} · {rolle} · {m.klienten.count()} eigene Klient*innen")
+            self.stdout.write(f"  {m.user.username:12s} · {m.get_rolle_display():18s} · "
+                              f"Team {m.team.name if m.team else '-'} · {m.klienten.count()} eigene Klient*innen")
