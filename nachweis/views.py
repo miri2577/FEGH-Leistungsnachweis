@@ -13,8 +13,19 @@ from . import services
 from .models import Mitarbeiter, Leistung, Klient, Leistungsart
 
 
+def _int(val, default):
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return default
+
+
 def _jahr(request):
-    return int(request.GET.get("jahr") or date.today().year)
+    return _int(request.GET.get("jahr"), date.today().year)
+
+
+def _monat(request):
+    return min(12, max(1, _int(request.GET.get("monat"), date.today().month)))
 
 
 def _parse_time(s):
@@ -35,7 +46,7 @@ def dashboard(request):
     sichtbar = services.klienten_fuer(request.user)
 
     zeilen, summe = services.fachleistungsstunden(jahr, klienten=sichtbar)
-    if betreuer_id and services.darf_alles(request.user):
+    if betreuer_id:
         zeilen = [z for z in zeilen if str(z["betreuer"].id) == betreuer_id]
         summe = summe | {
             "kontingent_jahr": sum((z["kontingent_jahr"] for z in zeilen), 0),
@@ -48,12 +59,11 @@ def dashboard(request):
         "jahr": jahr,
         "zeilen": zeilen,
         "summe": summe,
-        "darf_alles": services.darf_alles(request.user),
         "betreuer_liste": Mitarbeiter.objects.filter(aktiv=True),
         "betreuer_id": betreuer_id,
         "kennzahlen": {
             "klienten": sichtbar.count(),
-            "leistungen": Leistung.objects.filter(datum__year=jahr, klient__in=sichtbar).count(),
+            "leistungen": Leistung.objects.filter(datum__year=jahr).count(),
             "n_donnerstage": summe["n_donnerstage"],
         },
     }
@@ -97,10 +107,12 @@ def api_leistungen(request):
     qs = Leistung.objects.filter(
         datum__year=jahr, klient__in=services.klienten_fuer(request.user)
     ).select_related("klient", "betreuer")
-    if request.GET.get("monat"):
-        qs = qs.filter(datum__month=int(request.GET["monat"]))
-    if request.GET.get("klient"):
-        qs = qs.filter(klient_id=request.GET["klient"])
+    monat = _int(request.GET.get("monat"), 0)
+    if 1 <= monat <= 12:
+        qs = qs.filter(datum__month=monat)
+    klient = _int(request.GET.get("klient"), 0)
+    if klient:
+        qs = qs.filter(klient_id=klient)
     data = [_row(l) for l in qs.order_by("-datum", "beginn")]
     return JsonResponse({"data": data})
 
@@ -161,7 +173,7 @@ def api_leistung_delete(request):
 @login_required
 def druck(request):
     jahr = _jahr(request)
-    monat = int(request.GET.get("monat") or date.today().month)
+    monat = _monat(request)
     sichtbar = services.klienten_fuer(request.user).order_by("nachname", "vorname")
     klient = None
     daten = None
@@ -177,7 +189,7 @@ def druck(request):
 @login_required
 def druck_pdf(request):
     jahr = _jahr(request)
-    monat = int(request.GET.get("monat") or date.today().month)
+    monat = _monat(request)
     sichtbar = services.klienten_fuer(request.user)
     klient = get_object_or_404(sichtbar, pk=request.GET.get("klient"))
     daten = services.druck_nachweis(klient, jahr, monat)

@@ -5,7 +5,7 @@
   <p class="sub">Kontingent = AL + kLE pro Monat · Ist = erfasste Leistungen + Gruppen-Anteile + Teamsitzung</p>
 
   <div class="cards">
-    <div class="kpi"><div class="n">{{ kennzahlen.klienten }}</div><div class="l">{% if darf_alles %}Klient*innen{% else %}meine Klient*innen{% endif %}</div></div>
+    <div class="kpi"><div class="n">{{ kennzahlen.klienten }}</div><div class="l">Klient*innen</div></div>
     <div class="kpi"><div class="n">{{ kennzahlen.leistungen }}</div><div class="l">Leistungen {{ jahr }}</div></div>
     <div class="kpi"><div class="n">{{ summe.ist|floatformat:0 }}</div><div class="l">Ist-Stunden gesamt</div></div>
     <div class="kpi"><div class="n">{{ kennzahlen.n_donnerstage }}</div><div class="l">Teamsitzungen (Do, o. Feiertag)</div></div>
@@ -15,14 +15,12 @@
     <div class="head">
       <h2>Übersicht je Klient*in</h2>
       <form class="filter" method="get">
-        {% if darf_alles %}
-        <select name="betreuer">
+        <select name="betreuer" title="nach Betreuer*in filtern">
           <option value="">Alle Betreuer*innen</option>
           {% for m in betreuer_liste %}
             <option value="{{ m.id }}" {% if betreuer_id == m.id|stringformat:'s' %}selected{% endif %}>{{ m }}</option>
           {% endfor %}
         </select>
-        {% endif %}
         <input type="number" name="jahr" value="{{ jahr }}" style="width:90px" title="Jahr">
         <button class="btn" type="submit">Filtern</button>
       </form>

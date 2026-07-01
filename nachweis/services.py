@@ -23,8 +23,8 @@ def mitarbeiter_fuer(user):
         return None
 
 
-def darf_alles(user) -> bool:
-    """Superuser oder Teamleitung sehen den ganzen Team-Bestand."""
+def ist_teamleitung(user) -> bool:
+    """Nur relevant für Stammdaten-Pflege (Admin), nicht für den Klientenzugriff."""
     if user.is_superuser:
         return True
     m = mitarbeiter_fuer(user)
@@ -32,12 +32,10 @@ def darf_alles(user) -> bool:
 
 
 def klienten_fuer(user):
-    """QuerySet der sichtbaren Klient*innen: alle (Leitung) oder nur eigene (Betreuer*in)."""
-    if darf_alles(user):
+    """ALLE Klient*innen sind für jedes Teammitglied zugänglich – wie in der Excel,
+    damit im Vertretungsfall jede*r die Nachweise führen kann. Nur Filtern schränkt die Anzeige ein."""
+    if user.is_authenticated:
         return Klient.objects.all()
-    m = mitarbeiter_fuer(user)
-    if m:
-        return Klient.objects.filter(bezugsbetreuer=m)
     return Klient.objects.none()
 
 
