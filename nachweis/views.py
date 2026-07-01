@@ -45,6 +45,20 @@ def _parse_time(s):
 
 
 # ---------------------------------------------------------------- Mein Überblick (Startseite)
+def _wochentage(feiertage_set):
+    """Mo–Fr der aktuellen Woche als Tages-Kacheln (mit Heute- und Frei-Markierung)."""
+    from datetime import timedelta as _td
+    heute = date.today()
+    montag = heute - _td(days=heute.weekday())
+    wd = ["Mo", "Di", "Mi", "Do", "Fr"]
+    tage = []
+    for i in range(5):
+        d = montag + _td(days=i)
+        tage.append({"wd": wd[i], "tag": d.day, "heute": d == heute,
+                     "frei": d in feiertage_set})
+    return tage
+
+
 @login_required
 def mein_ueberblick(request):
     jahr = _jahr(request)
@@ -54,6 +68,7 @@ def mein_ueberblick(request):
     zeilen, summe = services.fachleistungsstunden(jahr, klienten=eigene)
     # Berichte: eigene zuerst, sonst alle im Team-Zugriff (Vertretung)
     berichte = services.berichte_faellig(eigene) or services.berichte_faellig(services.klienten_fuer(request.user))
+    feier = services._feiertage_set(jahr)
     return render(request, "nachweis/mein_ueberblick.html", {
         "aktiv": "start",
         "jahr": jahr, "monat": monat, "monat_name": MONATSNAMEN[monat],
@@ -63,10 +78,25 @@ def mein_ueberblick(request):
         "az": services.arbeitszeit_monat(me, jahr, monat) if me else None,
         "urlaub": services.urlaub_uebersicht(me, jahr) if me else None,
         "berichte": berichte,
+        "wochentage": _wochentage(feier),
         "ist_leitung": services.ist_leitung(request.user),
         "ist_verwaltung": bool(me and me.ist_verwaltung),
+        "stempel": services.stempel_status(me) if (me and me.ist_verwaltung) else None,
         "offene_antraege": me.abwesenheiten.filter(status=AbwesenheitStatus.BEANTRAGT).count() if me else 0,
     })
+
+
+@require_POST
+@login_required
+def stempeln(request):
+    me = services.mitarbeiter_fuer(request.user)
+    if not me:
+        messages.error(request, "Kein Mitarbeiter-Profil hinterlegt.")
+    else:
+        aktion = services.stempeln(me)
+        messages.success(request, "Eingestempelt. Guten Start!" if aktion == "kommen"
+                         else "Ausgestempelt. Feierabend!")
+    return redirect("nachweis:start")
 
 
 # ---------------------------------------------------------------- Fachleistungsstunden (Leitungs-Übersicht)

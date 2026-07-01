@@ -325,6 +325,40 @@ def urlaub_uebersicht(mitarbeiter, jahr: int):
             "beantragt": beantragt, "rest": mitarbeiter.urlaubstage - genommen - beantragt}
 
 
+def stempel_status(mitarbeiter):
+    """Aktueller Stempelstatus + heute erfasste Arbeitszeit (für die Kommen/Gehen-Karte)."""
+    from django.utils import timezone
+    from .models import Stempelung
+    if not mitarbeiter:
+        return {"eingestempelt": False, "seit": None, "heute_sekunden": 0, "offen_seit_iso": None}
+    jetzt = timezone.localtime()
+    heute = jetzt.date()
+    tages = Stempelung.objects.filter(mitarbeiter=mitarbeiter, beginn__date=heute)
+    offen = mitarbeiter.stempelungen.filter(ende__isnull=True).order_by("-beginn").first()
+    heute_sek = sum(s.dauer_sekunden(jetzt) for s in tages)
+    seit = timezone.localtime(offen.beginn) if offen else None
+    return {
+        "eingestempelt": bool(offen),
+        "seit": seit,
+        "heute_sekunden": heute_sek,
+        # Basis für die live tickende Uhr: bereits abgeschlossene Sek. + Startzeitpunkt der offenen Sitzung
+        "offen_seit_iso": timezone.localtime(offen.beginn).isoformat() if offen else None,
+        "abgeschlossen_sekunden": sum(s.dauer_sekunden(jetzt) for s in tages if not s.offen),
+    }
+
+
+def stempeln(mitarbeiter):
+    """Toggle Kommen/Gehen. Öffnet eine neue Sitzung oder schließt die offene. Rückgabe: 'kommen'|'gehen'."""
+    from django.utils import timezone
+    offen = mitarbeiter.stempelungen.filter(ende__isnull=True).order_by("-beginn").first()
+    if offen:
+        offen.ende = timezone.now()
+        offen.save(update_fields=["ende"])
+        return "gehen"
+    mitarbeiter.stempelungen.create(beginn=timezone.now())
+    return "kommen"
+
+
 def druck_nachweis(klient, jahr: int, monat: int):
     """Amtlicher Leistungsnachweis je Klient*in & Monat:
     Einzelnachweis (manuell + Gruppen-Anteile + Teamsitzung je Do) + Kategorie-Summen + Σ FLS."""

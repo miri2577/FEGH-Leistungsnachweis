@@ -16,6 +16,7 @@ urlpatterns = [
     path("gruppen/delete/", views.gruppe_delete, name="gruppe_delete"),
 
     # Arbeitszeit (Selfservice)
+    path("stempeln/", views.stempeln, name="stempeln"),
     path("arbeitszeit/", views.arbeitszeit, name="arbeitszeit"),
     path("api/arbeitszeit/", views.api_arbeitszeit, name="api_arbeitszeit"),
     path("api/arbeitszeit/save/", views.api_arbeitszeit_save, name="api_arbeitszeit_save"),

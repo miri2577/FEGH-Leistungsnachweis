@@ -299,6 +299,30 @@ class Arbeitszeit(models.Model):
         return netto.quantize(Q3, ROUND_HALF_UP) if netto > 0 else Decimal("0")
 
 
+class Stempelung(models.Model):
+    """Kommen/Gehen-Stempelung (Verwaltung, fester Arbeitsplatz). Eine Zeile = eine Sitzung."""
+    mitarbeiter = models.ForeignKey(Mitarbeiter, on_delete=models.CASCADE, related_name="stempelungen")
+    beginn = models.DateTimeField()
+    ende = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Stempelung"
+        verbose_name_plural = "Stempelungen"
+        ordering = ["-beginn"]
+
+    def __str__(self):
+        return f"{self.mitarbeiter} · {self.beginn:%d.%m.%Y %H:%M}"
+
+    @property
+    def offen(self) -> bool:
+        return self.ende is None
+
+    def dauer_sekunden(self, jetzt=None) -> int:
+        from django.utils import timezone
+        ende = self.ende or (jetzt or timezone.now())
+        return max(0, int((ende - self.beginn).total_seconds()))
+
+
 class AbwesenheitArt(models.TextChoices):
     URLAUB = "Urlaub", "Urlaub"
     FREIZEITAUSGLEICH = "Freizeitausgleich", "Freizeitausgleich"

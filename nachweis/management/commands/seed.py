@@ -15,7 +15,7 @@ from django.contrib.auth import get_user_model
 
 from nachweis.models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
                              Leistungsart, Rolle, Status, Team, Teamtyp, Arbeitszeit,
-                             Abwesenheit, AbwesenheitArt, AbwesenheitStatus)
+                             Abwesenheit, AbwesenheitArt, AbwesenheitStatus, Stempelung)
 
 JAHR = 2026
 RNG = random.Random(42)
@@ -72,7 +72,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **opts):
         if not opts["keep"]:
-            for M in (Arbeitszeit, Abwesenheit, Leistung, Gruppe, Klient, Mitarbeiter, Team, Parameter):
+            for M in (Stempelung, Arbeitszeit, Abwesenheit, Leistung, Gruppe, Klient,
+                      Mitarbeiter, Team, Parameter):
                 M.objects.all().delete()
             self.stdout.write("Vorhandene Demodaten gelöscht.")
 
@@ -226,6 +227,24 @@ class Command(BaseCommand):
             Abwesenheit.objects.create(mitarbeiter=betreuer[0], art=AbwesenheitArt.FREIZEITAUSGLEICH,
                                        von=date(JAHR, 6, 5), bis=date(JAHR, 6, 5),
                                        status=AbwesenheitStatus.GENEHMIGT)
+
+        # Stempelungen für Verwaltungs-MA (fester Arbeitsplatz): abgeschlossene Vortage
+        # + heute offen "eingestempelt" (damit die Live-Uhr sichtbar tickt)
+        from django.utils import timezone as _tz
+        from datetime import datetime as _dt, time as _t
+        peters = next((m for m in mitarbeiter if m.name == "Peters"), None)
+        if peters:
+            tz = _tz.get_current_timezone()
+            for back in range(1, 4):
+                d = date.today() - timedelta(days=back)
+                if d.weekday() < 5:
+                    b = _tz.make_aware(_dt.combine(d, _t(8, 30)), tz)
+                    e = _tz.make_aware(_dt.combine(d, _t(16, 30)), tz)
+                    Stempelung.objects.create(mitarbeiter=peters, beginn=b, ende=e)
+            # heute offen eingestempelt seit 08:15
+            b = _tz.make_aware(_dt.combine(date.today(), _t(8, 15)), tz)
+            if b < _tz.localtime():
+                Stempelung.objects.create(mitarbeiter=peters, beginn=b)
 
         self.stdout.write(self.style.SUCCESS(
             f"Fertig: {len(mitarbeiter)} Mitarbeiter, {len(klienten)} Klienten, "

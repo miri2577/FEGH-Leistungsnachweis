@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from .models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
-                     Arbeitszeit, Abwesenheit, Team)
+                     Arbeitszeit, Abwesenheit, Team, Stempelung)
 
 
 @admin.register(Team)
@@ -109,6 +109,14 @@ class AbwesenheitAdmin(admin.ModelAdmin):
     @admin.display(description="Werktage")
     def werktage_display(self, obj):
         return obj.werktage
+
+
+@admin.register(Stempelung)
+class StempelungAdmin(admin.ModelAdmin):
+    list_display = ("mitarbeiter", "beginn", "ende", "offen")
+    list_filter = ("mitarbeiter",)
+    date_hierarchy = "beginn"
+    autocomplete_fields = ("mitarbeiter",)
 
 
 admin.site.site_header = "FEGH-Leistungsnachweis · Team TBEW"
