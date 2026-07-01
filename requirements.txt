@@ -1,0 +1,10 @@
+Django>=5.1,<5.2
+holidays>=0.50
+
+# --- Produktion / später ---
+# gunicorn            # WSGI-Server
+# psycopg[binary]     # PostgreSQL
+# weasyprint          # amtlicher Druck-Nachweis als PDF
+# django-auditlog     # Revisionssicherheit (Pflicht bei öffentlichem Geld)
+# django-axes         # Brute-Force-Schutz
+# whitenoise          # statische Dateien ausliefern

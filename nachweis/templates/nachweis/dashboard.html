@@ -1,0 +1,79 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Fachleistungsstunden · FEGH-Leistungsnachweis{% endblock %}
+{% block content %}
+  <h1 class="page">Fachleistungsstunden {{ jahr }}</h1>
+  <p class="sub">Kontingent = AL + kLE pro Monat · Ist = erfasste Leistungen + Gruppen-Anteile + Teamsitzung</p>
+
+  <div class="cards">
+    <div class="kpi"><div class="n">{{ kennzahlen.klienten }}</div><div class="l">Klient*innen</div></div>
+    <div class="kpi"><div class="n">{{ kennzahlen.mitarbeiter }}</div><div class="l">Mitarbeiter*innen</div></div>
+    <div class="kpi"><div class="n">{{ kennzahlen.leistungen }}</div><div class="l">Leistungen {{ jahr }}</div></div>
+    <div class="kpi"><div class="n">{{ kennzahlen.gruppen }}</div><div class="l">Gruppen {{ jahr }}</div></div>
+    <div class="kpi"><div class="n">{{ summe.n_donnerstage }}</div><div class="l">Teamsitzungen (Do, o. Feiertag)</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="head">
+      <h2>Übersicht je Klient*in</h2>
+      <form class="filter" method="get">
+        <select name="betreuer">
+          <option value="">Alle Betreuer*innen</option>
+          {% for m in betreuer_liste %}
+            <option value="{{ m.id }}" {% if betreuer_id == m.id|stringformat:'s' %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+        <input type="number" name="jahr" value="{{ jahr }}" style="width:90px" title="Jahr">
+        <button class="btn" type="submit">Filtern</button>
+      </form>
+    </div>
+    <div class="body">
+      <table>
+        <thead>
+          <tr>
+            <th>Klient*in</th><th>Betreuer*in</th>
+            <th class="num">Kont./Monat</th><th class="num">Kont./Jahr</th>
+            <th class="num">Ist</th><th class="num">Rest (+/–)</th>
+            <th>Auslastung</th><th class="num">FZ</th><th class="num">kLE Ist</th><th class="num">kLE-Anteil</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for z in zeilen %}
+          <tr>
+            <td>{{ z.klient.name }}</td>
+            <td class="muted">{{ z.betreuer }}</td>
+            <td class="num">{{ z.kontingent_monat|floatformat:2 }}</td>
+            <td class="num">{{ z.kontingent_jahr|floatformat:2 }}</td>
+            <td class="num">{{ z.ist|floatformat:2 }}</td>
+            <td class="num {% if z.rest < 0 %}neg{% else %}pos{% endif %}">{{ z.rest|floatformat:2 }}</td>
+            <td>
+              {% widthratio z.auslastung 1 100 as ausl_pct %}
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="bar"><i style="width:{% if ausl_pct > 100 %}100{% else %}{{ ausl_pct }}{% endif %}%"></i></div>
+                {% if z.auslastung > 1 %}<span class="badge b-bad">{{ ausl_pct }}%</span>
+                {% elif z.auslastung >= 0.85 %}<span class="badge b-warn">{{ ausl_pct }}%</span>
+                {% else %}<span class="badge b-ok">{{ ausl_pct }}%</span>{% endif %}
+              </div>
+            </td>
+            <td class="num">{{ z.fz|floatformat:2 }}</td>
+            <td class="num">{{ z.kle_ist|floatformat:2 }}</td>
+            <td class="num">{{ z.kle_anteil|floatformat:1 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="10" class="muted" style="padding:24px;text-align:center">Keine Klient*innen – bitte Belegungsliste füllen.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">GESAMT</td>
+            <td class="num">{{ summe.kontingent_jahr|floatformat:2 }}</td>
+            <td class="num">{{ summe.ist|floatformat:2 }}</td>
+            <td class="num {% if summe.rest < 0 %}neg{% else %}pos{% endif %}">{{ summe.rest|floatformat:2 }}</td>
+            <td colspan="4"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+  <p class="note">Teamsitzung: {{ summe.n_donnerstage }} Donnerstage × 3 Std ÷ {{ kennzahlen.klienten }} Klient*innen
+    = {{ summe.ts_pro_klient_jahr|floatformat:3 }} Std/Klient/Jahr (KLE, Berliner Feiertage ausgenommen).</p>
+{% endblock %}
