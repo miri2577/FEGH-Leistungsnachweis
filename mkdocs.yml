@@ -1,0 +1,41 @@
+site_name: FEGH-Leistungsnachweis · Wiki
+site_description: Handbuch für das Team TBEW (Berliner Eingliederungshilfe)
+docs_dir: docs
+
+theme:
+  name: material
+  language: de
+  palette:
+    - scheme: default
+      primary: blue
+      accent: light blue
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.instant
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+nav:
+  - Start: index.md
+  - Anleitung:
+      - Erste Schritte: anleitung/erste-schritte.md
+      - Leistungsnachweis erfassen: anleitung/leistungsnachweis.md
+      - Gruppen anlegen: anleitung/gruppen.md
+      - Druck-Nachweis erstellen: anleitung/druck-nachweis.md
+  - Fachliches:
+      - Fachleistungsstunden & kLE: fachliches/fls-kle.md
+      - Teamsitzung & Gruppenzeit: fachliches/teamsitzung.md
+  - Administration:
+      - Belegungsliste pflegen: administration/belegungsliste.md
+  - Sicherheit & Datenschutz:
+      - Datenschutz (Art. 9 DSGVO): sicherheit/datenschutz.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - attr_list
+  - toc:
+      permalink: true
+  - pymdownx.superfences

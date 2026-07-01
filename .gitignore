@@ -12,6 +12,9 @@ db.sqlite3-journal
 /media/
 *.log
 
+# MkDocs (Wiki-Build)
+/site/
+
 # Secrets / lokale Konfiguration
 .env
 

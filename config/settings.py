@@ -62,6 +62,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'nachweis.context.globale',
             ],
         },
     },
@@ -125,3 +126,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = 'nachweis:login'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = 'nachweis:login'
+
+# Externes Wiki (Material for MkDocs, GitHub Pages) – Link in der Sidebar
+WIKI_URL = os.environ.get("WIKI_URL", "https://miri2577.github.io/FEGH-Leistungsnachweis/")
