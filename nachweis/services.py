@@ -68,7 +68,8 @@ def get_parameter(jahr: int) -> Parameter:
 
 
 def anzahl_klienten() -> int:
-    return Klient.objects.count()
+    """Teiler für die Teamsitzung: nur Klient*innen in Betreuung (Beendigung zählt nicht mit)."""
+    return Klient.objects.filter(status=Status.BETREUUNG).count()
 
 
 def teamsitzung_pro_klient(jahr: int):
@@ -124,8 +125,10 @@ def fachleistungsstunden(jahr: int, klienten=None):
         kle_manual = sum((l.dauer_stunden for l in manual if l.leistungsart == Leistungsart.KLE), Decimal("0"))
         g = gruppen.get(k.id, {"gesamt": Decimal("0"), "kle": Decimal("0"), "fls": Decimal("0")})
 
-        ist = (ist_manual + g["gesamt"] + ts_pro).quantize(Q3, ROUND_HALF_UP)
-        kle_ist = (kle_manual + g["kle"] + ts_pro).quantize(Q3, ROUND_HALF_UP)   # Teamsitzung = KLE
+        # Teamsitzung nur für Klient*innen in Betreuung (Beendete zählen nicht mit)
+        ts_row = ts_pro if k.status == Status.BETREUUNG else Decimal("0")
+        ist = (ist_manual + g["gesamt"] + ts_row).quantize(Q3, ROUND_HALF_UP)
+        kle_ist = (kle_manual + g["kle"] + ts_row).quantize(Q3, ROUND_HALF_UP)   # Teamsitzung = KLE
         kontingent_m = k.fls_gesamt
         kontingent_j = kontingent_m * 12
         rest = (kontingent_j - ist).quantize(Q3, ROUND_HALF_UP)
@@ -173,8 +176,10 @@ def druck_nachweis(klient, jahr: int, monat: int):
             "beginn": g.beginn, "ende": g.ende, "stunden": g.zeit_pro_klient, "auto": True})
 
     ts_share = (p.teamsitzung_dauer_std / Decimal(n)).quantize(Q3, ROUND_HALF_UP) if n else Decimal("0")
+    if klient.status != Status.BETREUUNG:
+        ts_share = Decimal("0")          # Beendete erhalten keinen Teamsitzungs-Anteil
     for d in teamsitzungstage(jahr, p.teamsitzung_wochentag):
-        if d.month == monat:
+        if ts_share and d.month == monat:
             eintraege.append({
                 "datum": d, "leistungsart": Leistungsart.KLE, "bezeichnung": "Teamsitzung",
                 "beginn": None, "ende": None, "stunden": ts_share, "auto": True})
