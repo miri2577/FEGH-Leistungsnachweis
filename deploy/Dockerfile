@@ -11,7 +11,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-RUN mkdir -p /app/logs /app/media /app/staticfiles
+RUN mkdir -p /app/logs /app/media /app/staticfiles \
+    && chmod +x /app/deploy/entrypoint.sh
 
 ENTRYPOINT ["/app/deploy/entrypoint.sh"]
 CMD ["gunicorn", "config.wsgi:application", "-c", "deploy/gunicorn.conf.py"]
