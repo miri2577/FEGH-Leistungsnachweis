@@ -27,6 +27,10 @@
     .demo{margin-top:16px;padding:11px 13px;background:#f4f8fc;border:1px solid #e2ecf5;border-radius:9px;
       font-size:12px;color:#48586a;line-height:1.6}
     .demo b{color:#00539f}
+    .demotab{width:100%;border-collapse:collapse;margin:8px 0 6px}
+    .demotab td{padding:3px 6px;border-top:1px solid #e2ecf5;vertical-align:top}
+    .demotab td:nth-child(2){color:#00539f;white-space:nowrap}
+    .demotab td:nth-child(3){color:#6b7580}
   </style>
 </head>
 <body>
@@ -46,9 +50,14 @@
       <button type="submit">Anmelden</button>
       <input type="hidden" name="next" value="{{ next }}">
       <div class="demo">
-        <b>Demo-Zugänge</b> (Passwort <b>demo12345</b>):<br>
-        <b>berger</b> = Teamleitung (zusätzlich Stammdaten/Admin) · <b>neumann</b>, <b>schuster</b>, … = Betreuer*in.
-        Alle greifen auf <b>alle</b> Klient*innen zu (Vertretung).
+        <b>Demo-Zugänge</b> — Passwort für alle: <b>demo12345</b>
+        <table class="demotab">
+          <tr><td><b>sander</b></td><td>Admin</td><td>Teams &amp; Mitarbeiter verwalten</td></tr>
+          <tr><td><b>berger</b></td><td>Leitung</td><td>Team-Auswertung, Belegungsliste</td></tr>
+          <tr><td><b>neumann</b></td><td>User (TBEW)</td><td>Betreuer*in</td></tr>
+          <tr><td><b>peters</b></td><td>User (Verwaltung)</td><td>mit Stempeluhr</td></tr>
+        </table>
+        weitere User: schuster, kaiser, lorenz (TBEW) · hartmann, wolf (WG).
       </div>
     </form>
   </div>
