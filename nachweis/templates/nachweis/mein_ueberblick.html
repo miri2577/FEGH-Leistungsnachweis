@@ -173,7 +173,7 @@
     <div class="body">
       <table class="grid">
         <thead><tr><th>Klient*in</th><th class="num">Kont./Jahr</th><th class="num">Ist</th>
-          <th class="num">Rest</th><th>Auslastung</th></tr></thead>
+          <th class="num">Rest</th><th>Auslastung</th><th>Bericht …versendet am</th></tr></thead>
         <tbody>
           {% for z in eigene_zeilen %}
           <tr>
@@ -185,9 +185,16 @@
               {% if z.auslastung > 1 %}<span class="badge b-bad">{{ p }}%</span>
               {% elif z.auslastung >= 0.85 %}<span class="badge b-warn">{{ p }}%</span>
               {% else %}<span class="badge b-ok">{{ p }}%</span>{% endif %}</td>
+            <td>
+              <form method="post" action="{% url 'nachweis:versendet_setzen' %}" style="display:flex;gap:6px;align-items:center;margin:0">
+                {% csrf_token %}<input type="hidden" name="klient" value="{{ z.klient.id }}">
+                <input type="date" name="datum" value="{{ z.klient.versendet_am|date:'Y-m-d' }}" style="padding:4px 8px;font-size:12px">
+                <button class="btn ghost" style="padding:3px 9px;font-size:12px" title="Datum speichern">✓</button>
+              </form>
+            </td>
           </tr>
           {% empty %}
-          <tr><td colspan="5" class="muted" style="text-align:center;padding:20px">Dir sind aktuell keine Klient*innen als Bezugsbetreuer*in zugeordnet.</td></tr>
+          <tr><td colspan="6" class="muted" style="text-align:center;padding:20px">Dir sind aktuell keine Klient*innen als Bezugsbetreuer*in zugeordnet.</td></tr>
           {% endfor %}
         </tbody>
       </table>

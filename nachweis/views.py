@@ -88,6 +88,24 @@ def mein_ueberblick(request):
 
 @require_POST
 @login_required
+def versendet_setzen(request):
+    """Mitarbeiter*in setzt das '…versendet am'-Datum für eine*n eigene*n/Team-Klient*in.
+    Die Leitung sieht es anschließend in der Belegungsliste."""
+    k = services.klienten_fuer(request.user).filter(pk=request.POST.get("klient")).first()
+    if not k:
+        return HttpResponseForbidden()
+    d = (request.POST.get("datum") or "").strip()
+    try:
+        k.versendet_am = date.fromisoformat(d) if d else None
+    except ValueError:
+        return HttpResponse("Ungültiges Datum.", status=400)
+    k.save(update_fields=["versendet_am"])
+    messages.success(request, f"„…versendet am“ für {k.name} gespeichert.")
+    return redirect("nachweis:start")
+
+
+@require_POST
+@login_required
 def stempeln(request):
     me = services.mitarbeiter_fuer(request.user)
     if not me:

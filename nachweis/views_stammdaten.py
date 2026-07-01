@@ -39,6 +39,11 @@ def _int_or_none(s):
         return None
 
 
+def _ma(pk):
+    """Mitarbeiter zum PK (oder None) – leere Auswahl robust behandeln."""
+    return Mitarbeiter.objects.filter(pk=pk).first() if (pk or "").strip().isdigit() else None
+
+
 # ---------------------------------------------------------------- Belegungsliste
 @login_required
 def belegungsliste(request):
@@ -84,19 +89,21 @@ def klient_speichern(request):
         k = Klient()
 
     nachname = (request.POST.get("nachname") or "").strip()
-    team = teams.filter(pk=request.POST.get("team")).first()
-    bez = Mitarbeiter.objects.filter(pk=request.POST.get("bezugsbetreuer"), team__in=teams).first()
+    _tid = request.POST.get("team")
+    team = teams.filter(pk=_tid).first() if (_tid or "").strip().isdigit() else None
+    _bid = request.POST.get("bezugsbetreuer")
+    bez = Mitarbeiter.objects.filter(pk=_bid, team__in=teams).first() if (_bid or "").strip().isdigit() else None
     if not (nachname and team and bez):
         messages.error(request, "Bitte Nachname, Team und Bezugsbetreuer*in (aus dem Team) angeben.")
-        return redirect(request.META.get("HTTP_REFERER", "nachweis:belegungsliste"))
+        return redirect("nachweis:belegungsliste")
 
     k.nachname = nachname
     k.vorname = (request.POST.get("vorname") or "").strip()
     k.geburtsdatum = _datum(request.POST.get("geburtsdatum"))
     k.team = team
     k.bezugsbetreuer = bez
-    k.vertretung1 = Mitarbeiter.objects.filter(pk=request.POST.get("vertretung1")).first()
-    k.vertretung2 = Mitarbeiter.objects.filter(pk=request.POST.get("vertretung2")).first()
+    k.vertretung1 = _ma(request.POST.get("vertretung1"))
+    k.vertretung2 = _ma(request.POST.get("vertretung2"))
     k.al = _dec(request.POST.get("al"))
     k.kle = _dec(request.POST.get("kle"))
     k.hbg = _int_or_none(request.POST.get("hbg"))
