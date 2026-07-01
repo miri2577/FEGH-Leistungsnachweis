@@ -2,15 +2,32 @@
 {% block title %}Mein Überblick · FEGH{% endblock %}
 
 {% block extrastyle %}
-  .alert{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;margin-bottom:14px;font-size:13.5px}
-  .alert.warn{background:var(--warnbg);color:var(--warn);border:1px solid #f0dca6}
-  .alert.ok{background:var(--okbg);color:var(--ok);border:1px solid #cbe8d8}
-  .alert.info{background:var(--blue-soft);color:var(--brand-d);border:1px solid #cfe0f2}
-  .alert a{margin-left:auto;white-space:nowrap}
+  /* kompaktere Kacheln + engeres Raster (weniger Unruhe) */
+  .grid-dash.tight{grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:16px}
+  .kpi.sm{padding:12px 15px}
+  .kpi.sm .n{font-size:22px}
+  .kpi.sm .top{margin-bottom:4px}
   .kpi .sub2{font-size:12px;color:var(--muted);margin-top:2px}
-  .barwrap{height:8px;background:#eef2f6;border-radius:99px;overflow:hidden;margin-top:8px}
+  .hello.compact{padding:14px 20px;margin-bottom:16px}
+  .hello.compact .ava{width:44px;height:44px;font-size:17px}
+  .hello.compact h2{font-size:17px}
+  .barwrap{height:7px;background:#eef2f6;border-radius:99px;overflow:hidden;margin-top:8px}
   .barwrap>i{display:block;height:100%;background:var(--brand-l)}
   .acts{display:flex;gap:12px;flex-wrap:wrap;margin-top:4px}
+  /* Fälligkeiten-Karte (kompakt, aufklappbar) */
+  .frow{display:flex;align-items:center;gap:10px;padding:10px 18px;border-top:1px solid var(--line);font-size:13.5px}
+  .frow:first-child{border-top:0}
+  .frow .fi{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:0 0 auto}
+  .frow .fi svg{width:15px;height:15px;fill:currentColor}
+  .frow.warn .fi{background:var(--warnbg);color:var(--warn)}
+  .frow.rep  .fi{background:var(--blue-soft);color:var(--blue-ink)}
+  .frow .ftxt{flex:1;min-width:0}
+  .frow a{white-space:nowrap;font-size:13px}
+  .frow.extra{display:none}
+  .faellig.open .frow.extra{display:flex}
+  .mehrbtn{display:block;width:100%;text-align:center;padding:9px;border:0;border-top:1px solid var(--line);
+    background:transparent;color:var(--brand);font-weight:600;font-size:13px;cursor:pointer;font-family:inherit}
+  .mehrbtn:hover{background:var(--bg-2)}
 {% endblock %}
 
 {% block content %}
@@ -19,8 +36,8 @@
     <div class="alert warn">Für dieses Login ist kein Mitarbeiter-Profil hinterlegt. Die Administration kann es im Admin unter „Mitarbeiter" zuordnen.</div>
   {% else %}
 
-  <!-- Begrüßung -->
-  <div class="hello" style="margin-bottom:16px">
+  <!-- Begrüßung (kompakt) -->
+  <div class="hello compact">
     <div class="ava">{{ me.vorname|slice:":1" }}{{ me.name|slice:":1" }}</div>
     <div>
       <h2>Hallo {{ me.vorname|default:me.name }}, willkommen im SelfService!</h2>
@@ -28,18 +45,8 @@
     </div>
   </div>
 
-  <!-- Hinweise -->
-  {% if az.fehlende_tage %}
-    <div class="alert warn">⚠ Diesen Monat fehlen noch <b>{{ az.fehlende_tage }}</b> Arbeitszeitnachweis(e).
-      <a href="{% url 'nachweis:arbeitszeit' %}">Jetzt erfassen →</a></div>
-  {% endif %}
-  {% for k in berichte %}
-    <div class="alert info">📄 Entwicklungsbericht für <b>{{ k.name }}</b> fällig – KÜ endet am {{ k.kue_bis|date:"d.m.Y" }} (Vorlauf 10 Wochen).
-      <a href="{% url 'nachweis:druck' %}?klient={{ k.id }}">Zum Klienten →</a></div>
-  {% endfor %}
-
-  <!-- obere Reihe: Stempeluhr (Verwaltung) + Info + KPIs -->
-  <div class="grid-dash">
+  <!-- kleine KPI-Reihe + Stempeluhr -->
+  <div class="grid-dash tight">
     {% if stempel %}
     <form class="stamp {% if stempel.eingestempelt %}is-in{% endif %}" method="post" action="{% url 'nachweis:stempeln' %}">
       {% csrf_token %}
@@ -66,16 +73,16 @@
     </form>
     {% endif %}
 
-    <div class="kpi k-green">
+    <div class="kpi sm k-green">
       <div class="top">
         <span class="chip"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm.5 5H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></span>
         <span class="l">Arbeitszeit {{ monat_name }}</span>
       </div>
-      <div class="n">{{ az.ist|floatformat:1 }}<span style="font-size:15px;color:var(--muted)"> / {{ az.soll|floatformat:1 }} Std</span></div>
+      <div class="n">{{ az.ist|floatformat:1 }}<span style="font-size:14px;color:var(--muted)"> / {{ az.soll|floatformat:1 }}</span></div>
       {% if az.soll %}{% widthratio az.ist az.soll 100 as azp %}<div class="barwrap"><i style="width:{% if azp > 100 %}100{% else %}{{ azp }}{% endif %}%"></i></div>{% endif %}
     </div>
 
-    <div class="kpi k-blue">
+    <div class="kpi sm k-blue">
       <div class="top">
         <span class="chip"><svg viewBox="0 0 24 24"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-7 0a1 1 0 110 2 1 1 0 010-2zm2 14H7v-2h9v2zm3-4H7v-2h12v2zm0-4H7V7h12v2z"/></svg></span>
         <span class="l">meine Klient*innen</span>
@@ -83,31 +90,44 @@
       <div class="n">{{ eigene_zeilen|length }}</div>
     </div>
 
-    {% if az.fehlende_tage %}
-    <div class="info soft">
-      <div class="count">{{ az.fehlende_tage }}</div>
-      <div class="txt">offene <b>Arbeitszeitnachweise</b> in {{ monat_name }} – <a href="{% url 'nachweis:arbeitszeit' %}">erfassen</a></div>
+    <div class="kpi sm k-purple">
+      <div class="top">
+        <span class="chip"><svg viewBox="0 0 24 24"><path d="M17 3h-1V1h-2v2H10V1H8v2H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H7V8h10v11z"/></svg></span>
+        <span class="l">Resturlaub</span>
+      </div>
+      <div class="n">{{ urlaub.rest }}<span style="font-size:14px;color:var(--muted)"> / {{ urlaub.anspruch }}</span></div>
     </div>
-    {% else %}
-    <div class="kpi k-teal">
-      <div class="top"><span class="chip"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span>
-        <span class="l">Arbeitszeit {{ monat_name }}</span></div>
-      <div class="n" style="font-size:16px;color:var(--ok)">vollständig erfasst</div>
-    </div>
-    {% endif %}
   </div>
 
-  <!-- mittlere Reihe: Kalender + Urlaubskonto + Benachrichtigungen -->
+  <!-- Fälligkeiten + Urlaubskonto -->
   <div class="grid-dash">
-    <div class="panel span2" style="margin:0">
-      <div class="head"><h2>Kalender</h2><span class="muted">Aktuelle Woche</span></div>
-      <div class="week">
-        {% for t in wochentage %}
-        <div class="day {% if t.heute %}today{% endif %}{% if t.frei %} frei{% endif %}">
-          <div class="wd">{{ t.wd }}</div><div class="dn">{{ t.tag }}</div>
-          {% if t.frei %}<span class="tag" style="background:var(--orange-soft);color:var(--orange-ink)">frei</span>{% endif %}
+    <div class="panel span2 faellig" id="faellig" style="margin:0">
+      <div class="head"><h2>Fälligkeiten &amp; Hinweise</h2>
+        <span class="muted">{% with n=berichte|length %}{% if az.fehlende_tage %}{{ n|add:1 }}{% else %}{{ n }}{% endif %}{% endwith %} offen</span></div>
+      <div class="body" style="padding:0">
+        {% if not az.fehlende_tage and not berichte %}
+          <div class="empty">✓ Aktuell nichts zu erledigen.</div>
+        {% endif %}
+        {% if az.fehlende_tage %}
+        <div class="frow warn">
+          <span class="fi"><svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></span>
+          <span class="ftxt">Diesen Monat fehlen noch <b>{{ az.fehlende_tage }}</b> Arbeitszeitnachweis(e).</span>
+          <a href="{% url 'nachweis:arbeitszeit' %}">Erfassen →</a>
+        </div>
+        {% endif %}
+        {% for k in berichte %}
+        <div class="frow rep {% if az.fehlende_tage %}{% if forloop.counter > 1 %}extra{% endif %}{% else %}{% if forloop.counter > 2 %}extra{% endif %}{% endif %}">
+          <span class="fi"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></span>
+          <span class="ftxt">Entwicklungsbericht <b>{{ k.name }}</b> – KÜ endet am {{ k.kue_bis|date:"d.m.Y" }}</span>
+          <a href="{% url 'nachweis:druck' %}?klient={{ k.id }}">Zum Klienten →</a>
         </div>
         {% endfor %}
+        {% with sichtbar=1 %}{% endwith %}
+        {% if az.fehlende_tage %}{% with mehr=berichte|length|add:'-1' %}{% if mehr > 0 %}
+          <button class="mehrbtn" type="button" data-mehr="{{ mehr }}">mehr ({{ mehr }}) …</button>
+        {% endif %}{% endwith %}{% else %}{% with mehr=berichte|length|add:'-2' %}{% if mehr > 0 %}
+          <button class="mehrbtn" type="button" data-mehr="{{ mehr }}">mehr ({{ mehr }}) …</button>
+        {% endif %}{% endwith %}{% endif %}
       </div>
     </div>
 
@@ -116,13 +136,26 @@
       <div class="konto">
         <div class="ring"><svg viewBox="0 0 24 24"><path d="M17 3h-1V1h-2v2H10V1H8v2H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H7V8h10v11z"/></svg></div>
         <div class="stats">
-          <div class="s"><div class="v">{{ urlaub.anspruch }}</div><div class="k">Gesamtanspruch</div></div>
+          <div class="s"><div class="v">{{ urlaub.anspruch }}</div><div class="k">Anspruch</div></div>
           <div class="s"><div class="v">{{ urlaub.genommen|add:urlaub.beantragt }}</div><div class="k">Verplant</div></div>
-          <div class="s rest"><div class="v">{{ urlaub.rest }}</div><div class="k">Resturlaub</div></div>
+          <div class="s rest"><div class="v">{{ urlaub.rest }}</div><div class="k">Rest</div></div>
         </div>
       </div>
       <div class="kontozeile"><span class="muted">genommen</span><span>{{ urlaub.genommen }} Tage</span></div>
       <div class="kontozeile"><span class="muted">beantragt / offen</span><span class="{% if urlaub.beantragt %}pos{% endif %}">{{ urlaub.beantragt }} Tage</span></div>
+    </div>
+  </div>
+
+  <!-- Kalender (kompakt, eigene Zeile) -->
+  <div class="panel">
+    <div class="head"><h2>Kalender</h2><span class="muted">Aktuelle Woche</span></div>
+    <div class="week">
+      {% for t in wochentage %}
+      <div class="day {% if t.heute %}today{% endif %}{% if t.frei %} frei{% endif %}">
+        <div class="wd">{{ t.wd }}</div><div class="dn">{{ t.tag }}</div>
+        {% if t.frei %}<span class="tag" style="background:var(--orange-soft);color:var(--orange-ink)">frei</span>{% endif %}
+      </div>
+      {% endfor %}
     </div>
   </div>
 
@@ -183,6 +216,19 @@
     }
     tick();
     if(seit){ setInterval(tick, 1000*20); }
+  })();
+
+  // Fälligkeiten-Karte auf-/zuklappen
+  (function(){
+    var card = document.getElementById('faellig');
+    if(!card) return;
+    var btn = card.querySelector('.mehrbtn');
+    if(!btn) return;
+    var mehr = btn.dataset.mehr;
+    btn.addEventListener('click', function(){
+      var open = card.classList.toggle('open');
+      btn.textContent = open ? 'weniger anzeigen' : ('mehr (' + mehr + ') …');
+    });
   })();
 </script>
 {% endblock %}

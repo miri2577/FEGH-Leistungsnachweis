@@ -18,7 +18,9 @@ class OTPErzwingenMiddleware:
 
     def _exempt(self, request):
         pfad = request.path
-        if pfad.startswith(settings.STATIC_URL) or pfad.startswith("/admin/"):
+        # Statische Dateien und die Admin-LOGIN-Seite ausnehmen – aber NICHT den
+        # ganzen /admin/-Bereich (sonst wäre 2FA auf der sensibelsten Oberfläche umgehbar).
+        if pfad.startswith(settings.STATIC_URL) or pfad == "/admin/login/":
             return True
         return pfad in {
             reverse("nachweis:login"),
