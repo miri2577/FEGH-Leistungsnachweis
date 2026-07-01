@@ -3,7 +3,7 @@ Fachleistungsstunden-Auswertung. Alles aus der Excel-Logik abgeleitet, serversei
 """
 from collections import defaultdict
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 import holidays as _holidays
 
@@ -79,7 +79,7 @@ def teamsitzung_pro_klient(jahr: int):
     n = anzahl_klienten()
     if not n:
         return Decimal("0"), len(tage)
-    pro = (p.teamsitzung_dauer_std * Decimal(len(tage)) / Decimal(n)).quantize(Q3)
+    pro = (p.teamsitzung_dauer_std * Decimal(len(tage)) / Decimal(n)).quantize(Q3, ROUND_HALF_UP)
     return pro, len(tage)
 
 
@@ -89,7 +89,7 @@ def teamsitzung_pro_klient_monat(jahr: int, monat: int) -> Decimal:
     n = anzahl_klienten()
     if not n:
         return Decimal("0")
-    return (p.teamsitzung_dauer_std * Decimal(len(tage)) / Decimal(n)).quantize(Q3)
+    return (p.teamsitzung_dauer_std * Decimal(len(tage)) / Decimal(n)).quantize(Q3, ROUND_HALF_UP)
 
 
 def gruppen_anteile(jahr: int):
@@ -118,17 +118,17 @@ def fachleistungsstunden(jahr: int, klienten=None):
     qs = klienten if klienten is not None else Klient.objects.all()
     zeilen = []
     for k in qs.select_related("bezugsbetreuer"):
-        manual = list(k.leistungen.filter(datum__year=jahr))
+        manual = list(k.leistungen.filter(datum__year=jahr).exclude(auto=True))
         ist_manual = sum((l.dauer_stunden for l in manual), Decimal("0"))
         fz = sum((l.dauer_stunden for l in manual if l.leistungsart == Leistungsart.FZ), Decimal("0"))
         kle_manual = sum((l.dauer_stunden for l in manual if l.leistungsart == Leistungsart.KLE), Decimal("0"))
         g = gruppen.get(k.id, {"gesamt": Decimal("0"), "kle": Decimal("0"), "fls": Decimal("0")})
 
-        ist = (ist_manual + g["gesamt"] + ts_pro).quantize(Q3)
-        kle_ist = (kle_manual + g["kle"] + ts_pro).quantize(Q3)   # Teamsitzung = KLE
+        ist = (ist_manual + g["gesamt"] + ts_pro).quantize(Q3, ROUND_HALF_UP)
+        kle_ist = (kle_manual + g["kle"] + ts_pro).quantize(Q3, ROUND_HALF_UP)   # Teamsitzung = KLE
         kontingent_m = k.fls_gesamt
         kontingent_j = kontingent_m * 12
-        rest = (kontingent_j - ist).quantize(Q3)
+        rest = (kontingent_j - ist).quantize(Q3, ROUND_HALF_UP)
         auslastung = (ist / kontingent_j) if kontingent_j else Decimal("0")
         zeilen.append({
             "klient": k,
@@ -138,7 +138,7 @@ def fachleistungsstunden(jahr: int, klienten=None):
             "ist": ist,
             "rest": rest,
             "auslastung": auslastung,
-            "fz": fz.quantize(Q3),
+            "fz": fz.quantize(Q3, ROUND_HALF_UP),
             "kle_ist": kle_ist,
             "kle_monat": k.kle,
             "al_monat": k.al,
@@ -150,6 +150,7 @@ def fachleistungsstunden(jahr: int, klienten=None):
         "rest": sum((z["rest"] for z in zeilen), Decimal("0")),
         "n_donnerstage": n_do,
         "ts_pro_klient_jahr": ts_pro,
+        "ts_dauer": get_parameter(jahr).teamsitzung_dauer_std,
     }
     return zeilen, summe
 
@@ -161,7 +162,7 @@ def druck_nachweis(klient, jahr: int, monat: int):
     n = anzahl_klienten()
     eintraege = []
 
-    for l in klient.leistungen.filter(datum__year=jahr, datum__month=monat):
+    for l in klient.leistungen.filter(datum__year=jahr, datum__month=monat).exclude(auto=True):
         eintraege.append({
             "datum": l.datum, "leistungsart": l.leistungsart, "bezeichnung": l.taetigkeit,
             "beginn": l.beginn, "ende": l.ende, "stunden": l.dauer_stunden, "auto": False})
@@ -171,7 +172,7 @@ def druck_nachweis(klient, jahr: int, monat: int):
             "datum": g.datum, "leistungsart": g.leistungsart, "bezeichnung": f"Gruppe: {g.thema}",
             "beginn": g.beginn, "ende": g.ende, "stunden": g.zeit_pro_klient, "auto": True})
 
-    ts_share = (p.teamsitzung_dauer_std / Decimal(n)).quantize(Q3) if n else Decimal("0")
+    ts_share = (p.teamsitzung_dauer_std / Decimal(n)).quantize(Q3, ROUND_HALF_UP) if n else Decimal("0")
     for d in teamsitzungstage(jahr, p.teamsitzung_wochentag):
         if d.month == monat:
             eintraege.append({
@@ -186,7 +187,7 @@ def druck_nachweis(klient, jahr: int, monat: int):
     total_alle = Decimal("0")
     for art in Leistungsart:
         s = sum((e["stunden"] for e in eintraege if e["leistungsart"] == art), Decimal("0"))
-        summen.append({"art": art, "label": labels[art], "stunden": s.quantize(Q3),
+        summen.append({"art": art, "label": labels[art], "stunden": s.quantize(Q3, ROUND_HALF_UP),
                        "ist_fls": art in FLS_ARTEN})
         total_alle += s
         if art in FLS_ARTEN:
@@ -196,5 +197,5 @@ def druck_nachweis(klient, jahr: int, monat: int):
         "klient": klient, "jahr": jahr, "monat": monat,
         "monat_text": f"{monat:02d}.{jahr}",
         "eintraege": eintraege, "summen": summen,
-        "fls_summe": total_fls.quantize(Q3), "gesamt": total_alle.quantize(Q3),
+        "fls_summe": total_fls.quantize(Q3, ROUND_HALF_UP), "gesamt": total_alle.quantize(Q3, ROUND_HALF_UP),
     }

@@ -1,5 +1,6 @@
 import json
 from datetime import date, datetime
+from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
@@ -49,9 +50,9 @@ def dashboard(request):
     if betreuer_id:
         zeilen = [z for z in zeilen if str(z["betreuer"].id) == betreuer_id]
         summe = summe | {
-            "kontingent_jahr": sum((z["kontingent_jahr"] for z in zeilen), 0),
-            "ist": sum((z["ist"] for z in zeilen), 0),
-            "rest": sum((z["rest"] for z in zeilen), 0),
+            "kontingent_jahr": sum((z["kontingent_jahr"] for z in zeilen), Decimal("0")),
+            "ist": sum((z["ist"] for z in zeilen), Decimal("0")),
+            "rest": sum((z["rest"] for z in zeilen), Decimal("0")),
         }
 
     context = {

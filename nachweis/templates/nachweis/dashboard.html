@@ -47,7 +47,7 @@
             <td>
               {% widthratio z.auslastung 1 100 as ausl_pct %}
               <div style="display:flex;align-items:center;gap:8px">
-                <div class="bar"><i style="width:{% if ausl_pct > 100 %}100{% else %}{{ ausl_pct }}{% endif %}%"></i></div>
+                <div class="bar"><i style="width:{% if z.auslastung > 1 %}100{% else %}{{ ausl_pct }}{% endif %}%"></i></div>
                 {% if z.auslastung > 1 %}<span class="badge b-bad">{{ ausl_pct }}%</span>
                 {% elif z.auslastung >= 0.85 %}<span class="badge b-warn">{{ ausl_pct }}%</span>
                 {% else %}<span class="badge b-ok">{{ ausl_pct }}%</span>{% endif %}
@@ -73,7 +73,7 @@
       </table>
     </div>
   </div>
-  <p class="note">Teamsitzung: {{ summe.n_donnerstage }} Donnerstage × 3 Std ÷ alle Klient*innen
+  <p class="note">Teamsitzung: {{ summe.n_donnerstage }} Donnerstage × {{ summe.ts_dauer|floatformat:"-2" }} Std ÷ alle Klient*innen
     = {{ summe.ts_pro_klient_jahr|floatformat:3 }} Std/Klient/Jahr (KLE, Berliner Feiertage ausgenommen).
     {% if not darf_alles %}· Sicht: nur eigene Klient*innen.{% endif %}</p>
 {% endblock %}

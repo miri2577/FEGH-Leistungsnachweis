@@ -19,11 +19,15 @@ Q3 = Decimal("0.001")  # Rundung auf 3 Nachkommastellen (Stunden)
 
 
 def _stunden(beginn, ende) -> Decimal:
-    """Dauer zwischen zwei Uhrzeiten in Dezimalstunden (0, falls unvollständig)."""
+    """Dauer zwischen zwei Uhrzeiten in Dezimalstunden (0, falls unvollständig
+    oder Ende vor Beginn – Tippfehler werden nicht negativ gewertet)."""
     if not beginn or not ende:
         return Decimal("0")
     delta = datetime.combine(date.min, ende) - datetime.combine(date.min, beginn)
-    return (Decimal(delta.total_seconds()) / Decimal(3600)).quantize(Q3, ROUND_HALF_UP)
+    sekunden = int(delta.total_seconds())
+    if sekunden < 0:
+        return Decimal("0")
+    return (Decimal(sekunden) / Decimal(3600)).quantize(Q3, ROUND_HALF_UP)
 
 
 class Leistungsart(models.TextChoices):
