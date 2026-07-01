@@ -1,0 +1,33 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Aktivierungslink · FEGH{% endblock %}
+{% block extrastyle %}
+  .linkbox{display:flex;gap:10px;align-items:stretch;margin:6px 0}
+  .linkbox input{flex:1;font-family:Consolas,monospace;font-size:12.5px;padding:10px 12px;
+    border:1px solid var(--border);border-radius:9px;background:var(--bg-2);color:var(--ink)}
+  .ok{background:var(--okbg);color:var(--ok);border:1px solid #cbe8d8;border-radius:9px;padding:10px 14px;font-size:13px;margin-bottom:14px}
+{% endblock %}
+{% block content %}
+  <h1 class="page">{% if reset %}Neuer Passwort-Link{% else %}Konto angelegt ✓{% endif %}</h1>
+  <p class="sub">{{ m }} · Benutzername <b>{{ m.user.username }}</b>{% if m.team %} · Team {{ m.team.name }}{% endif %} · {{ m.get_rolle_display }}</p>
+
+  {% if gemailt %}
+    <div class="ok">✉ Der Aktivierungslink wurde an <b>{{ email }}</b> gesendet.</div>
+  {% endif %}
+
+  <div class="panel" style="max-width:760px">
+    <div class="head"><h2>Aktivierungslink (7 Tage gültig)</h2></div>
+    <div class="body" style="padding:16px 18px">
+      <p style="margin-top:0">Gib diesen Link an die Person weiter. Darüber vergibt sie ihr <b>eigenes Passwort</b>. Der Link funktioniert genau einmal.</p>
+      <div class="linkbox">
+        <input type="text" id="link" value="{{ link }}" readonly onclick="this.select()">
+        <button class="btn" type="button" onclick="navigator.clipboard.writeText(document.getElementById('link').value); this.textContent='kopiert ✓'">Kopieren</button>
+      </div>
+      <p class="note">Danach meldet sich die Person mit Benutzername + selbst gewähltem Passwort an; ist Zwei-Faktor Pflicht, wird sie beim ersten Login zur Einrichtung geführt.</p>
+    </div>
+  </div>
+
+  <div class="acts" style="margin-top:16px;display:flex;gap:10px">
+    <a class="btn ghost" href="{% url 'nachweis:mitarbeiter_liste' %}">Zur Mitarbeiterliste</a>
+    <a class="btn ghost" href="{% url 'nachweis:mitarbeiter_neu' %}">Weitere*n anlegen</a>
+  </div>
+{% endblock %}

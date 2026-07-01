@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import views, views_2fa
+from . import views, views_2fa, views_onboarding
 
 app_name = "nachweis"
 
@@ -36,6 +36,13 @@ urlpatterns = [
     path("login/", auth_views.LoginView.as_view(
         template_name="nachweis/login.html"), name="login"),
     path("logout/", auth_views.LogoutView.as_view(next_page="nachweis:login"), name="logout"),
+
+    # Onboarding / Mitarbeiter-Verwaltung (Admin)
+    path("mitarbeiter/", views_onboarding.mitarbeiter_liste, name="mitarbeiter_liste"),
+    path("mitarbeiter/neu/", views_onboarding.mitarbeiter_neu, name="mitarbeiter_neu"),
+    path("mitarbeiter/aktion/", views_onboarding.mitarbeiter_aktion, name="mitarbeiter_aktion"),
+    # Konto-Aktivierung (öffentlich, per signiertem Link)
+    path("aktivieren/<uidb64>/<token>/", views_onboarding.aktivieren, name="aktivieren"),
 
     # Zwei-Faktor (TOTP)
     path("2fa/setup/", views_2fa.zwei_faktor_setup, name="2fa_setup"),

@@ -1,0 +1,55 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Mitarbeiter-Verwaltung · FEGH{% endblock %}
+{% block extrastyle %}
+  .st{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600}
+  .st.ok{background:var(--okbg);color:var(--ok)} .st.no{background:var(--badbg);color:var(--bad)}
+  .st.wait{background:var(--warnbg);color:var(--warn)}
+  td form{display:inline;margin:0}
+  td .mini{padding:4px 8px;font-size:12px}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Mitarbeiter-Verwaltung</h1>
+  <p class="sub">Konten anlegen, Zugänge aktivieren, Passwort-/2FA-Reset, Ein-/Austritt.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div style="margin-bottom:14px"><a class="btn" href="{% url 'nachweis:mitarbeiter_neu' %}">+ Mitarbeiter*in anlegen</a></div>
+
+  <div class="panel">
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Name</th><th>Benutzer</th><th>Rolle</th><th>Team</th>
+          <th>Passwort</th><th>2FA</th><th>Status</th><th>Aktionen</th></tr></thead>
+        <tbody>
+          {% for e in leute %}
+          <tr>
+            <td>{{ e.m.name }}{% if e.m.vorname %}, {{ e.m.vorname }}{% endif %}</td>
+            <td class="muted">{{ e.m.user.username|default:"—" }}</td>
+            <td>{{ e.m.get_rolle_display }}</td>
+            <td class="muted">{{ e.m.team.name|default:"—" }}</td>
+            <td>{% if e.hat_passwort %}<span class="st ok">gesetzt</span>{% else %}<span class="st wait">offen</span>{% endif %}</td>
+            <td>{% if e.hat_2fa %}<span class="st ok">aktiv</span>{% else %}<span class="st no">—</span>{% endif %}</td>
+            <td>{% if e.aktiv %}<span class="st ok">aktiv</span>{% else %}<span class="st no">gesperrt</span>{% endif %}</td>
+            <td>
+              <form method="post" action="{% url 'nachweis:mitarbeiter_aktion' %}">
+                {% csrf_token %}<input type="hidden" name="id" value="{{ e.m.id }}">
+                <button class="btn ghost mini" name="aktion" value="reset_link" title="Neuen Aktivierungs-/Passwortlink erzeugen">Link</button>
+                <button class="btn ghost mini" name="aktion" value="twofa_reset" title="2FA zurücksetzen"
+                  onclick="return confirm('2FA zurücksetzen?')">2FA↺</button>
+                {% if e.aktiv %}
+                <button class="btn ghost mini" name="aktion" value="deaktivieren" style="color:var(--bad)"
+                  onclick="return confirm('Konto sperren?')">Sperren</button>
+                {% else %}
+                <button class="btn ghost mini" name="aktion" value="aktivieren" style="color:var(--ok)">Entsperren</button>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="muted" style="text-align:center;padding:20px">Noch keine Mitarbeiter*innen.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

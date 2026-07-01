@@ -132,6 +132,24 @@ LOGIN_URL = 'nachweis:login'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = 'nachweis:login'
 
+# Aktivierungs-/Passwort-Reset-Links: 7 Tage gültig (einmalig durch Token-Mechanik)
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 24 * 7
+
+# E-Mail (für optionalen Versand der Aktivierungslinks).
+# Dev: Konsole (Link landet im Terminal). Prod: SMTP via Env-Variablen.
+EMAIL_BACKEND = os.environ.get(
+    "DJANGO_EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend" if DEBUG
+    else "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = os.environ.get("DJANGO_EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("DJANGO_EMAIL_TLS", "1") == "1"
+DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_FROM_EMAIL", "FEGH-Leistungsnachweis <noreply@localhost>")
+# E-Mail-Versand nur, wenn konfiguriert (Konsole zählt als "verfügbar" für Dev-Test)
+EMAIL_AKTIV = bool(EMAIL_HOST) or EMAIL_BACKEND.endswith("console.EmailBackend")
+
 # Externes Wiki (Material for MkDocs, GitHub Pages) – Link in der Sidebar
 WIKI_URL = os.environ.get("WIKI_URL", "https://miri2577.github.io/FEGH-Leistungsnachweis/")
 

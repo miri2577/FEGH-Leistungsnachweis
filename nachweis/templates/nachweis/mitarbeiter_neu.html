@@ -1,0 +1,38 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Mitarbeiter*in anlegen · FEGH{% endblock %}
+{% block extrastyle %}
+  .mform{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;padding:20px;max-width:640px}
+  .mform .full{grid-column:1 / -1}
+  .mform input,.mform select{width:100%}
+  .hint{color:var(--muted);font-size:12.5px;margin:6px 20px 0}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Mitarbeiter*in anlegen</h1>
+  <p class="sub">Neues Konto anlegen. Das Passwort vergibt die Person selbst über einen Aktivierungslink – niemand sonst kennt es.</p>
+
+  {% for m in messages %}<div class="alert" style="background:var(--badbg);color:var(--bad);padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ m }}</div>{% endfor %}
+
+  <div class="panel" style="max-width:680px">
+    <form method="post">
+      {% csrf_token %}
+      <div class="mform">
+        <div><label class="fld">Vorname</label><input type="text" name="vorname"></div>
+        <div><label class="fld">Nachname *</label><input type="text" name="nachname" required></div>
+        <div><label class="fld">Rolle *</label>
+          <select name="rolle">{% for v,l in rollen %}<option value="{{ v }}" {% if v == 'user' %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+        </div>
+        <div><label class="fld">Team</label>
+          <select name="team"><option value="">—</option>{% for t in teams %}<option value="{{ t.id }}">{{ t.name }} ({{ t.get_typ_display }})</option>{% endfor %}</select>
+        </div>
+        <div><label class="fld">Wochen-Soll (Std)</label><input type="number" name="wochenstunden" value="39" step="0.5" min="0"></div>
+        <div><label class="fld">Urlaubstage/Jahr</label><input type="number" name="urlaubstage" value="30" min="0"></div>
+        <div class="full"><label class="fld">E-Mail (optional – für Link-Versand)</label><input type="text" name="email" placeholder="name@traeger.de"></div>
+        <div class="full" style="margin-top:4px">
+          <button class="btn" type="submit">Anlegen &amp; Aktivierungslink erzeugen</button>
+          <a class="btn ghost" href="{% url 'nachweis:mitarbeiter_liste' %}">Abbrechen</a>
+        </div>
+      </div>
+    </form>
+  </div>
+  <p class="hint">Der Benutzername wird automatisch aus dem Nachnamen gebildet (bei Namensgleichheit mit angehängter Ziffer).</p>
+{% endblock %}
