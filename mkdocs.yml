@@ -1,4 +1,4 @@
-site_name: FEGH-Leistungsnachweis · Wiki
+site_name: FEGH-Leistungsnachweis · Handbuch
 site_description: Handbuch für das Team TBEW (Berliner Eingliederungshilfe)
 docs_dir: docs
 
@@ -13,29 +13,57 @@ theme:
     - navigation.sections
     - navigation.top
     - navigation.instant
+    - navigation.indexes
     - search.suggest
     - search.highlight
     - content.code.copy
+    - toc.follow
 
 nav:
   - Start: index.md
   - Anleitung:
       - Erste Schritte: anleitung/erste-schritte.md
-      - Leistungsnachweis erfassen: anleitung/leistungsnachweis.md
+      - Zwei-Faktor-Anmeldung: anleitung/zwei-faktor.md
+      - Mein Überblick (Startseite): anleitung/mein-ueberblick.md
+      - Leistung erfassen (Grid): anleitung/leistungsnachweis.md
+      - Arbeitszeit & Stempeluhr: anleitung/arbeitszeit-stempeluhr.md
+      - Urlaub & Abwesenheit: anleitung/urlaub-abwesenheit.md
       - Gruppen anlegen: anleitung/gruppen.md
       - Druck-Nachweis erstellen: anleitung/druck-nachweis.md
   - Fachliches:
-      - Fachleistungsstunden & kLE: fachliches/fls-kle.md
-      - Teamsitzung & Gruppenzeit: fachliches/teamsitzung.md
+      - "Fachleistungsstunden (FLS) & kLE": fachliches/fls-kle.md
+      - "Teamsitzung & Gruppen": fachliches/teamsitzung-gruppen.md
+      - "Berichtsfristen (KÜ-Ende)": fachliches/berichtsfristen.md
+      - "Rollen & Team-Typen": fachliches/rollen-teams.md
+  - Technik:
+      - Datenbank-Grundlagen: technik/datenbank-grundlagen.md
+      - Datenmodell: technik/datenmodell.md
+      - Migrationen: technik/migrationen.md
+      - Python, Django & MTV-Grundlagen: technik/python-django-grundlagen.md
+      - Projektstruktur des Repos: technik/projektstruktur.md
+      - Lokale Entwicklung: technik/entwicklung-lokal.md
   - Administration:
       - Belegungsliste pflegen: administration/belegungsliste.md
-  - Sicherheit & Datenschutz:
-      - Datenschutz (Art. 9 DSGVO): sicherheit/datenschutz.md
+      - Teams & Mitarbeitende: administration/teams-mitarbeiter.md
+      - Team-Parameter: administration/parameter.md
+  - Betrieb & Sicherheit:
+      - Datenschutz: sicherheit/datenschutz.md
+      - Deployment (Produktivbetrieb): sicherheit/deployment.md
+      - Backups & Löschkonzept: sicherheit/backups-loeschkonzept.md
 
 markdown_extensions:
   - admonition
   - tables
   - attr_list
+  - md_in_html
   - toc:
       permalink: true
-  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
