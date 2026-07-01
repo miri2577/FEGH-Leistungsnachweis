@@ -23,6 +23,12 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
+# In Produktion NIEMALS mit dem unsicheren Dev-Key laufen (fail-closed).
+if not DEBUG and not os.environ.get("DJANGO_SECRET_KEY"):
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY muss in Produktion (DEBUG=0) gesetzt sein.")
+
 ALLOWED_HOSTS = [h for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",") if h] \
     or (["*"] if DEBUG else [])
 

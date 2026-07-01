@@ -39,8 +39,14 @@ def zwei_faktor_setup(request):
     # Bereits eingerichtet? -> zur Statusseite (Verifikation nicht nötig)
     if request.user.totpdevice_set.filter(confirmed=True).exists() and request.user.is_verified():
         return redirect("nachweis:2fa_status")
-    device, _ = TOTPDevice.objects.get_or_create(
-        user=request.user, confirmed=False, defaults={"name": "default"})
+    # Genau EIN unbestätigtes Gerät verwenden (Race-sicher: Duplikate bereinigen)
+    unbestaetigt = list(request.user.totpdevice_set.filter(confirmed=False).order_by("id"))
+    if unbestaetigt:
+        device = unbestaetigt[0]
+        for extra in unbestaetigt[1:]:
+            extra.delete()
+    else:
+        device = TOTPDevice.objects.create(user=request.user, confirmed=False, name="default")
     if request.method == "POST":
         if device.verify_token(request.POST.get("token", "").strip()):
             device.confirmed = True

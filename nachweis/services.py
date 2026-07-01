@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
 import holidays as _holidays
+from django.db.models import Q
 
 from .models import (Klient, Gruppe, Leistung, Parameter, Leistungsart,
                      Mitarbeiter, Team, Rolle, FLS_ARTEN, Status)
@@ -338,37 +339,60 @@ def urlaub_uebersicht(mitarbeiter, jahr: int):
 
 
 def stempel_status(mitarbeiter):
-    """Aktueller Stempelstatus + heute erfasste Arbeitszeit (für die Kommen/Gehen-Karte)."""
+    """Aktueller Stempelstatus + HEUTE erfasste Arbeitszeit (für die Kommen/Gehen-Karte).
+    Zählt nur den heutigen Anteil jeder Sitzung – auch bei über Mitternacht laufenden."""
+    from datetime import datetime, time
     from django.utils import timezone
     from .models import Stempelung
     if not mitarbeiter:
-        return {"eingestempelt": False, "seit": None, "heute_sekunden": 0, "offen_seit_iso": None}
+        return {"eingestempelt": False, "seit": None, "heute_sekunden": 0,
+                "abgeschlossen_sekunden": 0, "offen_seit_iso": None}
     jetzt = timezone.localtime()
     heute = jetzt.date()
-    tages = Stempelung.objects.filter(mitarbeiter=mitarbeiter, beginn__date=heute)
-    offen = mitarbeiter.stempelungen.filter(ende__isnull=True).order_by("-beginn").first()
-    heute_sek = sum(s.dauer_sekunden(jetzt) for s in tages)
-    seit = timezone.localtime(offen.beginn) if offen else None
+    tz = timezone.get_current_timezone()
+    tag_start = timezone.make_aware(datetime.combine(heute, time.min), tz)
+
+    def anteil_heute(s, bis):
+        b = max(timezone.localtime(s.beginn), tag_start)
+        return max(0, int((bis - b).total_seconds()))
+
+    # Sitzungen, die heute (mit)laufen: heute begonnen ODER offen (evtl. seit gestern)
+    sessions = mitarbeiter.stempelungen.filter(
+        Q(beginn__date=heute) | Q(ende__isnull=True))
+    abgeschlossen = 0
+    offen = None
+    for s in sessions:
+        if s.offen:
+            offen = s
+        else:
+            abgeschlossen += anteil_heute(s, timezone.localtime(s.ende))
+
+    offen_start_geklammert = max(timezone.localtime(offen.beginn), tag_start) if offen else None
+    heute_sek = abgeschlossen + (anteil_heute(offen, jetzt) if offen else 0)
     return {
         "eingestempelt": bool(offen),
-        "seit": seit,
+        "seit": timezone.localtime(offen.beginn) if offen else None,   # echte Startzeit (Anzeige)
         "heute_sekunden": heute_sek,
-        # Basis für die live tickende Uhr: bereits abgeschlossene Sek. + Startzeitpunkt der offenen Sitzung
-        "offen_seit_iso": timezone.localtime(offen.beginn).isoformat() if offen else None,
-        "abgeschlossen_sekunden": sum(s.dauer_sekunden(jetzt) for s in tages if not s.offen),
+        "abgeschlossen_sekunden": abgeschlossen,
+        # Basis der Live-Uhr: Startzeitpunkt der offenen Sitzung, geklammert auf Mitternacht heute
+        "offen_seit_iso": offen_start_geklammert.isoformat() if offen else None,
     }
 
 
 def stempeln(mitarbeiter):
-    """Toggle Kommen/Gehen. Öffnet eine neue Sitzung oder schließt die offene. Rückgabe: 'kommen'|'gehen'."""
+    """Toggle Kommen/Gehen atomar. Öffnet neue Sitzung oder schließt die offene.
+    Die partielle Unique-Constraint verhindert zwei offene Sitzungen. Rückgabe: 'kommen'|'gehen'."""
+    from django.db import transaction
     from django.utils import timezone
-    offen = mitarbeiter.stempelungen.filter(ende__isnull=True).order_by("-beginn").first()
-    if offen:
-        offen.ende = timezone.now()
-        offen.save(update_fields=["ende"])
-        return "gehen"
-    mitarbeiter.stempelungen.create(beginn=timezone.now())
-    return "kommen"
+    with transaction.atomic():
+        offen = (mitarbeiter.stempelungen.select_for_update()
+                 .filter(ende__isnull=True).order_by("-beginn").first())
+        if offen:
+            offen.ende = timezone.now()
+            offen.save(update_fields=["ende"])
+            return "gehen"
+        mitarbeiter.stempelungen.create(beginn=timezone.now())   # IntegrityError bei Doppel-Kommen
+        return "kommen"
 
 
 def druck_nachweis(klient, jahr: int, monat: int):

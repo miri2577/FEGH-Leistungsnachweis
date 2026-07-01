@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
@@ -108,12 +109,16 @@ def versendet_setzen(request):
 @login_required
 def stempeln(request):
     me = services.mitarbeiter_fuer(request.user)
-    if not me:
-        messages.error(request, "Kein Mitarbeiter-Profil hinterlegt.")
-    else:
+    if not (me and me.ist_verwaltung):
+        # Stempeluhr nur für Verwaltung (fester Arbeitsplatz)
+        return HttpResponseForbidden()
+    try:
         aktion = services.stempeln(me)
-        messages.success(request, "Eingestempelt. Guten Start!" if aktion == "kommen"
-                         else "Ausgestempelt. Feierabend!")
+    except IntegrityError:
+        messages.info(request, "Du bist bereits eingestempelt.")
+        return redirect("nachweis:start")
+    messages.success(request, "Eingestempelt. Guten Start!" if aktion == "kommen"
+                     else "Ausgestempelt. Feierabend!")
     return redirect("nachweis:start")
 
 
@@ -443,8 +448,10 @@ def abwesenheit(request):
     jahr = _jahr(request)
     alle_offen = None
     if services.ist_leitung(request.user):
+        # nur Anträge von Mitarbeiter*innen der geleiteten Team(s)
         alle_offen = Abwesenheit.objects.filter(
-            status=AbwesenheitStatus.BEANTRAGT).select_related("mitarbeiter")
+            status=AbwesenheitStatus.BEANTRAGT,
+            mitarbeiter__team__in=services.teams_fuer(request.user)).select_related("mitarbeiter")
     return render(request, "nachweis/abwesenheit.html", {
         "aktiv": "abwesenheit", "jahr": jahr, "me": me,
         "meine": list(me.abwesenheiten.all()) if me else [],
@@ -485,7 +492,10 @@ def abwesenheit_save(request):
 def abwesenheit_status(request):
     if not services.ist_leitung(request.user):
         return HttpResponseForbidden()
-    a = get_object_or_404(Abwesenheit, pk=request.POST.get("id"))
+    # nur Anträge aus den geleiteten Team(s) genehmigen/ablehnen
+    a = get_object_or_404(
+        Abwesenheit.objects.filter(mitarbeiter__team__in=services.teams_fuer(request.user)),
+        pk=request.POST.get("id"))
     st = request.POST.get("status")
     if st in AbwesenheitStatus.values:
         a.status = st

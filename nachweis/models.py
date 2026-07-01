@@ -309,6 +309,11 @@ class Stempelung(models.Model):
         verbose_name = "Stempelung"
         verbose_name_plural = "Stempelungen"
         ordering = ["-beginn"]
+        constraints = [
+            # höchstens EINE offene Sitzung je Mitarbeiter*in (verhindert Doppel-Kommen)
+            models.UniqueConstraint(fields=["mitarbeiter"], condition=models.Q(ende__isnull=True),
+                                    name="eine_offene_stempelung"),
+        ]
 
     def __str__(self):
         return f"{self.mitarbeiter} · {self.beginn:%d.%m.%Y %H:%M}"
