@@ -59,7 +59,8 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        # Projekt-Templates zuerst durchsuchen -> Override von admin/base_site.html greift
+        'DIRS': [BASE_DIR / 'nachweis' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
