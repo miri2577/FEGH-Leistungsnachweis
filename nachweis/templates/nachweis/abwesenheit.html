@@ -1,0 +1,95 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Abwesenheiten · FEGH{% endblock %}
+
+{% block extrastyle %}
+  .aform{display:grid;grid-template-columns:repeat(5,1fr);gap:14px 16px;padding:18px}
+  .aform .full{grid-column:1 / -1}
+  .msg{padding:10px 14px;border-radius:9px;margin-bottom:14px;font-size:13px}
+  .msg.success{background:var(--okbg);color:var(--ok)}.msg.error{background:var(--badbg);color:var(--bad)}
+  .st-beantragt{background:var(--warnbg);color:var(--warn)}
+  .st-genehmigt{background:var(--okbg);color:var(--ok)}
+  .st-abgelehnt{background:var(--badbg);color:var(--bad)}
+{% endblock %}
+
+{% block content %}
+  <h1 class="page">Urlaub &amp; Abwesenheiten</h1>
+  <p class="sub">Urlaub, Freizeitausgleich, Krank &amp; Fortbildung beantragen und im Blick behalten.</p>
+
+  {% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
+
+  {% if not me %}
+    <div class="msg error">Kein Mitarbeiter-Profil hinterlegt – bitte an die Teamleitung wenden.</div>
+  {% else %}
+
+  <div class="cards">
+    <div class="kpi"><div class="n">{{ urlaub.rest }}</div><div class="l">Resturlaub {{ jahr }} (Tage)</div></div>
+    <div class="kpi"><div class="n">{{ urlaub.genommen }}</div><div class="l">genommen</div></div>
+    <div class="kpi"><div class="n">{{ urlaub.beantragt }}</div><div class="l">beantragt</div></div>
+    <div class="kpi"><div class="n">{{ urlaub.anspruch }}</div><div class="l">Anspruch/Jahr</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="head"><h2>Neuer Antrag</h2></div>
+    <form method="post" action="{% url 'nachweis:abwesenheit_save' %}">
+      {% csrf_token %}
+      <div class="aform">
+        <div><label class="fld">Art</label>
+          <select name="art" style="width:100%">{% for v,l in arten %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+        <div><label class="fld">Von</label><input type="date" name="von" required style="width:100%"></div>
+        <div><label class="fld">Bis</label><input type="date" name="bis" required style="width:100%"></div>
+        <div class="full" style="grid-column:span 2"><label class="fld">Kommentar (optional)</label><input type="text" name="kommentar" style="width:100%"></div>
+        <div class="full"><button class="btn" type="submit">Antrag einreichen</button></div>
+      </div>
+    </form>
+  </div>
+
+  {% if alle_offen %}
+  <div class="panel">
+    <div class="head"><h2>Offene Anträge des Teams (Genehmigung)</h2></div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Mitarbeiter*in</th><th>Art</th><th>Zeitraum</th><th class="num">Werktage</th><th>Kommentar</th><th></th></tr></thead>
+        <tbody>
+          {% for a in alle_offen %}
+          <tr>
+            <td>{{ a.mitarbeiter }}</td><td>{{ a.get_art_display }}</td>
+            <td>{{ a.von|date:"d.m.Y" }} – {{ a.bis|date:"d.m.Y" }}</td>
+            <td class="num">{{ a.werktage }}</td><td class="muted">{{ a.kommentar }}</td>
+            <td>
+              <form method="post" action="{% url 'nachweis:abwesenheit_status' %}" style="display:inline">
+                {% csrf_token %}<input type="hidden" name="id" value="{{ a.id }}">
+                <button class="btn" style="padding:4px 9px" name="status" value="genehmigt">✓</button>
+                <button class="btn ghost" style="padding:4px 9px;color:var(--bad)" name="status" value="abgelehnt">✕</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="panel">
+    <div class="head"><h2>Meine Anträge</h2></div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Art</th><th>Zeitraum</th><th class="num">Werktage</th><th>Status</th><th>Kommentar</th></tr></thead>
+        <tbody>
+          {% for a in meine %}
+          <tr>
+            <td>{{ a.get_art_display }}</td>
+            <td>{{ a.von|date:"d.m.Y" }} – {{ a.bis|date:"d.m.Y" }}</td>
+            <td class="num">{{ a.werktage }}</td>
+            <td><span class="badge st-{{ a.status }}">{{ a.get_status_display }}</span></td>
+            <td class="muted">{{ a.kommentar }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="muted" style="text-align:center;padding:20px">Noch keine Anträge.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+{% endblock %}

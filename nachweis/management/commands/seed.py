@@ -14,7 +14,8 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 
 from nachweis.models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
-                             Leistungsart, Rolle, Status)
+                             Leistungsart, Rolle, Status, Arbeitszeit,
+                             Abwesenheit, AbwesenheitArt, AbwesenheitStatus)
 
 JAHR = 2026
 RNG = random.Random(42)
@@ -58,7 +59,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **opts):
         if not opts["keep"]:
-            for M in (Leistung, Gruppe, Klient, Mitarbeiter, Parameter):
+            for M in (Arbeitszeit, Abwesenheit, Leistung, Gruppe, Klient, Mitarbeiter, Parameter):
                 M.objects.all().delete()
             self.stdout.write("Vorhandene Demodaten gelöscht.")
 
@@ -145,9 +146,39 @@ class Command(BaseCommand):
             User.objects.create_superuser("admin", "admin@example.com", "admin")
             self.stdout.write(self.style.WARNING("Superuser angelegt: admin / admin (nur Demo!)"))
 
+        # Teilzeit-Beispiel
+        wolf = next((m for m in mitarbeiter if m.name == "Wolf"), None)
+        if wolf:
+            wolf.wochenstunden = Decimal("30.0"); wolf.save()
+
+        # Arbeitszeiten für Juni 2026 (voller Monat), Juli bewusst leer -> "fehlende Nachweise"
+        n_az = 0
+        for m in mitarbeiter:
+            soll_h = float(m.wochenstunden) / 5
+            eo = 8 * 60 + int(round((soll_h + 0.5) * 60))     # Ende = 08:00 + Soll + 30 Min Pause
+            ende = time(eo // 60, eo % 60)
+            for tag in range(1, 31):
+                d = date(JAHR, 6, tag)
+                if d.weekday() < 5:
+                    Arbeitszeit.objects.create(mitarbeiter=m, datum=d, beginn=time(8, 0),
+                                               ende=ende, pause_min=30)
+                    n_az += 1
+
+        # Abwesenheiten: 1 genehmigt, 1 beantragt
+        if len(betreuer) >= 2:
+            Abwesenheit.objects.create(mitarbeiter=betreuer[0], art=AbwesenheitArt.URLAUB,
+                                       von=date(JAHR, 5, 11), bis=date(JAHR, 5, 15),
+                                       status=AbwesenheitStatus.GENEHMIGT, kommentar="Frühjahrsurlaub")
+            Abwesenheit.objects.create(mitarbeiter=betreuer[1], art=AbwesenheitArt.URLAUB,
+                                       von=date(JAHR, 7, 20), bis=date(JAHR, 7, 24),
+                                       status=AbwesenheitStatus.BEANTRAGT, kommentar="Sommerurlaub")
+            Abwesenheit.objects.create(mitarbeiter=betreuer[0], art=AbwesenheitArt.FREIZEITAUSGLEICH,
+                                       von=date(JAHR, 6, 5), bis=date(JAHR, 6, 5),
+                                       status=AbwesenheitStatus.GENEHMIGT)
+
         self.stdout.write(self.style.SUCCESS(
             f"Fertig: {len(mitarbeiter)} Mitarbeiter, {len(klienten)} Klienten, "
-            f"{n_leist} Leistungen, 2 Gruppen."))
+            f"{n_leist} Leistungen, 2 Gruppen, {n_az} Arbeitszeiten, 3 Abwesenheiten."))
         self.stdout.write("Demo-Logins (Passwort: demo12345):")
         for m in mitarbeiter:
             rolle = "Teamleitung" if m.rolle == Rolle.TEAMLEITUNG else "Betreuer*in"

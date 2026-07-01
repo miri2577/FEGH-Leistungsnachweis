@@ -212,6 +212,76 @@ def auslastung_zeitreihe(jahr: int, klienten):
     }
 
 
+def _feiertage_set(*jahre):
+    s = set()
+    for j in jahre:
+        s |= set(berliner_feiertage(j).keys())
+    return s
+
+
+def werktage(von, bis) -> int:
+    """Arbeitstage (Mo–Fr ohne Berliner Feiertage) im Zeitraum [von, bis]."""
+    if not (von and bis) or bis < von:
+        return 0
+    fs = _feiertage_set(*range(von.year, bis.year + 1))
+    n, d = 0, von
+    while d <= bis:
+        if d.weekday() < 5 and d not in fs:
+            n += 1
+        d += timedelta(days=1)
+    return n
+
+
+def abwesenheitstage(mitarbeiter, von, bis):
+    """Menge der Werktage (Mo–Fr) im Zeitraum, die durch nicht abgelehnte Abwesenheiten belegt sind."""
+    from .models import AbwesenheitStatus
+    tage = set()
+    for a in mitarbeiter.abwesenheiten.exclude(status=AbwesenheitStatus.ABGELEHNT):
+        d = max(a.von, von)
+        e = min(a.bis, bis)
+        while d <= e:
+            if d.weekday() < 5:
+                tage.add(d)
+            d += timedelta(days=1)
+    return tage
+
+
+def arbeitszeit_monat(mitarbeiter, jahr: int, monat: int):
+    """Ist/Soll-Arbeitszeit & fehlende Nachweistage im Monat für eine*n Mitarbeiter*in."""
+    from calendar import monthrange
+    from datetime import date as _date
+    eintr = list(mitarbeiter.arbeitszeiten.filter(datum__year=jahr, datum__month=monat))
+    ist = sum((e.dauer_stunden for e in eintr), Decimal("0"))
+    erfasst = {e.datum for e in eintr if e.dauer_stunden > 0}
+    anfang = _date(jahr, monat, 1)
+    ende = _date(jahr, monat, monthrange(jahr, monat)[1])
+    heute = _date.today()
+    grenze = min(ende, heute) if (heute.year == jahr and heute.month == monat) else ende
+    fs = _feiertage_set(jahr)
+    abw = abwesenheitstage(mitarbeiter, anfang, ende)
+    fehlend, d = 0, anfang
+    while d <= grenze:
+        if d.weekday() < 5 and d not in fs and d not in erfasst and d not in abw:
+            fehlend += 1
+        d += timedelta(days=1)
+    wt = werktage(anfang, ende)
+    soll = (mitarbeiter.tagessoll * Decimal(wt)).quantize(Q3, ROUND_HALF_UP)
+    return {"ist": ist.quantize(Q3, ROUND_HALF_UP), "soll": soll, "werktage": wt,
+            "tage_erfasst": len(erfasst), "fehlende_tage": fehlend}
+
+
+def urlaub_uebersicht(mitarbeiter, jahr: int):
+    from .models import AbwesenheitArt, AbwesenheitStatus
+    genommen = beantragt = 0
+    for a in mitarbeiter.abwesenheiten.filter(art=AbwesenheitArt.URLAUB, von__year=jahr):
+        if a.status == AbwesenheitStatus.GENEHMIGT:
+            genommen += a.werktage
+        elif a.status == AbwesenheitStatus.BEANTRAGT:
+            beantragt += a.werktage
+    return {"anspruch": mitarbeiter.urlaubstage, "genommen": genommen,
+            "beantragt": beantragt, "rest": mitarbeiter.urlaubstage - genommen - beantragt}
+
+
 def druck_nachweis(klient, jahr: int, monat: int):
     """Amtlicher Leistungsnachweis je Klient*in & Monat:
     Einzelnachweis (manuell + Gruppen-Anteile + Teamsitzung je Do) + Kategorie-Summen + Σ FLS."""

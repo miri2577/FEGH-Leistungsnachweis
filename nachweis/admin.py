@@ -1,13 +1,19 @@
 from django.contrib import admin
 
-from .models import Mitarbeiter, Klient, Leistung, Gruppe, Parameter
+from .models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
+                     Arbeitszeit, Abwesenheit)
 
 
 @admin.register(Mitarbeiter)
 class MitarbeiterAdmin(admin.ModelAdmin):
-    list_display = ("name", "vorname", "kuerzel", "rolle", "aktiv")
+    list_display = ("name", "vorname", "kuerzel", "rolle", "wochenstunden", "urlaubstage", "aktiv")
+    list_editable = ("wochenstunden", "urlaubstage")
     list_filter = ("rolle", "aktiv")
     search_fields = ("name", "vorname", "kuerzel")
+    fieldsets = (
+        ("Person", {"fields": ("user", "name", "vorname", "kuerzel", "rolle", "aktiv")}),
+        ("Arbeitszeit & Urlaub (Selfservice)", {"fields": ("wochenstunden", "urlaubstage")}),
+    )
 
 
 @admin.register(Klient)
@@ -59,6 +65,31 @@ class GruppeAdmin(admin.ModelAdmin):
 @admin.register(Parameter)
 class ParameterAdmin(admin.ModelAdmin):
     list_display = ("jahr", "teamsitzung_wochentag", "teamsitzung_dauer_std", "fls_preis")
+
+
+@admin.register(Arbeitszeit)
+class ArbeitszeitAdmin(admin.ModelAdmin):
+    list_display = ("mitarbeiter", "datum", "beginn", "ende", "pause_min", "dauer_display")
+    list_filter = ("mitarbeiter", "datum")
+    date_hierarchy = "datum"
+    autocomplete_fields = ("mitarbeiter",)
+
+    @admin.display(description="Dauer (Std)")
+    def dauer_display(self, obj):
+        return obj.dauer_stunden
+
+
+@admin.register(Abwesenheit)
+class AbwesenheitAdmin(admin.ModelAdmin):
+    list_display = ("mitarbeiter", "art", "von", "bis", "werktage_display", "status")
+    list_filter = ("art", "status", "mitarbeiter")
+    list_editable = ("status",)
+    date_hierarchy = "von"
+    autocomplete_fields = ("mitarbeiter",)
+
+    @admin.display(description="Werktage")
+    def werktage_display(self, obj):
+        return obj.werktage
 
 
 admin.site.site_header = "FEGH-Leistungsnachweis · Team TBEW"

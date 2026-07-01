@@ -64,10 +64,19 @@ class Mitarbeiter(models.Model):
     kuerzel = models.CharField("Kürzel", max_length=10, blank=True)
     rolle = models.CharField(max_length=20, choices=Rolle.choices, default=Rolle.BETREUER)
     aktiv = models.BooleanField(default=True)
+    # Selfservice-Vorgaben (in der Verwaltung/Admin pflegbar)
+    wochenstunden = models.DecimalField("Wochen-Soll (Std)", max_digits=4, decimal_places=1,
+                                        default=Decimal("39.0"))
+    urlaubstage = models.PositiveSmallIntegerField("Urlaubstage/Jahr", default=30)
 
     @property
     def ist_teamleitung(self):
         return self.rolle == Rolle.TEAMLEITUNG
+
+    @property
+    def tagessoll(self):
+        """Soll-Stunden je Arbeitstag = Wochen-Soll ÷ 5."""
+        return (self.wochenstunden / Decimal(5)).quantize(Decimal("0.01"))
 
     class Meta:
         verbose_name = "Mitarbeiter*in"
@@ -201,6 +210,70 @@ class Gruppe(models.Model):
         if not n:
             return Decimal("0")
         return (self.dauer_stunden / (Decimal(n) * Decimal(ma))).quantize(Q3, ROUND_HALF_UP)
+
+
+class Arbeitszeit(models.Model):
+    """Arbeitszeiterfassung je Mitarbeiter*in (Selfservice)."""
+    mitarbeiter = models.ForeignKey(Mitarbeiter, on_delete=models.CASCADE, related_name="arbeitszeiten")
+    datum = models.DateField()
+    beginn = models.TimeField(null=True, blank=True)
+    ende = models.TimeField(null=True, blank=True)
+    pause_min = models.PositiveSmallIntegerField("Pause (Min)", default=0)
+    notiz = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        verbose_name = "Arbeitszeit"
+        verbose_name_plural = "Arbeitszeiten"
+        ordering = ["-datum", "beginn"]
+
+    def __str__(self):
+        return f"{self.mitarbeiter} · {self.datum} · {self.dauer_stunden} h"
+
+    @property
+    def dauer_stunden(self) -> Decimal:
+        brutto = _stunden(self.beginn, self.ende)
+        netto = brutto - (Decimal(self.pause_min or 0) / Decimal(60))
+        return netto.quantize(Q3, ROUND_HALF_UP) if netto > 0 else Decimal("0")
+
+
+class AbwesenheitArt(models.TextChoices):
+    URLAUB = "Urlaub", "Urlaub"
+    FREIZEITAUSGLEICH = "Freizeitausgleich", "Freizeitausgleich"
+    KRANK = "Krank", "Krank"
+    FORTBILDUNG = "Fortbildung", "Fortbildung"
+    SONSTIGE = "Sonstige", "Sonstige"
+
+
+class AbwesenheitStatus(models.TextChoices):
+    BEANTRAGT = "beantragt", "beantragt"
+    GENEHMIGT = "genehmigt", "genehmigt"
+    ABGELEHNT = "abgelehnt", "abgelehnt"
+
+
+class Abwesenheit(models.Model):
+    """Urlaub / Freizeitausgleich / Krank etc. – Antrag & Genehmigung."""
+    mitarbeiter = models.ForeignKey(Mitarbeiter, on_delete=models.CASCADE, related_name="abwesenheiten")
+    art = models.CharField(max_length=20, choices=AbwesenheitArt.choices, default=AbwesenheitArt.URLAUB)
+    von = models.DateField()
+    bis = models.DateField()
+    status = models.CharField(max_length=12, choices=AbwesenheitStatus.choices,
+                              default=AbwesenheitStatus.BEANTRAGT)
+    kommentar = models.CharField(max_length=200, blank=True)
+    erstellt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Abwesenheit"
+        verbose_name_plural = "Abwesenheiten"
+        ordering = ["-von"]
+
+    def __str__(self):
+        return f"{self.mitarbeiter} · {self.art} {self.von}–{self.bis}"
+
+    @property
+    def werktage(self) -> int:
+        """Anzahl Arbeitstage (Mo–Fr ohne Berliner Feiertage) im Zeitraum."""
+        from . import services
+        return services.werktage(self.von, self.bis)
 
 
 class Parameter(models.Model):

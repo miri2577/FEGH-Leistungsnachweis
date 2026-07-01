@@ -12,7 +12,11 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
 from . import services
-from .models import Mitarbeiter, Leistung, Gruppe, Klient, Leistungsart
+from .models import (Mitarbeiter, Leistung, Gruppe, Klient, Leistungsart,
+                     Arbeitszeit, Abwesenheit, AbwesenheitArt, AbwesenheitStatus)
+
+MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
+               "August", "September", "Oktober", "November", "Dezember"]
 
 
 def _int(val, default):
@@ -40,7 +44,27 @@ def _parse_time(s):
     return None
 
 
-# ---------------------------------------------------------------- Dashboard
+# ---------------------------------------------------------------- Mein Überblick (Startseite)
+@login_required
+def mein_ueberblick(request):
+    jahr = _jahr(request)
+    monat = _monat(request)
+    me = services.mitarbeiter_fuer(request.user)
+    eigene = Klient.objects.filter(bezugsbetreuer=me) if me else Klient.objects.none()
+    zeilen, summe = services.fachleistungsstunden(jahr, klienten=eigene)
+    return render(request, "nachweis/mein_ueberblick.html", {
+        "aktiv": "start",
+        "jahr": jahr, "monat": monat, "monat_name": MONATSNAMEN[monat],
+        "me": me,
+        "eigene_zeilen": zeilen,
+        "summe": summe,
+        "az": services.arbeitszeit_monat(me, jahr, monat) if me else None,
+        "urlaub": services.urlaub_uebersicht(me, jahr) if me else None,
+        "offene_antraege": me.abwesenheiten.filter(status=AbwesenheitStatus.BEANTRAGT).count() if me else 0,
+    })
+
+
+# ---------------------------------------------------------------- Fachleistungsstunden (Team-Übersicht)
 @login_required
 def dashboard(request):
     jahr = _jahr(request)
@@ -246,3 +270,140 @@ def druck_pdf(request):
     resp["Content-Disposition"] = (
         f'inline; filename="Leistungsnachweis_{klient.nachname}_{monat:02d}_{jahr}.pdf"')
     return resp
+
+
+# ---------------------------------------------------------------- Arbeitszeiterfassung (Selfservice)
+@ensure_csrf_cookie
+@login_required
+def arbeitszeit(request):
+    me = services.mitarbeiter_fuer(request.user)
+    jahr = _jahr(request); monat = _monat(request)
+    return render(request, "nachweis/arbeitszeit.html", {
+        "aktiv": "arbeitszeit", "jahr": jahr, "monat": monat, "monat_name": MONATSNAMEN[monat],
+        "me": me,
+        "az": services.arbeitszeit_monat(me, jahr, monat) if me else None,
+        "monate": [f"{m:02d}" for m in range(1, 13)],
+    })
+
+
+def _az_row(a):
+    return {
+        "id": a.id, "datum": a.datum.isoformat(),
+        "beginn": a.beginn.strftime("%H:%M") if a.beginn else "",
+        "ende": a.ende.strftime("%H:%M") if a.ende else "",
+        "pause_min": a.pause_min, "dauer": float(a.dauer_stunden), "notiz": a.notiz,
+    }
+
+
+@login_required
+def api_arbeitszeit(request):
+    me = services.mitarbeiter_fuer(request.user)
+    if not me:
+        return JsonResponse({"data": []})
+    qs = me.arbeitszeiten.filter(datum__year=_jahr(request))
+    monat = _int(request.GET.get("monat"), 0)
+    if 1 <= monat <= 12:
+        qs = qs.filter(datum__month=monat)
+    return JsonResponse({"data": [_az_row(a) for a in qs.order_by("-datum", "beginn")]})
+
+
+@require_POST
+@login_required
+def api_arbeitszeit_save(request):
+    me = services.mitarbeiter_fuer(request.user)
+    if not me:
+        return HttpResponseForbidden("Kein Mitarbeiterprofil.")
+    try:
+        p = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return HttpResponse(status=400)
+    try:
+        datum = date.fromisoformat(p["datum"])
+    except (KeyError, ValueError):
+        return HttpResponse("Datum fehlt/ungueltig.", status=400)
+    if p.get("id"):
+        a = Arbeitszeit.objects.filter(pk=p["id"], mitarbeiter=me).first()
+        if not a:
+            return HttpResponseForbidden()
+    else:
+        a = Arbeitszeit(mitarbeiter=me)
+    a.datum = datum
+    a.beginn = _parse_time(p.get("beginn"))
+    a.ende = _parse_time(p.get("ende"))
+    a.pause_min = max(0, _int(p.get("pause_min"), 0))
+    a.notiz = (p.get("notiz") or "").strip()
+    a.save()
+    return JsonResponse(_az_row(a))
+
+
+@require_POST
+@login_required
+def api_arbeitszeit_delete(request):
+    me = services.mitarbeiter_fuer(request.user)
+    try:
+        p = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return HttpResponse(status=400)
+    a = Arbeitszeit.objects.filter(pk=p.get("id"), mitarbeiter=me).first()
+    if not a:
+        return HttpResponseForbidden()
+    a.delete()
+    return JsonResponse({"ok": True})
+
+
+# ---------------------------------------------------------------- Abwesenheiten (Urlaub / Freizeitausgleich)
+@login_required
+def abwesenheit(request):
+    me = services.mitarbeiter_fuer(request.user)
+    jahr = _jahr(request)
+    alle_offen = None
+    if services.ist_teamleitung(request.user):
+        alle_offen = Abwesenheit.objects.filter(
+            status=AbwesenheitStatus.BEANTRAGT).select_related("mitarbeiter")
+    return render(request, "nachweis/abwesenheit.html", {
+        "aktiv": "abwesenheit", "jahr": jahr, "me": me,
+        "meine": list(me.abwesenheiten.all()) if me else [],
+        "alle_offen": alle_offen,
+        "arten": AbwesenheitArt.choices,
+        "urlaub": services.urlaub_uebersicht(me, jahr) if me else None,
+        "ist_leitung": services.ist_teamleitung(request.user),
+    })
+
+
+@require_POST
+@login_required
+def abwesenheit_save(request):
+    me = services.mitarbeiter_fuer(request.user)
+    if not me:
+        messages.error(request, "Kein Mitarbeiterprofil hinterlegt.")
+        return redirect("nachweis:abwesenheit")
+    try:
+        von = date.fromisoformat(request.POST.get("von"))
+        bis = date.fromisoformat(request.POST.get("bis"))
+    except (TypeError, ValueError):
+        messages.error(request, "Bitte gueltige Daten (von/bis) angeben.")
+        return redirect("nachweis:abwesenheit")
+    if bis < von:
+        messages.error(request, "Das End-Datum liegt vor dem Start-Datum.")
+        return redirect("nachweis:abwesenheit")
+    art = request.POST.get("art")
+    Abwesenheit.objects.create(
+        mitarbeiter=me, von=von, bis=bis,
+        art=art if art in AbwesenheitArt.values else AbwesenheitArt.SONSTIGE,
+        kommentar=(request.POST.get("kommentar") or "").strip())
+    messages.success(request, "Antrag eingereicht.")
+    return redirect("nachweis:abwesenheit")
+
+
+@require_POST
+@login_required
+def abwesenheit_status(request):
+    if not services.ist_teamleitung(request.user):
+        return HttpResponseForbidden()
+    a = get_object_or_404(Abwesenheit, pk=request.POST.get("id"))
+    st = request.POST.get("status")
+    if st in AbwesenheitStatus.values:
+        a.status = st
+        a.save()
+        messages.success(request, f"Antrag {a.get_status_display()}.")
+    return redirect("nachweis:abwesenheit")

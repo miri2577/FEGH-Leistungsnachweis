@@ -1,0 +1,76 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Mein Überblick · FEGH{% endblock %}
+
+{% block extrastyle %}
+  .alert{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;margin-bottom:18px;font-size:13.5px}
+  .alert.warn{background:var(--warnbg);color:var(--warn);border:1px solid #f0dca6}
+  .alert.ok{background:var(--okbg);color:var(--ok);border:1px solid #cbe8d8}
+  .kpi .sub2{font-size:12px;color:var(--muted);margin-top:2px}
+  .kpi.big{grid-column:span 1}
+  .barwrap{height:8px;background:#eef2f6;border-radius:99px;overflow:hidden;margin-top:8px}
+  .barwrap>i{display:block;height:100%;background:var(--brand-l)}
+{% endblock %}
+
+{% block content %}
+  <h1 class="page">Mein Überblick{% if me %} · {{ me }}{% endif %}</h1>
+  <p class="sub">{{ monat_name }} {{ jahr }} — eigene Klient*innen, Arbeitszeit &amp; Urlaub auf einen Blick.</p>
+
+  {% if not me %}
+    <div class="alert warn">Für dieses Login ist kein Mitarbeiter-Profil hinterlegt. Die Teamleitung kann es im Admin unter „Mitarbeiter" zuordnen.</div>
+  {% else %}
+
+  {% if az.fehlende_tage %}
+    <div class="alert warn">⚠ Diesen Monat fehlen noch <b>{{ az.fehlende_tage }}</b> Arbeitszeitnachweis(e).
+      <a href="{% url 'nachweis:arbeitszeit' %}">Jetzt erfassen →</a></div>
+  {% else %}
+    <div class="alert ok">✓ Alle Arbeitszeitnachweise dieses Monats sind erfasst.</div>
+  {% endif %}
+
+  <div class="cards">
+    <div class="kpi"><div class="n">{{ eigene_zeilen|length }}</div><div class="l">meine Klient*innen</div></div>
+    <div class="kpi">
+      <div class="n">{{ az.ist|floatformat:1 }}<span style="font-size:15px;color:var(--muted)"> / {{ az.soll|floatformat:1 }}</span></div>
+      <div class="l">Arbeitszeit {{ monat_name }} (Std)</div>
+      {% if az.soll %}{% widthratio az.ist az.soll 100 as azp %}<div class="barwrap"><i style="width:{% if azp > 100 %}100{% else %}{{ azp }}{% endif %}%"></i></div>{% endif %}
+    </div>
+    <div class="kpi"><div class="n" {% if az.fehlende_tage %}style="color:var(--bad)"{% endif %}>{{ az.fehlende_tage }}</div><div class="l">fehlende Nachweise ({{ monat_name }})</div></div>
+    <div class="kpi"><div class="n">{{ urlaub.rest }}</div><div class="l">Resturlaub (Tage)</div><div class="sub2">von {{ urlaub.anspruch }} · genommen {{ urlaub.genommen }}{% if urlaub.beantragt %} · beantragt {{ urlaub.beantragt }}{% endif %}</div></div>
+    {% if offene_antraege %}<div class="kpi"><div class="n" style="color:var(--warn)">{{ offene_antraege }}</div><div class="l">meine offenen Anträge</div></div>{% endif %}
+  </div>
+
+  <div class="panel">
+    <div class="head">
+      <h2>Meine Klient*innen – Auslastung {{ jahr }}</h2>
+      <a class="btn ghost" href="{% url 'nachweis:dashboard' %}">Team-Übersicht →</a>
+    </div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Klient*in</th><th class="num">Kont./Jahr</th><th class="num">Ist</th>
+          <th class="num">Rest</th><th>Auslastung</th></tr></thead>
+        <tbody>
+          {% for z in eigene_zeilen %}
+          <tr>
+            <td>{{ z.klient.name }}</td>
+            <td class="num">{{ z.kontingent_jahr|floatformat:2 }}</td>
+            <td class="num">{{ z.ist|floatformat:2 }}</td>
+            <td class="num {% if z.rest < 0 %}neg{% else %}pos{% endif %}">{{ z.rest|floatformat:2 }}</td>
+            <td>{% widthratio z.auslastung 1 100 as p %}
+              {% if z.auslastung > 1 %}<span class="badge b-bad">{{ p }}%</span>
+              {% elif z.auslastung >= 0.85 %}<span class="badge b-warn">{{ p }}%</span>
+              {% else %}<span class="badge b-ok">{{ p }}%</span>{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="muted" style="text-align:center;padding:20px">Dir sind aktuell keine Klient*innen als Bezugsbetreuer*in zugeordnet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+    <a class="btn" href="{% url 'nachweis:arbeitszeit' %}">Arbeitszeit erfassen</a>
+    <a class="btn ghost" href="{% url 'nachweis:abwesenheit' %}">Urlaub / Freizeitausgleich beantragen</a>
+    <a class="btn ghost" href="{% url 'nachweis:erfassung' %}">Leistungsnachweis</a>
+  </div>
+  {% endif %}
+{% endblock %}

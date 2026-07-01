@@ -6,13 +6,25 @@ from . import views
 app_name = "nachweis"
 
 urlpatterns = [
-    path("", views.dashboard, name="dashboard"),
+    path("", views.mein_ueberblick, name="start"),
+    path("fachleistungsstunden/", views.dashboard, name="dashboard"),
     path("erfassung/", views.erfassung, name="erfassung"),
     path("druck/", views.druck, name="druck"),
     path("druck/pdf/", views.druck_pdf, name="druck_pdf"),
     path("gruppen/", views.gruppen, name="gruppen"),
     path("gruppen/save/", views.gruppe_save, name="gruppe_save"),
     path("gruppen/delete/", views.gruppe_delete, name="gruppe_delete"),
+
+    # Arbeitszeit (Selfservice)
+    path("arbeitszeit/", views.arbeitszeit, name="arbeitszeit"),
+    path("api/arbeitszeit/", views.api_arbeitszeit, name="api_arbeitszeit"),
+    path("api/arbeitszeit/save/", views.api_arbeitszeit_save, name="api_arbeitszeit_save"),
+    path("api/arbeitszeit/delete/", views.api_arbeitszeit_delete, name="api_arbeitszeit_delete"),
+
+    # Abwesenheiten (Urlaub / Freizeitausgleich)
+    path("abwesenheit/", views.abwesenheit, name="abwesenheit"),
+    path("abwesenheit/save/", views.abwesenheit_save, name="abwesenheit_save"),
+    path("abwesenheit/status/", views.abwesenheit_status, name="abwesenheit_status"),
 
     # API (Erfassungs-Grid)
     path("api/leistungen/", views.api_leistungen, name="api_leistungen"),

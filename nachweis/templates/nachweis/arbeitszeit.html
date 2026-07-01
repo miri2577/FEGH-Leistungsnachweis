@@ -1,0 +1,93 @@
+{% extends "nachweis/base.html" %}
+{% load static %}
+{% block title %}Arbeitszeit · FEGH{% endblock %}
+
+{% block extrahead %}
+  <link rel="stylesheet" href="{% static 'nachweis/vendor/tabulator/tabulator.min.css' %}">
+  <script src="{% static 'nachweis/vendor/tabulator/tabulator.min.js' %}"></script>
+{% endblock %}
+
+{% block extrastyle %}
+  .tabulator{border:0;font-size:13px}
+  .tabulator .tabulator-header{background:#f5f9fc}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .del-btn{color:#c0392b;cursor:pointer;font-weight:700}
+{% endblock %}
+
+{% block content %}
+  <h1 class="page">Arbeitszeit erfassen</h1>
+  <p class="sub">{{ monat_name }} {{ jahr }} · deine eigenen Arbeitszeiten. Dauer = (Ende − Beginn) − Pause.</p>
+
+  {% if not me %}
+    <div class="panel"><div class="body" style="padding:18px" class="muted">Kein Mitarbeiter-Profil hinterlegt – bitte an die Teamleitung wenden.</div></div>
+  {% else %}
+  <div class="cards">
+    <div class="kpi"><div class="n">{{ az.ist|floatformat:1 }}<span style="font-size:15px;color:var(--muted)"> / {{ az.soll|floatformat:1 }}</span></div><div class="l">Ist / Soll (Std)</div></div>
+    <div class="kpi"><div class="n">{{ az.tage_erfasst }}</div><div class="l">erfasste Tage</div></div>
+    <div class="kpi"><div class="n" {% if az.fehlende_tage %}style="color:var(--bad)"{% endif %}>{{ az.fehlende_tage }}</div><div class="l">fehlende Tage</div></div>
+    <div class="kpi"><div class="n">{{ az.werktage }}</div><div class="l">Werktage im Monat</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="head">
+      <div class="toolbar">
+        <button class="btn" id="add">+ Neue Zeile</button>
+        <label class="fld" style="margin:0">Monat
+          <select id="f-monat" style="margin-left:6px">
+            <option value="">alle</option>
+            {% for m in monate %}<option value="{{ m }}" {% if m == monat|stringformat:'02d' %}selected{% endif %}>{{ m }}</option>{% endfor %}
+          </select>
+        </label>
+        <input type="number" id="f-jahr" value="{{ jahr }}" style="width:88px" title="Jahr">
+        <button class="btn ghost" id="reload">Aktualisieren</button>
+      </div>
+      <span id="status" class="muted"></span>
+    </div>
+    <div class="body"><div id="grid"></div></div>
+  </div>
+  {% endif %}
+{% endblock %}
+
+{% block extrajs %}
+{% if me %}
+<script>
+function getCookie(n){const m=document.cookie.match('(^|;)\\s*'+n+'\\s*=\\s*([^;]+)');return m?m.pop():'';}
+const CSRF=getCookie('csrftoken');
+const setStatus=t=>document.getElementById('status').textContent=t;
+async function api(url,body){
+  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},body:JSON.stringify(body)});
+  if(!r.ok){setStatus('⚠ '+(await r.text()||('Fehler '+r.status)));throw new Error(r.status);}
+  return r.json();
+}
+const table=new Tabulator("#grid",{layout:"fitColumns",height:"58vh",placeholder:"Keine Einträge – „+ Neue Zeile“.",
+  columns:[
+    {title:"Datum",field:"datum",editor:"input",width:130,editorParams:{elementAttributes:{type:"date"}}},
+    {title:"Beginn",field:"beginn",editor:"input",width:110,editorParams:{elementAttributes:{type:"time"}}},
+    {title:"Ende",field:"ende",editor:"input",width:110,editorParams:{elementAttributes:{type:"time"}}},
+    {title:"Pause (Min)",field:"pause_min",editor:"number",width:110,hozAlign:"right"},
+    {title:"Dauer",field:"dauer",width:90,hozAlign:"right",editor:false,formatter:c=> c.getValue()!=null?Number(c.getValue()).toFixed(2):""},
+    {title:"Notiz",field:"notiz",editor:"input"},
+    {title:"",field:"_del",width:44,hozAlign:"center",headerSort:false,formatter:()=>'<span class="del-btn">✕</span>',cellClick:(e,cell)=>delRow(cell.getRow())},
+  ]});
+table.on("cellEdited",async cell=>{
+  const d=cell.getRow().getData();
+  if(!d.datum){setStatus("Datum nötig …");return;}
+  try{setStatus("speichere …");const s=await api("{% url 'nachweis:api_arbeitszeit_save' %}",d);cell.getRow().update(s);setStatus("✓ gespeichert "+new Date().toLocaleTimeString());}catch(e){}
+});
+async function delRow(row){const d=row.getData();if(d.id){if(!confirm("Eintrag löschen?"))return;try{await api("{% url 'nachweis:api_arbeitszeit_delete' %}",{id:d.id});}catch(e){return;}}row.delete();setStatus("gelöscht");}
+async function load(){
+  const p=new URLSearchParams({jahr:document.getElementById('f-jahr').value,monat:document.getElementById('f-monat').value});
+  const r=await fetch("{% url 'nachweis:api_arbeitszeit' %}?"+p.toString());const j=await r.json();
+  table.setData(j.data);setStatus(j.data.length+" Einträge");
+}
+document.getElementById('add').addEventListener('click',async()=>{
+  const today=new Date().toISOString().slice(0,10);
+  const row=await table.addRow({datum:today,beginn:"",ende:"",pause_min:0,notiz:"",dauer:null},true);
+  row.getCell("beginn").edit();
+});
+document.getElementById('reload').addEventListener('click',load);
+document.getElementById('f-monat').addEventListener('change',load);
+table.on("tableBuilt",load);
+</script>
+{% endif %}
+{% endblock %}
