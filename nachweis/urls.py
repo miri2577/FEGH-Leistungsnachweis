@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import views, views_2fa, views_onboarding, views_stammdaten
+from . import views, views_2fa, views_onboarding, views_stammdaten, views_kasse
 
 app_name = "nachweis"
 
@@ -26,6 +26,14 @@ urlpatterns = [
     # Arbeitszeit-Freigaben (Leitung)
     path("arbeitszeit/freigaben/", views.arbeitszeit_freigaben, name="arbeitszeit_freigaben"),
     path("arbeitszeit/status/", views.arbeitszeit_status, name="arbeitszeit_status"),
+
+    # Kasse (Kassenbuch + Zählprotokoll)
+    path("kasse/", views_kasse.kasse, name="kasse"),
+    path("kasse/buchung/", views_kasse.buchung_save, name="kasse_buchung_save"),
+    path("kasse/buchung/delete/", views_kasse.buchung_delete, name="kasse_buchung_delete"),
+    path("kasse/vortrag/", views_kasse.vortrag_save, name="kasse_vortrag_save"),
+    path("kasse/anlegen/", views_kasse.kasse_anlegen, name="kasse_anlegen"),
+    path("kasse/zaehlprotokoll/", views_kasse.zaehlprotokoll, name="zaehlprotokoll"),
 
     # Abwesenheiten (Urlaub / Freizeitausgleich)
     path("abwesenheit/", views.abwesenheit, name="abwesenheit"),

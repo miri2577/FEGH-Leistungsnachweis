@@ -15,7 +15,8 @@ from django.contrib.auth import get_user_model
 
 from nachweis.models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
                              Leistungsart, Rolle, Status, Team, Teamtyp, Arbeitszeit,
-                             Abwesenheit, AbwesenheitArt, AbwesenheitStatus, Stempelung)
+                             Abwesenheit, AbwesenheitArt, AbwesenheitStatus, Stempelung,
+                             Kasse, Kassenmonat, Kassenbuchung, Zaehlprotokoll)
 
 JAHR = 2026
 RNG = random.Random(42)
@@ -72,7 +73,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **opts):
         if not opts["keep"]:
-            for M in (Stempelung, Arbeitszeit, Abwesenheit, Leistung, Gruppe, Klient,
+            for M in (Zaehlprotokoll, Kassenbuchung, Kassenmonat, Kasse,
+                      Stempelung, Arbeitszeit, Abwesenheit, Leistung, Gruppe, Klient,
                       Mitarbeiter, Team, Parameter):
                 M.objects.all().delete()
             # 2FA-Geräte zurücksetzen -> Demo-Logins bleiben ohne 2FA nutzbar (OTP_REQUIRED=0)
@@ -265,9 +267,39 @@ class Command(BaseCommand):
             if b < _tz.localtime():
                 Stempelung.objects.create(mitarbeiter=peters, beginn=b)
 
+        # Demo-Kasse TBEW (Juni 2026) – aus der Excel-Vorlage Abrechnung0626.xlsx
+        kasse = Kasse.objects.create(team=team_tbew, bezeichnung="Kassenbuch TBEW", kostenstelle="8300")
+        km = Kassenmonat.objects.create(kasse=kasse, jahr=JAHR, monat=6, vortrag=Decimal("266.80"))
+        # FIKTIVE Buchungen (nur erfundene Namen – keine echten Personendaten!)
+        buchungen = [
+            (1, 1, "Ausflug Fahrkarten", "0", "8.00", "5320310"),
+            (2, 1, "Klient Baumann", "0", "8.49", "5170800"),
+            (3, 1, "Klient Brandt", "0", "4.00", "5600000"),
+            (4, 2, "Treffpunkt Lebensmittel", "0", "28.95", "5600000"),
+            (5, 4, "Gruppe", "0", "15.37", "5600000"),
+            (6, 4, "QZ/Teamsitzung", "0", "12.54", "5600000"),
+            (7, 5, "Gruppe", "0", "28.96", "5600000"),
+            (8, 10, "Klientin Engel", "0", "3.60", "5320310"),
+            (9, 11, "Klient Gruber", "0", "8.30", "5170800"),
+            (10, 12, "Gruppe", "0", "24.44", "5600000"),
+            (11, 16, "Treffpunkt Küche", "0", "21.70", ""),
+            (12, 17, "Klient Falk", "0", "5.40", ""),
+            (13, 17, "TBEW Briefmarken", "0", "55.00", ""),
+            (14, 29, "Kasseneinlage", "500.00", "0", ""),
+        ]
+        for nr, tag, text, ein, aus, konto in buchungen:
+            Kassenbuchung.objects.create(
+                monat=km, bel_nr=nr, datum=date(JAHR, 6, tag), text=text,
+                einnahme=Decimal(ein), ausgabe=Decimal(aus),
+                buchungsdatum=date(JAHR, 6, 30), kontonr=konto, kostenstelle="8300")
+        # Zählprotokoll (Bargeld 542,05 = Buchbestand -> Differenz 0)
+        Zaehlprotokoll.objects.create(monat=km, datum=date(JAHR, 6, 30),
+                                      n50=1, n20=18, n10=13, m2=1, m005=1)
+
         self.stdout.write(self.style.SUCCESS(
             f"Fertig: {len(mitarbeiter)} Mitarbeiter, {len(klienten)} Klienten, "
-            f"{n_leist} Leistungen, 2 Gruppen, {n_az} Arbeitszeiten, 3 Abwesenheiten."))
+            f"{n_leist} Leistungen, 2 Gruppen, {n_az} Arbeitszeiten, 3 Abwesenheiten, "
+            f"1 Kasse ({km.buchungen.count()} Buchungen, Endbestand {km.endbestand})."))
         self.stdout.write("Demo-Logins (Passwort: demo12345):")
         for m in mitarbeiter:
             self.stdout.write(f"  {m.user.username:12s} · {m.get_rolle_display():18s} · "

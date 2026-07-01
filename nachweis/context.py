@@ -22,4 +22,5 @@ def globale(request):
         "nav_ist_admin": services.ist_admin(request.user),
         "nav_ist_verwaltung": bool(me and me.ist_verwaltung),
         "nav_az_offen": az_offen,
+        "nav_hat_kasse": services.kassen_fuer(request.user).exists(),
     }

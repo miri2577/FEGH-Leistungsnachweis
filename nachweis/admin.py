@@ -1,7 +1,8 @@
 from django.contrib import admin
 
 from .models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
-                     Arbeitszeit, Abwesenheit, Team, Stempelung)
+                     Arbeitszeit, Abwesenheit, Team, Stempelung,
+                     Kasse, Kassenmonat, Kassenbuchung, Zaehlprotokoll)
 
 
 @admin.register(Team)
@@ -123,6 +124,41 @@ class StempelungAdmin(admin.ModelAdmin):
     list_filter = ("mitarbeiter",)
     date_hierarchy = "beginn"
     autocomplete_fields = ("mitarbeiter",)
+
+
+class KassenbuchungInline(admin.TabularInline):
+    model = Kassenbuchung
+    extra = 0
+
+
+@admin.register(Kasse)
+class KasseAdmin(admin.ModelAdmin):
+    list_display = ("bezeichnung", "team", "kostenstelle", "aktiv")
+    list_filter = ("aktiv",)
+
+
+@admin.register(Kassenmonat)
+class KassenmonatAdmin(admin.ModelAdmin):
+    list_display = ("kasse", "jahr", "monat", "vortrag", "endbestand_display")
+    list_filter = ("kasse", "jahr")
+    inlines = [KassenbuchungInline]
+
+    @admin.display(description="Endbestand")
+    def endbestand_display(self, obj):
+        return obj.endbestand
+
+
+@admin.register(Zaehlprotokoll)
+class ZaehlprotokollAdmin(admin.ModelAdmin):
+    list_display = ("monat", "datum", "bargeld_display", "differenz_display")
+
+    @admin.display(description="Bargeld")
+    def bargeld_display(self, obj):
+        return obj.bargeld_gesamt
+
+    @admin.display(description="Differenz")
+    def differenz_display(self, obj):
+        return obj.differenz
 
 
 admin.site.site_header = "FEGH-Leistungsnachweis · Team TBEW"

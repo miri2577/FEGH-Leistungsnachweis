@@ -90,6 +90,47 @@ def eigene_klienten(user):
     return Klient.objects.filter(bezugsbetreuer=m) if m else Klient.objects.none()
 
 
+# --------------------------------------------------------------------------
+#  Kasse (Kassenbuch) – Verwaltung = Finanz-Hub (sieht/pflegt alle Kassen)
+# --------------------------------------------------------------------------
+def kassen_fuer(user):
+    """Zugängliche Kassen: Verwaltung/Superuser -> alle; Team-Mitglied -> eigenes/geleitete
+    Team(s); Admin -> keine (verwaltet Konten, keine Finanzen)."""
+    from .models import Kasse
+    if not user.is_authenticated or ist_admin(user):
+        return Kasse.objects.none()
+    if ist_verwaltung(user) or _superuser_ohne_profil(user):
+        return Kasse.objects.all()
+    return Kasse.objects.filter(team__in=teams_fuer(user))
+
+
+def kann_buha(user) -> bool:
+    """Wer die Buchhaltungs-Felder (Buchungsdatum/Kontonr/Kostenstelle) pflegen darf."""
+    return ist_verwaltung(user) or _superuser_ohne_profil(user)
+
+
+def kassenmonat(kasse, jahr, monat):
+    """Holt/erzeugt den Kassenmonat; Vortrag = Endbestand des Vormonats."""
+    from .models import Kassenmonat
+    km = Kassenmonat.objects.filter(kasse=kasse, jahr=jahr, monat=monat).first()
+    if km:
+        return km
+    pj, pm = (jahr - 1, 12) if monat == 1 else (jahr, monat - 1)
+    vor = Kassenmonat.objects.filter(kasse=kasse, jahr=pj, monat=pm).first()
+    vortrag = vor.endbestand if vor else Decimal("0")
+    return Kassenmonat.objects.create(kasse=kasse, jahr=jahr, monat=monat, vortrag=vortrag)
+
+
+def kassenblatt_zeilen(monat):
+    """Buchungen mit laufendem Bestand (Vortrag + kumuliert Einnahmen − Ausgaben)."""
+    saldo = monat.vortrag
+    zeilen = []
+    for b in monat.buchungen.all():
+        saldo = saldo + b.einnahme - b.ausgabe
+        zeilen.append({"b": b, "bestand": saldo})
+    return zeilen
+
+
 def berichte_faellig(klienten, stichtag=None):
     """Liste der Klient*innen, deren Entwicklungsbericht ansteht (10 Wochen vor KÜ-Ende)."""
     return [k for k in klienten.exclude(kue_bis__isnull=True) if k.bericht_offen(stichtag)]

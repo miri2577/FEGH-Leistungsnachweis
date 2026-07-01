@@ -1,0 +1,138 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Kasse · FEGH{% endblock %}
+{% block extrastyle %}
+  .kopf{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .vortrag{display:flex;gap:8px;align-items:center}
+  .vortrag input{width:110px;text-align:right}
+  .bform{display:grid;grid-template-columns:80px 130px 1fr 110px 110px auto;gap:10px;align-items:end;padding:16px 18px}
+  .bform.buha{grid-template-columns:80px 130px 1fr 100px 100px 120px 110px 110px auto}
+  .bform label{font-size:12px;color:var(--muted);font-weight:600;display:block;margin-bottom:4px}
+  .bform input{width:100%}
+  td.e{color:var(--ok)} td.a{color:var(--bad)}
+  tr.vor td{background:var(--bg-2);font-weight:600}
+  .kasseleer{padding:24px;text-align:center;color:var(--muted)}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Kasse{% if kasse %} · {{ kasse.bezeichnung|default:kasse.team.name }}{% endif %}</h1>
+  <p class="sub">Kassenbuch (laufender Bestand) und Zählprotokoll je Monat. Kassenvortrag = Endbestand des Vormonats.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  {% if keine %}
+    <div class="panel"><div class="kasseleer">
+      Dir ist aktuell keine Kasse zugeordnet.
+      {% if darf_anlegen %}<br><br>
+        <form method="post" action="{% url 'nachweis:kasse_anlegen' %}" style="display:inline-flex;gap:10px;align-items:center">
+          {% csrf_token %}
+          <select name="team" required><option value="">Team wählen …</option>{% for t in teams_ohne_kasse %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}</select>
+          <input type="text" name="kostenstelle" placeholder="Kostenstelle (z. B. 8300)" style="width:180px">
+          <button class="btn" type="submit">Kasse anlegen</button>
+        </form>
+      {% endif %}
+    </div></div>
+  {% else %}
+
+  <div class="panel">
+    <div class="head kopf">
+      <form method="get" class="kopf" style="gap:10px">
+        {% if kassen|length > 1 %}
+        <select name="kasse" onchange="this.form.submit()">
+          {% for k in kassen %}<option value="{{ k.id }}" {% if k.id == kasse.id %}selected{% endif %}>{{ k.bezeichnung|default:k.team.name }}</option>{% endfor %}
+        </select>
+        {% else %}<input type="hidden" name="kasse" value="{{ kasse.id }}">{% endif %}
+        <select name="monat" onchange="this.form.submit()">
+          {% for m,l in monate %}<option value="{{ m }}" {% if m == monat %}selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+        <input type="number" name="jahr" value="{{ jahr }}" style="width:88px" onchange="this.form.submit()">
+      </form>
+      <a class="btn ghost" href="{% url 'nachweis:zaehlprotokoll' %}?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}">Zählprotokoll →</a>
+    </div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr>
+          <th class="num">Bel.-Nr.</th><th>Datum</th><th>Text</th>
+          <th class="num">Einnahmen</th><th class="num">Ausgaben</th>
+          {% if kann_buha %}<th>Buch.-Dat.</th><th>Kontonr.</th><th>Kst.</th>{% endif %}
+          <th class="num">Bestand</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr class="vor">
+            <td></td><td>{{ jahr }}-{{ monat|stringformat:"02d" }}</td>
+            <td>Kassenvortrag (Endbestand Vormonat)</td><td class="num"></td><td class="num"></td>
+            {% if kann_buha %}<td colspan="3"></td>{% endif %}
+            <td class="num">{{ km.vortrag|floatformat:2 }}</td><td></td>
+          </tr>
+          {% for z in zeilen %}
+          <tr>
+            <td class="num">{{ z.b.bel_nr }}</td>
+            <td>{{ z.b.datum|date:"d.m.Y" }}</td>
+            <td>{{ z.b.text }}</td>
+            <td class="num e">{% if z.b.einnahme %}{{ z.b.einnahme|floatformat:2 }}{% endif %}</td>
+            <td class="num a">{% if z.b.ausgabe %}{{ z.b.ausgabe|floatformat:2 }}{% endif %}</td>
+            {% if kann_buha %}
+            <td>{{ z.b.buchungsdatum|date:"d.m.Y"|default:"—" }}</td>
+            <td class="muted">{{ z.b.kontonr|default:"—" }}</td>
+            <td class="muted">{{ z.b.kostenstelle|default:"—" }}</td>
+            {% endif %}
+            <td class="num"><b>{{ z.bestand|floatformat:2 }}</b></td>
+            <td style="white-space:nowrap">
+              <a class="btn ghost" style="padding:3px 8px;font-size:12px" href="?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}&edit={{ z.b.id }}">✎</a>
+              <form method="post" action="{% url 'nachweis:kasse_buchung_delete' %}" style="display:inline" onsubmit="return confirm('Beleg löschen?')">
+                {% csrf_token %}<input type="hidden" name="kasse" value="{{ kasse.id }}"><input type="hidden" name="id" value="{{ z.b.id }}">
+                <button class="btn ghost" style="padding:3px 8px;font-size:12px;color:var(--bad)">✕</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="{% if kann_buha %}9{% else %}6{% endif %}" class="muted" style="text-align:center;padding:16px">Noch keine Buchungen in {{ monat_name }} {{ jahr }}.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3">Summe {{ monat_name }}</td>
+            <td class="num e">{{ km.einnahmen|floatformat:2 }}</td>
+            <td class="num a">{{ km.ausgaben|floatformat:2 }}</td>
+            {% if kann_buha %}<td colspan="3"></td>{% endif %}
+            <td class="num" style="background:var(--brand);color:#fff">{{ km.endbestand|floatformat:2 }}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Neue / bearbeitete Buchung -->
+  <div class="panel">
+    <div class="head"><h2>{% if bearbeiten %}Beleg {{ bearbeiten.bel_nr }} bearbeiten{% else %}Neue Buchung{% endif %}</h2></div>
+    <form method="post" action="{% url 'nachweis:kasse_buchung_save' %}">
+      {% csrf_token %}
+      <input type="hidden" name="kasse" value="{{ kasse.id }}">
+      <input type="hidden" name="jahr" value="{{ jahr }}"><input type="hidden" name="monat" value="{{ monat }}">
+      {% if bearbeiten %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">{% endif %}
+      <div class="bform {% if kann_buha %}buha{% endif %}">
+        <div><label>Bel.-Nr.</label><input type="number" name="bel_nr" value="{{ bearbeiten.bel_nr|default:naechste_bel }}"></div>
+        <div><label>Datum</label><input type="date" name="datum" value="{{ bearbeiten.datum|date:'Y-m-d' }}" required></div>
+        <div><label>Text</label><input type="text" name="text" value="{{ bearbeiten.text|default:'' }}" required></div>
+        <div><label>Einnahmen</label><input type="text" name="einnahme" value="{% if bearbeiten.einnahme %}{{ bearbeiten.einnahme }}{% endif %}" placeholder="0,00"></div>
+        <div><label>Ausgaben</label><input type="text" name="ausgabe" value="{% if bearbeiten.ausgabe %}{{ bearbeiten.ausgabe }}{% endif %}" placeholder="0,00"></div>
+        {% if kann_buha %}
+        <div><label>Buch.-Datum</label><input type="date" name="buchungsdatum" value="{{ bearbeiten.buchungsdatum|date:'Y-m-d' }}"></div>
+        <div><label>Kontonr.</label><input type="text" name="kontonr" value="{{ bearbeiten.kontonr|default:'' }}"></div>
+        <div><label>Kostenstelle</label><input type="text" name="kostenstelle" value="{{ bearbeiten.kostenstelle|default:kasse.kostenstelle }}"></div>
+        {% endif %}
+        <div><button class="btn" type="submit">{% if bearbeiten %}Speichern{% else %}Buchen{% endif %}</button>
+          {% if bearbeiten %}<a class="btn ghost" href="?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}">Abbrechen</a>{% endif %}</div>
+      </div>
+    </form>
+  </div>
+
+  {% if kann_buha %}
+  <form method="post" action="{% url 'nachweis:kasse_vortrag_save' %}" class="vortrag" style="margin-top:4px">
+    {% csrf_token %}
+    <input type="hidden" name="kasse" value="{{ kasse.id }}"><input type="hidden" name="jahr" value="{{ jahr }}"><input type="hidden" name="monat" value="{{ monat }}">
+    <span class="muted">Kassenvortrag korrigieren:</span>
+    <input type="text" name="vortrag" value="{{ km.vortrag }}"><button class="btn ghost" type="submit">Speichern</button>
+  </form>
+  {% endif %}
+  {% endif %}
+{% endblock %}

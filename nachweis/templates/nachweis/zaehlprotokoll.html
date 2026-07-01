@@ -1,0 +1,118 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Zählprotokoll · FEGH{% endblock %}
+{% block extrastyle %}
+  .zgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  @media(max-width:900px){.zgrid{grid-template-columns:1fr}}
+  table.z{width:100%;border-collapse:collapse;font-size:13.5px}
+  table.z td,table.z th{padding:6px 10px;border-bottom:1px solid var(--line)}
+  table.z td.num{text-align:right;font-variant-numeric:tabular-nums}
+  table.z input{width:70px;text-align:right;padding:5px 8px}
+  .sum td{font-weight:700;background:var(--bg-2)}
+  .zeile{display:flex;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--line)}
+  .zeile b{font-variant-numeric:tabular-nums}
+  .big{font-size:18px}
+  .diff-ok{color:var(--ok)} .diff-bad{color:var(--bad)}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Zählprotokoll · {{ kasse.bezeichnung|default:kasse.team.name }}</h1>
+  <p class="sub">{{ monat_name }} {{ jahr }} — Bargeld zählen und mit dem Buchbestand des Kassenblatts abgleichen (Differenz muss 0 sein).</p>
+
+  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div style="margin-bottom:14px"><a class="btn ghost" href="{% url 'nachweis:kasse' %}?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}">← Zum Kassenblatt</a></div>
+
+  <form method="post" id="zform">
+    {% csrf_token %}
+    <input type="hidden" name="kasse" value="{{ kasse.id }}"><input type="hidden" name="jahr" value="{{ jahr }}"><input type="hidden" name="monat" value="{{ monat }}">
+
+    <div class="zgrid">
+      <!-- 1. Bestandsaufnahme -->
+      <div class="panel" style="margin:0">
+        <div class="head"><h2>1 · Bestandsaufnahme (zählen)</h2>
+          <span style="display:flex;gap:8px;align-items:center"><span class="muted">Datum</span><input type="date" name="datum" value="{{ z.datum|date:'Y-m-d' }}" style="padding:5px 8px"></span></div>
+        <div class="body" style="padding:6px 12px 12px">
+          <table class="z">
+            <thead><tr><th>Noten</th><th>Stück</th><th class="num">Wert €</th></tr></thead>
+            <tbody>
+              {% for wert,feld,anz in noten %}
+              <tr><td>{{ wert|floatformat:"-2" }} €</td>
+                <td><input type="number" min="0" name="{{ feld }}" value="{{ anz }}" data-w="{{ wert }}" class="stk"></td>
+                <td class="num wert">0,00</td></tr>
+              {% endfor %}
+            </tbody>
+            <thead><tr><th>Münzen</th><th>Stück</th><th class="num">Wert €</th></tr></thead>
+            <tbody>
+              {% for wert,feld,anz in muenzen %}
+              <tr><td>{{ wert|floatformat:"-2" }} €</td>
+                <td><input type="number" min="0" name="{{ feld }}" value="{{ anz }}" data-w="{{ wert }}" class="stk"></td>
+                <td class="num wert">0,00</td></tr>
+              {% endfor %}
+            </tbody>
+            <tfoot><tr class="sum"><td colspan="2">Bargeld gesamt</td><td class="num" id="bargeld">0,00 €</td></tr></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- 2. Buchbestand + 3. Soll-Ist -->
+      <div>
+        <div class="panel" style="margin:0 0 16px">
+          <div class="head"><h2>2 · Buchbestand lt. Kassenblatt</h2></div>
+          <div class="zeile"><span>Alter Bestand (Vortrag)</span><b>{{ km.vortrag|floatformat:2 }} €</b></div>
+          <div class="zeile"><span>+ Einnahmen</span><b class="diff-ok">{{ km.einnahmen|floatformat:2 }} €</b></div>
+          <div class="zeile"><span>− Ausgaben</span><b class="diff-bad">{{ km.ausgaben|floatformat:2 }} €</b></div>
+          <div class="zeile"><span>− nicht eingetragene Belege (Vorschüsse)</span>
+            <input type="text" name="nicht_eingetragene" id="niE" value="{{ z.nicht_eingetragene }}" style="width:90px;text-align:right"></div>
+          <div class="zeile sum" style="border-top:2px solid var(--border)"><span><b>Neuer Bestand (Kassenbestand)</b></span><b id="neuerBestand" class="big">0,00 €</b></div>
+        </div>
+
+        <div class="panel" style="margin:0 0 16px">
+          <div class="head"><h2>3 · Soll-Ist-Vergleich</h2></div>
+          <div class="zeile"><span>Bargeld gesamt (gezählt)</span><b id="bargeld2">0,00 €</b></div>
+          <div class="zeile"><span>− Neuer Bestand (Buch)</span><b id="neuerBestand2">0,00 €</b></div>
+          <div class="zeile sum" style="border-top:2px solid var(--border)"><span><b>Differenz</b></span><b id="differenz" class="big">0,00 €</b></div>
+        </div>
+
+        <div class="panel" style="margin:0">
+          <div class="head"><h2>Vermerke für die FiBu</h2></div>
+          <div class="body" style="padding:14px 16px">
+            <textarea name="vermerke" style="width:100%;min-height:70px;border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-family:inherit">{{ z.vermerke }}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px"><button class="btn" type="submit">Zählprotokoll speichern</button></div>
+  </form>
+{% endblock %}
+
+{% block extrajs %}
+<script>
+(function(){
+  var vortrag={{ km.vortrag|stringformat:"f"|default:"0" }};
+  var einnahmen={{ km.einnahmen|stringformat:"f"|default:"0" }};
+  var ausgaben={{ km.ausgaben|stringformat:"f"|default:"0" }};
+  function eur(x){ return x.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
+  function num(v){ v=(v||'').toString().replace(',','.'); var n=parseFloat(v); return isNaN(n)?0:n; }
+  function rechne(){
+    var bargeld=0;
+    document.querySelectorAll('.stk').forEach(function(inp){
+      var w=parseFloat(inp.dataset.w), s=parseInt(inp.value||'0',10)||0, wert=w*s;
+      bargeld+=wert;
+      inp.closest('tr').querySelector('.wert').textContent=wert.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+    });
+    var niE=num(document.getElementById('niE').value);
+    var neuer=vortrag+einnahmen-ausgaben-niE;
+    var diff=bargeld-neuer;
+    document.getElementById('bargeld').textContent=eur(bargeld);
+    document.getElementById('bargeld2').textContent=eur(bargeld);
+    document.getElementById('neuerBestand').textContent=eur(neuer);
+    document.getElementById('neuerBestand2').textContent=eur(neuer);
+    var d=document.getElementById('differenz');
+    d.textContent=eur(diff);
+    d.className='big '+(Math.abs(diff)<0.005?'diff-ok':'diff-bad');
+  }
+  document.querySelectorAll('.stk, #niE').forEach(function(el){ el.addEventListener('input',rechne); });
+  rechne();
+})();
+</script>
+{% endblock %}

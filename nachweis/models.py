@@ -375,6 +375,132 @@ class Abwesenheit(models.Model):
         return services.werktage(self.von, self.bis)
 
 
+# Stückelung (Euro) fürs Zählprotokoll – Wert -> Feldname (Noten 100..5, Münzen 2..0,01)
+GELDSTUECKELUNG = [
+    (Decimal("100"), "n100"), (Decimal("50"), "n50"), (Decimal("20"), "n20"),
+    (Decimal("10"), "n10"), (Decimal("5"), "n5"),
+    (Decimal("2"), "m2"), (Decimal("1"), "m1"), (Decimal("0.50"), "m050"),
+    (Decimal("0.20"), "m020"), (Decimal("0.10"), "m010"), (Decimal("0.05"), "m005"),
+    (Decimal("0.02"), "m002"), (Decimal("0.01"), "m001"),
+]
+
+
+class Kasse(models.Model):
+    """Kassenbuch eines Teams. Die Verwaltung ist Finanz-Hub (sieht/pflegt alle Kassen)."""
+    team = models.OneToOneField(Team, on_delete=models.CASCADE, related_name="kasse")
+    bezeichnung = models.CharField(max_length=80, blank=True)
+    kostenstelle = models.CharField("Kostenstellen-Code", max_length=20, blank=True)
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Kasse"
+        verbose_name_plural = "Kassen"
+        ordering = ["team__name"]
+
+    def __str__(self):
+        return self.bezeichnung or f"Kassenbuch {self.team}"
+
+
+class Kassenmonat(models.Model):
+    """Ein Abrechnungsmonat einer Kasse mit Kassenvortrag (Endbestand Vormonat)."""
+    kasse = models.ForeignKey(Kasse, on_delete=models.CASCADE, related_name="monate")
+    jahr = models.PositiveIntegerField()
+    monat = models.PositiveSmallIntegerField()
+    vortrag = models.DecimalField("Kassenvortrag", max_digits=10, decimal_places=2, default=0)
+
+    class Meta:
+        verbose_name = "Kassenmonat"
+        verbose_name_plural = "Kassenmonate"
+        ordering = ["-jahr", "-monat"]
+        constraints = [models.UniqueConstraint(fields=["kasse", "jahr", "monat"],
+                                               name="ein_kassenmonat")]
+
+    def __str__(self):
+        return f"{self.kasse} · {self.monat:02d}.{self.jahr}"
+
+    @property
+    def einnahmen(self) -> Decimal:
+        return sum((b.einnahme for b in self.buchungen.all()), Decimal("0"))
+
+    @property
+    def ausgaben(self) -> Decimal:
+        return sum((b.ausgabe for b in self.buchungen.all()), Decimal("0"))
+
+    @property
+    def endbestand(self) -> Decimal:
+        return self.vortrag + self.einnahmen - self.ausgaben
+
+    def naechste_bel_nr(self) -> int:
+        letzte = self.buchungen.order_by("-bel_nr").first()
+        return (letzte.bel_nr + 1) if letzte else 1
+
+
+class Kassenbuchung(models.Model):
+    """Eine Buchung im Kassenblatt. BuHa-Felder (Buchungsdatum/Kontonr/Kostenstelle)
+    füllt die Verwaltung/Buchhaltung."""
+    monat = models.ForeignKey(Kassenmonat, on_delete=models.CASCADE, related_name="buchungen")
+    bel_nr = models.PositiveIntegerField("Beleg-Nr.")
+    datum = models.DateField()
+    text = models.CharField(max_length=200)
+    einnahme = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    ausgabe = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    # BuHa (Buchhaltung, von der Verwaltung gepflegt)
+    buchungsdatum = models.DateField(null=True, blank=True)
+    kontonr = models.CharField("Kontonr.", max_length=20, blank=True)
+    kostenstelle = models.CharField("Kostenstellen-Code", max_length=20, blank=True)
+
+    class Meta:
+        verbose_name = "Kassenbuchung"
+        verbose_name_plural = "Kassenbuchungen"
+        ordering = ["bel_nr", "id"]
+
+    def __str__(self):
+        return f"{self.bel_nr} · {self.datum} · {self.text}"
+
+
+class Zaehlprotokoll(models.Model):
+    """Monats-Zählprotokoll: physischer Bargeldbestand vs. Buchbestand (Soll-Ist)."""
+    monat = models.OneToOneField(Kassenmonat, on_delete=models.CASCADE, related_name="zaehlung")
+    datum = models.DateField(null=True, blank=True)
+    n100 = models.PositiveIntegerField(default=0)
+    n50 = models.PositiveIntegerField(default=0)
+    n20 = models.PositiveIntegerField(default=0)
+    n10 = models.PositiveIntegerField(default=0)
+    n5 = models.PositiveIntegerField(default=0)
+    m2 = models.PositiveIntegerField(default=0)
+    m1 = models.PositiveIntegerField(default=0)
+    m050 = models.PositiveIntegerField(default=0)
+    m020 = models.PositiveIntegerField(default=0)
+    m010 = models.PositiveIntegerField(default=0)
+    m005 = models.PositiveIntegerField(default=0)
+    m002 = models.PositiveIntegerField(default=0)
+    m001 = models.PositiveIntegerField(default=0)
+    nicht_eingetragene = models.DecimalField("nicht eingetragene Belege", max_digits=10,
+                                             decimal_places=2, default=0)
+    vermerke = models.TextField("Vermerke für die FiBu", blank=True)
+
+    class Meta:
+        verbose_name = "Zählprotokoll"
+        verbose_name_plural = "Zählprotokolle"
+
+    def __str__(self):
+        return f"Zählprotokoll {self.monat}"
+
+    @property
+    def bargeld_gesamt(self) -> Decimal:
+        return sum((wert * getattr(self, feld) for wert, feld in GELDSTUECKELUNG),
+                   Decimal("0")).quantize(Decimal("0.01"))
+
+    @property
+    def neuer_bestand(self) -> Decimal:
+        m = self.monat
+        return (m.vortrag + m.einnahmen - m.ausgaben - self.nicht_eingetragene)
+
+    @property
+    def differenz(self) -> Decimal:
+        return self.bargeld_gesamt - self.neuer_bestand
+
+
 class Parameter(models.Model):
     """Team-Parameter (ein Datensatz je Jahr). Vergütungssätze NICHT hartkodieren."""
     jahr = models.PositiveIntegerField(default=2026, unique=True)
