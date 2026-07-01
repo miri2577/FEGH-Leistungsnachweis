@@ -2,18 +2,29 @@
 {% block title %}Mein Überblick · FEGH{% endblock %}
 
 {% block extrastyle %}
-  /* kompaktere Kacheln + engeres Raster (weniger Unruhe) */
-  .grid-dash.tight{grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:16px}
-  .kpi.sm{padding:12px 15px}
+  /* Karten NICHT über die volle Breite ziehen – feste, angenehme Breiten + Weißraum */
+  .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,270px));
+    gap:16px;margin-bottom:16px;justify-content:start}
+  .freeflow{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;margin-bottom:16px}
+  .freeflow .panel{margin:0}
+  .card-faellig{flex:1 1 460px;max-width:660px}
+  .card-urlaub{flex:0 1 360px}
+  .card-kalender{flex:0 1 430px}
+  .kpi.sm{padding:13px 16px}
   .kpi.sm .n{font-size:22px}
   .kpi.sm .top{margin-bottom:4px}
-  .kpi .sub2{font-size:12px;color:var(--muted);margin-top:2px}
   .hello.compact{padding:14px 20px;margin-bottom:16px}
   .hello.compact .ava{width:44px;height:44px;font-size:17px}
   .hello.compact h2{font-size:17px}
   .barwrap{height:7px;background:#eef2f6;border-radius:99px;overflow:hidden;margin-top:8px}
   .barwrap>i{display:block;height:100%;background:var(--brand-l)}
   .acts{display:flex;gap:12px;flex-wrap:wrap;margin-top:4px}
+  /* Kalender kompakter */
+  .card-kalender .week{gap:6px;padding:12px 14px}
+  .card-kalender .day{padding:7px 4px 9px;border-radius:9px}
+  .card-kalender .day .wd{font-size:10px}
+  .card-kalender .day .dn{font-size:15px}
+  .card-kalender .day .tag{font-size:10px;margin-top:4px}
   /* Fälligkeiten-Karte (kompakt, aufklappbar) */
   .frow{display:flex;align-items:center;gap:10px;padding:10px 18px;border-top:1px solid var(--line);font-size:13.5px}
   .frow:first-child{border-top:0}
@@ -40,13 +51,13 @@
   <div class="hello compact">
     <div class="ava">{{ me.vorname|slice:":1" }}{{ me.name|slice:":1" }}</div>
     <div>
-      <h2>Hallo {{ me.vorname|default:me.name }}, willkommen im SelfService!</h2>
+      <h2>Hallo {{ me.vorname|default:me.name }}, willkommen im FEGH-Leistungsnachweis!</h2>
       <p>{{ monat_name }} {{ jahr }}{% if me.team %} · Team {{ me.team.name }}{% endif %} · {{ me.get_rolle_display }}</p>
     </div>
   </div>
 
-  <!-- kleine KPI-Reihe + Stempeluhr -->
-  <div class="grid-dash tight">
+  <!-- kleine KPI-Reihe + Stempeluhr (feste Breiten, links gepackt) -->
+  <div class="grid-cards">
     {% if stempel %}
     <form class="stamp {% if stempel.eingestempelt %}is-in{% endif %}" method="post" action="{% url 'nachweis:stempeln' %}">
       {% csrf_token %}
@@ -90,18 +101,11 @@
       <div class="n">{{ eigene_zeilen|length }}</div>
     </div>
 
-    <div class="kpi sm k-purple">
-      <div class="top">
-        <span class="chip"><svg viewBox="0 0 24 24"><path d="M17 3h-1V1h-2v2H10V1H8v2H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H7V8h10v11z"/></svg></span>
-        <span class="l">Resturlaub</span>
-      </div>
-      <div class="n">{{ urlaub.rest }}<span style="font-size:14px;color:var(--muted)"> / {{ urlaub.anspruch }}</span></div>
-    </div>
   </div>
 
-  <!-- Fälligkeiten + Urlaubskonto -->
-  <div class="grid-dash">
-    <div class="panel span2 faellig" id="faellig" style="margin:0">
+  <!-- Fälligkeiten · Urlaubskonto · Kalender frei nebeneinander -->
+  <div class="freeflow">
+    <div class="panel faellig card-faellig tint-amber" id="faellig">
       <div class="head"><h2>Fälligkeiten &amp; Hinweise</h2>
         <span class="muted">{% with n=berichte|length %}{% if az.fehlende_tage %}{{ n|add:1 }}{% else %}{{ n }}{% endif %}{% endwith %} offen</span></div>
       <div class="body" style="padding:0">
@@ -131,7 +135,7 @@
       </div>
     </div>
 
-    <div class="panel" style="margin:0">
+    <div class="panel card-urlaub tint-purple">
       <div class="head"><h2>Urlaubskonto {{ jahr }}</h2></div>
       <div class="konto">
         <div class="ring"><svg viewBox="0 0 24 24"><path d="M17 3h-1V1h-2v2H10V1H8v2H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H7V8h10v11z"/></svg></div>
@@ -144,18 +148,17 @@
       <div class="kontozeile"><span class="muted">genommen</span><span>{{ urlaub.genommen }} Tage</span></div>
       <div class="kontozeile"><span class="muted">beantragt / offen</span><span class="{% if urlaub.beantragt %}pos{% endif %}">{{ urlaub.beantragt }} Tage</span></div>
     </div>
-  </div>
 
-  <!-- Kalender (kompakt, eigene Zeile) -->
-  <div class="panel">
-    <div class="head"><h2>Kalender</h2><span class="muted">Aktuelle Woche</span></div>
-    <div class="week">
-      {% for t in wochentage %}
-      <div class="day {% if t.heute %}today{% endif %}{% if t.frei %} frei{% endif %}">
-        <div class="wd">{{ t.wd }}</div><div class="dn">{{ t.tag }}</div>
-        {% if t.frei %}<span class="tag" style="background:var(--orange-soft);color:var(--orange-ink)">frei</span>{% endif %}
+    <div class="panel card-kalender tint-blue">
+      <div class="head"><h2>Kalender</h2><span class="muted">Aktuelle Woche</span></div>
+      <div class="week">
+        {% for t in wochentage %}
+        <div class="day {% if t.heute %}today{% endif %}{% if t.frei %} frei{% endif %}">
+          <div class="wd">{{ t.wd }}</div><div class="dn">{{ t.tag }}</div>
+          {% if t.frei %}<span class="tag" style="background:var(--orange-soft);color:var(--orange-ink)">frei</span>{% endif %}
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
     </div>
   </div>
 
