@@ -1,12 +1,17 @@
+# --- Basis (Prototyp lokal) ---
 Django>=5.1,<5.2
 holidays>=0.50
 django-otp>=1.5
 qrcode>=7.4
 
-# --- Produktion / später ---
-# gunicorn            # WSGI-Server
-# psycopg[binary]     # PostgreSQL
-# weasyprint          # amtlicher Druck-Nachweis als PDF
-# django-auditlog     # Revisionssicherheit (Pflicht bei öffentlichem Geld)
-# django-axes         # Brute-Force-Schutz
-# whitenoise          # statische Dateien ausliefern
+# --- Produktion (Strato V-Server: Docker + Caddy + PostgreSQL) ---
+gunicorn>=22.0            # WSGI-Server
+psycopg[binary]>=3.1      # PostgreSQL-Treiber
+whitenoise>=6.6           # statische Dateien aus dem Django-Prozess
+dj-database-url>=2.1      # DATABASE_URL -> DATABASES
+argon2-cffi>=23.1         # Argon2-Passwort-Hash
+
+# --- Produktion: auf dem Server scharf schalten (INSTALLED_APPS/Middleware) ---
+# django-auditlog>=3.0    # Revisionssicherheit (Wer/Wann/Was) – bei öffentlichem Geld faktisch Pflicht
+# django-axes>=6.0        # Brute-Force-Schutz auf der Passwortstufe
+# weasyprint>=61          # amtlicher Druck-Nachweis als echtes PDF (Server: Pango/Cairo nötig)

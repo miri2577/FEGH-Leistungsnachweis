@@ -1,0 +1,8 @@
+# Domain anpassen. Caddy holt & erneuert das TLS-Zertifikat automatisch (Let's Encrypt).
+nachweis.deine-domain.de {
+    encode zstd gzip
+    log {
+        output file /data/access.log
+    }
+    reverse_proxy web:8000
+}

@@ -140,3 +140,64 @@ OTP_TOTP_ISSUER = "FEGH-Leistungsnachweis"     # Anzeigename in der Authenticato
 # Prototyp: 0 = optional (Opt-in, wer ein Gerät einrichtet wird gefragt).
 # Prod: DJANGO_OTP_REQUIRED=1 -> Pflicht für ALLE (außer Break-Glass-Superuser).
 OTP_REQUIRED = os.environ.get("DJANGO_OTP_REQUIRED", "0") == "1"
+
+# =====================================================================
+#  PRODUKTION (greift nur bei DEBUG=False; lokal bleibt alles unverändert)
+# =====================================================================
+# CSRF muss die HTTPS-Origin kennen (Django 4+)
+CSRF_TRUSTED_ORIGINS = [
+    o for o in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if o
+]
+
+# PostgreSQL aus Umgebungsvariable (nur wenn gesetzt -> lokal weiter SQLite)
+if os.environ.get("DATABASE_URL"):
+    import dj_database_url
+    DATABASES["default"] = dj_database_url.parse(
+        os.environ["DATABASE_URL"], conn_max_age=600, ssl_require=False)
+
+# Argon2 als bevorzugter Passwort-Hash (argon2-cffi)
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+]
+
+if not DEBUG:
+    # Statische Dateien über WhiteNoise (direkt nach der SecurityMiddleware)
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }
+    # Caddy terminiert TLS und setzt X-Forwarded-Proto
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+    # HSTS – auf dem Server zunächst kurz (300) testen, dann 1 Jahr:
+    SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "31536000"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    # Cookies nur über HTTPS, nicht per JS lesbar
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    CSRF_COOKIE_SAMESITE = "Lax"
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
+    # Sensible Daten: Session an den Arbeitstag koppeln
+    SESSION_COOKIE_AGE = 60 * 60 * 8
+    SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+    _log_file = os.environ.get("DJANGO_LOG_FILE", str(BASE_DIR / "logs" / "django.log"))
+    os.makedirs(os.path.dirname(_log_file), exist_ok=True)
+    LOGGING = {
+        "version": 1, "disable_existing_loggers": False,
+        "handlers": {"file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": _log_file,
+            "maxBytes": 5_000_000, "backupCount": 10,
+        }},
+        "loggers": {
+            "django.security": {"handlers": ["file"], "level": "INFO"},
+            "django.request": {"handlers": ["file"], "level": "WARNING"},
+        },
+    }

@@ -10,10 +10,18 @@ db.sqlite3
 db.sqlite3-journal
 /staticfiles/
 /media/
+/logs/
 *.log
 
 # MkDocs (Wiki-Build)
 /site/
+
+# Deployment-Secrets / Backups (niemals committen)
+deploy/.env.prod
+deploy/backups/
+deploy/logs/
+*.age
+*.key
 
 # Secrets / lokale Konfiguration
 .env
