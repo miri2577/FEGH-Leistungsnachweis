@@ -93,6 +93,7 @@
       {% if az.soll %}{% widthratio az.ist az.soll 100 as azp %}<div class="barwrap"><i style="width:{% if azp > 100 %}100{% else %}{{ azp }}{% endif %}%"></i></div>{% endif %}
     </div>
 
+    {% if not ist_verwaltung %}
     <div class="kpi sm k-blue">
       <div class="top">
         <span class="chip"><svg viewBox="0 0 24 24"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-7 0a1 1 0 110 2 1 1 0 010-2zm2 14H7v-2h9v2zm3-4H7v-2h12v2zm0-4H7V7h12v2z"/></svg></span>
@@ -100,7 +101,7 @@
       </div>
       <div class="n">{{ eigene_zeilen|length }}</div>
     </div>
-
+    {% endif %}
   </div>
 
   <!-- Fälligkeiten · Urlaubskonto · Kalender frei nebeneinander -->
@@ -162,7 +163,8 @@
     </div>
   </div>
 
-  <!-- eigene Klient*innen -->
+  <!-- eigene Klient*innen (nicht für Verwaltung) -->
+  {% if not ist_verwaltung %}
   <div class="panel">
     <div class="head">
       <h2>Meine Klient*innen – Auslastung {{ jahr }}</h2>
@@ -191,11 +193,12 @@
       </table>
     </div>
   </div>
+  {% endif %}
 
   <div class="acts">
     <a class="btn" href="{% url 'nachweis:arbeitszeit' %}">Arbeitszeit erfassen</a>
     <a class="btn ghost" href="{% url 'nachweis:abwesenheit' %}">Urlaub / Freizeitausgleich beantragen</a>
-    <a class="btn ghost" href="{% url 'nachweis:erfassung' %}">Leistungsnachweis</a>
+    {% if not ist_verwaltung %}<a class="btn ghost" href="{% url 'nachweis:erfassung' %}">Leistungsnachweis</a>{% endif %}
   </div>
   {% endif %}
 {% endblock %}

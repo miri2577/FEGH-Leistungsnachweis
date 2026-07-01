@@ -203,7 +203,7 @@
       <a href="{% url 'nachweis:dashboard' %}" class="{% if aktiv == 'dashboard' %}active{% endif %}">
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M4 9h4v11H4zM10 4h4v16h-4zM16 13h4v7h-4z"/></svg></span> Fachleistungsstunden</a>
       {% endif %}
-      {% if not nav_ist_admin %}
+      {% if not nav_ist_admin and not nav_ist_verwaltung %}
       <div class="grp">Erfassung</div>
       <a href="{% url 'nachweis:erfassung' %}" class="{% if aktiv == 'erfassung' %}active{% endif %}">
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></span> Leistungsnachweis</a>

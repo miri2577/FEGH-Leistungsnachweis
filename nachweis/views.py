@@ -145,6 +145,8 @@ def dashboard(request):
 @ensure_csrf_cookie
 @login_required
 def erfassung(request):
+    if services.ohne_klientenarbeit(request.user):
+        return redirect("nachweis:start")
     klienten = services.klienten_fuer(request.user).order_by("nachname", "vorname")
     context = {
         "aktiv": "erfassung",
@@ -243,6 +245,8 @@ def api_leistung_delete(request):
 # ---------------------------------------------------------------- Druck-Nachweis
 @login_required
 def druck(request):
+    if services.ohne_klientenarbeit(request.user):
+        return redirect("nachweis:start")
     jahr = _jahr(request)
     monat = _monat(request)
     sichtbar = services.klienten_fuer(request.user).order_by("nachname", "vorname")
@@ -257,13 +261,20 @@ def druck(request):
     })
 
 
-# ---------------------------------------------------------------- Gruppennachweise (Stammdaten, für alle)
+# ---------------------------------------------------------------- Gruppennachweise (team-gescopt)
 @login_required
 def gruppen(request):
+    # Admin (kein Klientenzugriff) und Verwaltung (keine Klientenarbeit) ausgeschlossen.
+    if services.ohne_klientenarbeit(request.user):
+        return redirect("nachweis:start")
+    sichtbar = services.klienten_fuer(request.user)
+    # Nur Gruppen mit mind. einer/einem sichtbaren Teilnehmer*in (Team-Scoping).
+    gruppen_qs = (Gruppe.objects.filter(teilnehmer__in=sichtbar).distinct()
+                  .prefetch_related("teilnehmer").order_by("-datum"))
     return render(request, "nachweis/gruppen.html", {
         "aktiv": "gruppen",
-        "gruppen": Gruppe.objects.prefetch_related("teilnehmer").order_by("-datum"),
-        "klienten": Klient.objects.order_by("nachname", "vorname"),
+        "gruppen": gruppen_qs,
+        "klienten": sichtbar.order_by("nachname", "vorname"),
         "leistungsarten": [{"v": a.value, "l": a.label} for a in Leistungsart],
     })
 
@@ -271,6 +282,9 @@ def gruppen(request):
 @require_POST
 @login_required
 def gruppe_save(request):
+    if services.ohne_klientenarbeit(request.user):
+        return HttpResponseForbidden()
+    sichtbar = services.klienten_fuer(request.user)
     thema = (request.POST.get("thema") or "").strip()
     try:
         datum = date.fromisoformat(request.POST.get("datum"))
@@ -287,7 +301,8 @@ def gruppe_save(request):
         ende=_parse_time(request.POST.get("ende")),
         anz_ma=max(1, _int(request.POST.get("anz_ma"), 1)))
     ids = [i for i in request.POST.getlist("teilnehmer") if i.isdigit()]
-    g.teilnehmer.set(Klient.objects.filter(pk__in=ids))
+    # nur sichtbare (eigene Team-)Klient*innen zuweisbar
+    g.teilnehmer.set(sichtbar.filter(pk__in=ids))
     messages.success(request, f"Gruppe {thema} gespeichert ({g.teilnehmer.count()} Teilnehmer*innen).")
     return redirect("nachweis:gruppen")
 
@@ -295,7 +310,10 @@ def gruppe_save(request):
 @require_POST
 @login_required
 def gruppe_delete(request):
-    g = get_object_or_404(Gruppe, pk=request.POST.get("id"))
+    sichtbar = services.klienten_fuer(request.user)
+    # nur Gruppen löschbar, die auch sichtbar sind (mind. ein*e sichtbare*r Teilnehmer*in)
+    g = get_object_or_404(
+        Gruppe.objects.filter(teilnehmer__in=sichtbar).distinct(), pk=request.POST.get("id"))
     g.delete()
     messages.success(request, "Gruppe gelöscht.")
     return redirect("nachweis:gruppen")

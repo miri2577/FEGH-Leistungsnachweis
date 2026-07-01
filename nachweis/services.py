@@ -33,6 +33,18 @@ def ist_admin(user) -> bool:
     return bool(m and m.rolle == Rolle.ADMIN)
 
 
+def ist_verwaltung(user) -> bool:
+    """Mitarbeiter*in im Team Verwaltung – arbeitet nicht mit Klient*innen
+    (keine Leistungs-/Gruppennachweise, keine Klient-Auslastung)."""
+    m = mitarbeiter_fuer(user)
+    return bool(m and m.ist_verwaltung)
+
+
+def ohne_klientenarbeit(user) -> bool:
+    """True für Rollen/Teams ohne Klientenbezug (Admin oder Verwaltung)."""
+    return ist_admin(user) or ist_verwaltung(user)
+
+
 def _superuser_ohne_profil(user) -> bool:
     """Technischer Break-Glass-Superuser OHNE Mitarbeiter-Profil (Notzugang)."""
     return bool(user.is_superuser and mitarbeiter_fuer(user) is None)
@@ -63,8 +75,8 @@ def teams_fuer(user):
 
 def klienten_fuer(user):
     """Klient*innen im Zugriff: alle des/der eigenen bzw. geleiteten Team(s).
-    Innerhalb des Teams sieht jede*r alle (Vertretung). Admin: keine."""
-    if not user.is_authenticated or ist_admin(user):
+    Innerhalb des Teams sieht jede*r alle (Vertretung). Admin/Verwaltung: keine."""
+    if not user.is_authenticated or ist_admin(user) or ist_verwaltung(user):
         return Klient.objects.none()
     if _superuser_ohne_profil(user):
         return Klient.objects.all()
