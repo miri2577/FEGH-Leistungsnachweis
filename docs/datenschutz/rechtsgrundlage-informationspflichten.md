@@ -23,9 +23,9 @@
 | Rolle | Angabe |
 |-------|--------|
 | **Verantwortlicher (Art. 4 Nr. 7 DSGVO)** | der **Träger**: **[AUSFUELLEN: Name, Anschrift, gesetzl. Vertretung ]** |
-| **Betreiber / Auftragsverarbeiter (Art. 28 DSGVO)** | Mirko Richter, Stillerzeile 29, 12587 Berlin — Beschäftigungs-/Beauftragungsverhältnis zum Träger: **[AUSFUELLEN: Art des Verhältnisses (z. B. Angestellter / beauftragter Dienstleister mit AVV) ]** |
+| **Betreiber / Auftragsverarbeiter (Art. 28 DSGVO)** | **[AUSFUELLEN: Betreiber - Name, Anschrift, Kontakt ]** — Beschäftigungs-/Beauftragungsverhältnis zum Träger: **[AUSFUELLEN: Art des Verhältnisses (z. B. Angestellter / beauftragter Dienstleister mit AVV) ]** |
 | **Datenschutzbeauftragte(r)** | **[AUSFUELLEN: Name, Kontakt ]** |
-| **Hosting-Auftragsverarbeiter** | STRATO GmbH (V-Server + HiDrive), Rechenzentrum Deutschland, ISO-27001-zertifiziert; AVV Version 3.6, Kundennr. 78213667, abgeschlossen 27.08.2025, liegt vor |
+| **Hosting-Auftragsverarbeiter** | STRATO GmbH (V-Server + HiDrive), Rechenzentrum Deutschland, ISO-27001-zertifiziert; AVV [AUSFUELLEN: Version ], Kundennr. [AUSFUELLEN: Kundennr. ], abgeschlossen [AUSFUELLEN: Vertragsdatum ], liegt vor |
 
 ---
 

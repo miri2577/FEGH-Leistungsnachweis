@@ -206,7 +206,7 @@ Klare, fristgerechte **Meldekette** – jede Stufe ohne schuldhaftes Zögern (�
 
 | Rolle | Person / Stelle | Erreichbarkeit (Tel./E-Mail, auch außerhalb der Bürozeiten) |
 |-------|-----------------|-------------------------------------------------------------|
-| Erkennung / Betrieb / technische Sofortmaßnahmen | Mirko Richter (Betreiber), Stillerzeile 29, 12587 Berlin | **[AUSFUELLEN: Telefon / E-Mail, Notfallnummer ]** |
+| Erkennung / Betrieb / technische Sofortmaßnahmen | der Betreiber (Betreiber), **[AUSFUELLEN: Anschrift ]** | **[AUSFUELLEN: Telefon / E-Mail, Notfallnummer ]** |
 | Datenschutzbeauftragte(r) (DSB) | **[AUSFUELLEN: Name ]** | **[AUSFUELLEN: Telefon / E-Mail ]** |
 | Verantwortlicher / Entscheidung Meldung (Träger) | **[AUSFUELLEN: Name, Funktion ]** | **[AUSFUELLEN: Telefon / E-Mail ]** |
 | Vertretung / Eskalation (bei Nichterreichbarkeit) | **[AUSFUELLEN: Name ]** | **[AUSFUELLEN: Telefon / E-Mail ]** |

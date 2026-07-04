@@ -2,7 +2,7 @@
 
 !!! abstract "Ausfüllbare Vorlage"
     **Dokumenttyp:** Vertrag zur Auftragsverarbeitung nach Art. 28 Abs. 3 DSGVO
-    **Parteien:** Träger (Verantwortlicher) ↔ Mirko Richter (Betreiber / Auftragsverarbeiter)
+    **Parteien:** Träger (Verantwortlicher) ↔ der Betreiber (Betreiber / Auftragsverarbeiter)
     **Gegenstand:** Betrieb der Webanwendung „FEGH-Leistungsnachweis" (Team TBEW)
     **Stand / Version:** **[AUSFUELLEN: Versions-Nr. + Datum, z. B. 1.0 / 2026-__-__ ]**
     **Verantwortlich für dieses Dokument:** **[AUSFUELLEN: Name, Funktion beim Träger ]**
@@ -33,7 +33,7 @@
     Für den datenschutzkonformen Betrieb existieren **zwei** getrennte Auftragsverarbeitungsverträge
     auf unterschiedlichen Ebenen der Verarbeitungskette:
 
-    1. **STRATO-AVV (liegt vor):** regelt das Verhältnis **Betreiber (Mirko Richter) ↔ STRATO GmbH**.
+    1. **STRATO-AVV (liegt vor):** regelt das Verhältnis **Betreiber (der Betreiber) ↔ STRATO GmbH**.
        STRATO stellt die Infrastruktur (vServer, HiDrive-Backup-Speicher). Dieser AVV betrifft
        ausschließlich das Hosting und macht STRATO zum Auftragsverarbeiter des Betreibers.
     2. **Dieser AVV (Träger ↔ Betreiber):** Der **Träger ist der Verantwortliche** der
@@ -45,12 +45,12 @@
     (Sub-Prozessoren) des Betreibers gegenüber dem Träger benannt (siehe Anhang 3). Die Kette lautet
     damit:
 
-    **Träger (Verantwortlicher) → Mirko Richter (Auftragsverarbeiter) → STRATO / HiDrive
+    **Träger (Verantwortlicher) → der Betreiber (Auftragsverarbeiter) → STRATO / HiDrive
     (Unterauftragsverarbeiter).**
 
 ```mermaid
 flowchart LR
-    T["Träger<br/>Verantwortlicher"] -->|"dieser AVV<br/>Art. 28"| B["Mirko Richter<br/>Auftragsverarbeiter"]
+    T["Träger<br/>Verantwortlicher"] -->|"dieser AVV<br/>Art. 28"| B["der Betreiber<br/>Auftragsverarbeiter"]
     B -->|"STRATO-AVV<br/>liegt vor"| S["STRATO GmbH / HiDrive<br/>Unterauftragsverarbeiter"]
 ```
 
@@ -71,8 +71,8 @@ flowchart LR
 
 | Feld | Eintrag |
 |------|---------|
-| Name | Mirko Richter |
-| Anschrift | Stillerzeile 29, 12587 Berlin |
+| Name | der Betreiber |
+| Anschrift | **[AUSFUELLEN: Anschrift ]** |
 | Funktion | Betrieb, technische Administration und Wartung der Anwendung „FEGH-Leistungsnachweis" |
 | Beschäftigungs- / Beauftragungsverhältnis zum Träger | **[AUSFUELLEN: z. B. angestellt, freiberuflich beauftragt, o. Ä. — Grundlage der Beauftragung ]** |
 | Kontakt für Datenschutzangelegenheiten | **[AUSFUELLEN: E-Mail / Telefon für Meldungen und Weisungen ]** |
@@ -110,7 +110,7 @@ Kategorien betroffener Personen und personenbezogener Daten: siehe **Anhang 1**.
    auszusetzen (Art. 28 Abs. 3 S. 3 DSGVO).
 4. Weisungsbefugte Personen aufseiten des Verantwortlichen: **[AUSFUELLEN: Namen/Funktionen der
    weisungsbefugten Personen beim Träger ]**.
-   Weisungsempfänger aufseiten des Auftragsverarbeiters: Mirko Richter (Kontakt siehe Ziff. 1.2).
+   Weisungsempfänger aufseiten des Auftragsverarbeiters: der Betreiber (Kontakt siehe Ziff. 1.2).
 
 ---
 
@@ -173,7 +173,7 @@ absenken und sind zu dokumentieren.
    **Anhang 3** benannten Unterauftragsverarbeiter. Bei Vertragsschluss genehmigt: **STRATO GmbH**
    (Hosting vServer) und **STRATO HiDrive** (verschlüsselter Offsite-Backup-Speicher).
 2. Der Auftragsverarbeiter hat mit STRATO einen den Anforderungen des Art. 28 DSGVO genügenden
-   Vertrag geschlossen (**STRATO-AVV Version 3.6, Kundennr. 78213667, abgeschlossen am 27.08.2025**);
+   Vertrag geschlossen (**STRATO-AVV [AUSFUELLEN: Version ], Kundennr. [AUSFUELLEN: Kundennr. ], abgeschlossen am [AUSFUELLEN: Vertragsdatum ]**);
    die Datenschutzpflichten dieses Vertrages werden dem Unterauftragsverarbeiter **auferlegt**.
 3. **Genehmigungsverfahren für weitere Unterauftragsverarbeiter:** Beabsichtigt der
    Auftragsverarbeiter, **weitere** Unterauftragsverarbeiter hinzuzuziehen oder bestehende zu
@@ -331,7 +331,7 @@ spätestens mit diesem.
 | Verantwortlicher (Träger) | Auftragsverarbeiter (Betreiber) |
 |---------------------------|----------------------------------|
 | Ort, Datum: **[AUSFUELLEN]** | Ort, Datum: **[AUSFUELLEN]** |
-| Name: **[AUSFUELLEN: vertretungsberechtigte Person ]** | Name: Mirko Richter |
+| Name: **[AUSFUELLEN: vertretungsberechtigte Person ]** | Name: der Betreiber |
 | Funktion: **[AUSFUELLEN]** | Funktion: Betreiber / Auftragsverarbeiter |
 | Unterschrift: **[AUSFUELLEN]** | Unterschrift: **[AUSFUELLEN]** |
 
@@ -419,7 +419,7 @@ Zur Kenntnis genommen (empfohlen) — Datenschutzbeauftragte(r) des Trägers:
 
 ## A2.5 Auftragskontrolle / Sub-Prozessoren
 
-- **STRATO-AVV** (Version 3.6) liegt vor; Rechenzentrum **Deutschland**, **ISO-27001**-zertifiziert;
+- **STRATO-AVV** ([AUSFUELLEN: Version ]) liegt vor; Rechenzentrum **Deutschland**, **ISO-27001**-zertifiziert;
   für vServer + HiDrive **kein Drittlandtransfer**.
 
 ---
@@ -428,7 +428,7 @@ Zur Kenntnis genommen (empfohlen) — Datenschutzbeauftragte(r) des Trägers:
 
 | Sub-Prozessor | Leistung | Ort der Verarbeitung | Vertragsgrundlage | Status |
 |---------------|----------|----------------------|-------------------|--------|
-| **STRATO GmbH** | Hosting vServer | Deutschland (ISO-27001-RZ) | STRATO-AVV v3.6, Kundennr. 78213667, 27.08.2025 | **genehmigt** |
+| **STRATO GmbH** | Hosting vServer | Deutschland (ISO-27001-RZ) | STRATO-AVV v3.6, Kundennr. [AUSFUELLEN: Kundennr. ], [AUSFUELLEN: Vertragsdatum ] | **genehmigt** |
 | **STRATO HiDrive** | Verschlüsselter Offsite-Backup-Speicher | Deutschland | wie oben (deckt vServer + HiDrive) | **genehmigt** |
 | Unter-Unterauftragsverarbeiter STRATO | laut STRATO-Anhang 2 | DE / EU / EWR / Schweiz | STRATO-Anhang 2 | für vServer+HiDrive **kein Drittlandtransfer** |
 

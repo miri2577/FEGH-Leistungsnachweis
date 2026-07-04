@@ -45,11 +45,11 @@
 
 | Feld | Eintrag |
 |------|---------|
-| Betreiber / technische Administration | Mirko Richter, Stillerzeile 29, 12587 Berlin |
+| Betreiber / technische Administration | **[AUSFUELLEN: Betreiber - Name, Anschrift, Kontakt ]** |
 | Rechtsverhältnis zum Träger | **[AUSFUELLEN: Beschäftigungs- oder Beauftragungsverhältnis konkretisieren – Beschäftigter des Trägers ODER externer Auftragsverarbeiter mit AVV nach Art. 28 DSGVO ]** |
 
 !!! note "Einzuordnen durch Träger/DSB"
-    Ob der Betrieb der Anwendung durch Mirko Richter als **weisungsgebundene Tätigkeit eines
+    Ob der Betrieb der Anwendung durch der Betreiber als **weisungsgebundene Tätigkeit eines
     Beschäftigten** des Trägers oder als **externe Auftragsverarbeitung (Art. 28 DSGVO, eigener AVV
     Träger ↔ Betreiber)** erfolgt, ist rechtlich festzulegen und hier zu dokumentieren.
 
@@ -175,8 +175,8 @@ Einzelentscheidung nach Art. 22 DSGVO.
     | Unterauftragsverarbeiter (STRATO Anhang 2) | in DE / EU / EWR bzw. Schweiz (angemessenes Schutzniveau) |
     | Garantien nach Kap. V DSGVO | Nicht erforderlich, da keine Drittlandübermittlung; Grundlage ist der **AVV mit STRATO** |
 
-**AVV-Nachweis:** STRATO-Auftragsverarbeitungsvertrag Version 3.6, Kundennr. 78213667,
-abgeschlossen am 27.08.2025 (Vertragspartner Mirko Richter ↔ STRATO GmbH), deckt vServer + HiDrive.
+**AVV-Nachweis:** STRATO-Auftragsverarbeitungsvertrag [AUSFUELLEN: Version ], Kundennr. [AUSFUELLEN: Kundennr. ],
+abgeschlossen am [AUSFUELLEN: Vertragsdatum ] (Vertragspartner der Betreiber ↔ STRATO GmbH), deckt vServer + HiDrive.
 
 ---
 

@@ -15,7 +15,7 @@
     |------|---------|
     | **Titel** | Datenschutz-Folgenabschätzung – FEGH-Leistungsnachweis (Team TBEW) |
     | **Verantwortlicher (Träger)** | **[AUSFUELLEN: Name und Anschrift des Trägers]** |
-    | **Betreiber / Auftragsverarbeiter** | Mirko Richter, Stillerzeile 29, 12587 Berlin |
+    | **Betreiber / Auftragsverarbeiter** | **[AUSFUELLEN: Betreiber - Name, Anschrift, Kontakt ]** |
     | **Beauftragung/Beschäftigungsverhältnis** | **[AUSFUELLEN: Art des Verhältnisses Betreiber ↔ Träger]** |
     | **Datenschutzbeauftragte*r (DSB)** | **[AUSFUELLEN: Name, Kontakt der/des DSB]** |
     | **Version / Stand** | **[AUSFUELLEN: Version, Datum]** |
@@ -165,8 +165,8 @@ flowchart LR
 
 ### 2.8 Auftragsverarbeitung
 
-- **STRATO-AVV Version 3.6**, Kundennr. 78213667, abgeschlossen **27.08.2025**,
-  Vertragspartner **Mirko Richter ↔ STRATO GmbH**; deckt **vServer + HiDrive**.
+- **STRATO-AVV [AUSFUELLEN: Version ]**, Kundennr. [AUSFUELLEN: Kundennr. ], abgeschlossen **[AUSFUELLEN: Vertragsdatum ]**,
+  Vertragspartner **der Betreiber ↔ STRATO GmbH**; deckt **vServer + HiDrive**.
 - Rechenzentrum **Deutschland**, Infrastruktur **ISO-27001-zertifiziert**.
 - Unterauftragsverarbeiter laut **STRATO-Anhang 2** in **DE/EU/EWR bzw. Schweiz**; für
   vServer + HiDrive **keine Drittlandübermittlung**.
@@ -397,7 +397,7 @@ neue Datenarten, neue Auftragsverarbeiter, geänderte Rechtslage) zu überprüfe
 - [Backups & Löschkonzept](../sicherheit/backups-loeschkonzept.md)
 - [Deployment](../sicherheit/deployment.md)
 - Verzeichnis der Verarbeitungstätigkeiten (VVT) – **[AUSFUELLEN: Verweis/Link]**
-- STRATO-AVV v3.6 (Kundennr. 78213667, 27.08.2025) – **[AUSFUELLEN: Ablageort]**
+- STRATO-AVV v3.6 (Kundennr. [AUSFUELLEN: Kundennr. ], [AUSFUELLEN: Vertragsdatum ]) – **[AUSFUELLEN: Ablageort]**
 - AVV Träger ↔ Betreiber (Art. 28) – **[AUSFUELLEN: Ablageort]**
 
 !!! info "Aufsichtsbehörde"
