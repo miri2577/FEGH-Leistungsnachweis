@@ -152,7 +152,7 @@
     new Chart(document.getElementById('c-jahr'), {
       type:'doughnut',
       data:{ labels:['Ist','Rest'], datasets:[{ data:[ZR.jahr.ist, Math.max(0, ZR.jahr.kontingent - ZR.jahr.ist)],
-        backgroundColor:['#1f7bc0','#e6ecf2'], borderWidth:0 }] },
+        backgroundColor:['#2596ad','#e6ecf2'], borderWidth:0 }] },
       options:{ responsive:true, maintainAspectRatio:false, cutout:'68%', plugins:{ legend:{ position:'bottom' } } }
     });
     document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
