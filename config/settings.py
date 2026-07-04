@@ -66,6 +66,7 @@ MIDDLEWARE = [
     'nachweis.middleware.InaktivitaetsAbmeldung',     # Auto-Logout bei Inaktivität
     'nachweis.middleware.OTPErzwingenMiddleware',     # NACH OTPMiddleware
     'auditlog.middleware.AuditlogMiddleware',         # Actor (request.user) für das Audit-Log
+    'nachweis.middleware.RLSKontext',                 # PostgreSQL Row-Level-Security-Kontext (opt-in)
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'axes.middleware.AxesMiddleware',                 # MUSS als letzte Middleware laufen

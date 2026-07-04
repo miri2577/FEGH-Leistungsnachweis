@@ -9,10 +9,46 @@ import time as _time
 
 from django.conf import settings
 from django.contrib.auth import logout as _logout
+from django.db import connection
 from django.shortcuts import redirect
 from django.urls import reverse
 
 from .services import _superuser_ohne_profil
+
+
+class RLSKontext:
+    """Setzt pro Request die PostgreSQL-Session-Variablen für Row-Level-Security:
+    app.team_ids = die sichtbaren Team-IDs, app.bypass = 'on' für den Break-Glass-
+    Superuser. Ist HARMLOS, solange keine RLS-Policies aktiv sind – scharf schaltet
+    sie ausschließlich 'manage.py rls_setup --enable' (opt-in). Nur PostgreSQL;
+    auf SQLite (lokal) ein No-Op. Migrationen/Management laufen ohne gesetzte
+    Variablen und haben damit vollen Zugriff (Policy erlaubt NULL-Kontext)."""
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if connection.vendor != "postgresql":
+            return self.get_response(request)
+        u = getattr(request, "user", None)
+        teams, bypass = "", "off"
+        if u is not None and u.is_authenticated:
+            from . import services
+            if u.is_superuser or _superuser_ohne_profil(u):
+                bypass = "on"
+            else:
+                teams = ",".join(str(i) for i in services.teams_fuer(u).values_list("id", flat=True))
+        try:
+            with connection.cursor() as cur:
+                cur.execute("SELECT set_config('app.team_ids', %s, false)", [teams])
+                cur.execute("SELECT set_config('app.bypass', %s, false)", [bypass])
+            return self.get_response(request)
+        finally:
+            try:
+                with connection.cursor() as cur:
+                    cur.execute("SELECT set_config('app.team_ids', '', false)")
+                    cur.execute("SELECT set_config('app.bypass', 'off', false)")
+            except Exception:
+                pass
 
 
 class InaktivitaetsAbmeldung:

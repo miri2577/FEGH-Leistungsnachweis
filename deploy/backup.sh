@@ -7,7 +7,12 @@ cd "$(dirname "$0")"
 
 STAMP=$(date +%F_%H%M)
 OUT="$(pwd)/backups"
-AGE_RECIPIENT="age1DEIN_PUBLIC_KEY"     # <-- eintragen
+# age-Recipient (ÖFFENTLICHER Schlüssel) aus Env ODER deploy/age-recipient.txt (nicht im Git).
+AGE_RECIPIENT="${AGE_RECIPIENT:-$(cat "$(dirname "$0")/age-recipient.txt" 2>/dev/null || true)}"
+if [ -z "${AGE_RECIPIENT:-}" ] || [ "$AGE_RECIPIENT" = "age1DEIN_PUBLIC_KEY" ]; then
+  echo "FEHLER: age-Recipient fehlt. Lege deploy/age-recipient.txt mit deinem age-PUBLIC-Key an (age1…)." >&2
+  exit 1
+fi
 mkdir -p "$OUT"
 
 docker compose exec -T db pg_dump -U fegh fegh \
