@@ -15,7 +15,8 @@
   .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .del-btn{color:#c0392b;cursor:pointer;font-weight:700}
   .hint{color:#697786;font-size:12.5px;margin:10px 2px 0}
-  .doku-modal{position:fixed;inset:0;background:rgba(15,30,50,.45);z-index:80;display:grid;place-items:center;padding:20px}
+  .doku-modal{position:fixed;inset:0;background:rgba(15,30,50,.45);z-index:80;padding:20px}
+  .doku-modal:not([hidden]){display:grid;place-items:center}
   .doku-box{background:#fff;border-radius:12px;box-shadow:0 20px 50px rgba(0,40,80,.3);width:min(680px,96vw);padding:18px 20px}
   .doku-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px}
   .doku-head b{font-size:16px;color:var(--brand-d)}

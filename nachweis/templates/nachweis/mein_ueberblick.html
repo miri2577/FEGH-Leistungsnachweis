@@ -48,6 +48,24 @@
   .doku-row .dx{color:var(--muted)}
   .doku-row[open] .dx{display:none}
   .doku-full{padding:2px 18px 14px;font-size:13.5px;line-height:1.55;color:#24313d}
+  /* Karten wie „Fälligkeiten & Hinweise" (gleiche Breite) */
+  .doku-card,.kl-card{max-width:660px}
+  /* Klient*innen-Auslastung als kompaktes Balkendiagramm */
+  .klbars{max-height:264px;overflow-y:auto}
+  .klbar{border-top:1px solid var(--line)}
+  .klbar:first-child{border-top:0}
+  .klbar>summary{display:flex;align-items:center;gap:10px;padding:7px 2px;cursor:pointer;list-style:none}
+  .klbar>summary::-webkit-details-marker{display:none}
+  .klbar .klname{flex:0 0 150px;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .klbar .track{flex:1;height:12px;background:#eef2f6;border-radius:99px;overflow:hidden;min-width:60px}
+  .klbar .track .fill{display:block;height:100%;border-radius:99px}
+  .klbar .pc{flex:0 0 46px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;font-weight:600}
+  .klmore{padding:2px 2px 10px;font-size:12px}
+  .fill.s-ok{background:#3fae6a} .pc.s-ok,.kllegend .s-ok{color:#1a7f37}
+  .fill.s-unter{background:#e6a23c} .pc.s-unter,.kllegend .s-unter{color:#9a6700}
+  .fill.s-ueber{background:#e05c5c} .pc.s-ueber,.kllegend .s-ueber{color:#b42318}
+  .fill.s-none{background:#c7d0d8} .pc.s-none{color:#8a97a3}
+  .kllegend{margin-top:10px;font-size:11.5px;color:var(--muted)}
 {% endblock %}
 
 {% block content %}
@@ -184,76 +202,53 @@
     </div>
   </div>
 
-  <!-- eigene Klient*innen (nicht für Verwaltung) -->
   {% if not ist_verwaltung %}
-  <div class="panel">
-    <div class="head">
-      <h2>Meine Klient*innen – diese Woche (KW{{ kw }})</h2>
-      {% if ist_leitung %}<a class="btn ghost" href="{% url 'nachweis:dashboard' %}">Team-Übersicht →</a>{% endif %}
-    </div>
-    <div class="body">
-      <table class="grid">
-        <thead>
-          <tr>
-            <th rowspan="2" style="vertical-align:bottom">Klient*in</th>
-            <th class="num" colspan="2">AL / Woche</th>
-            <th class="num" colspan="2">KLE / Woche</th>
-            <th class="num" colspan="2">FLS gesamt / Woche</th>
-            <th rowspan="2" style="vertical-align:bottom">Ausl. Woche</th>
-            <th rowspan="2" class="num" style="vertical-align:bottom">Jahr Ist/Kont</th>
-            <th rowspan="2" style="vertical-align:bottom">…versendet am</th>
-          </tr>
-          <tr>
-            <th class="num">Ist</th><th class="num">Soll</th>
-            <th class="num">Ist</th><th class="num">Soll</th>
-            <th class="num">Ist</th><th class="num">Soll</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for z in eigene_zeilen %}
-          <tr>
-            <td>{{ z.klient.name }}</td>
-            <td class="num">{{ z.woche.al|floatformat:1 }}</td><td class="num muted">{{ z.woche.soll_al|floatformat:1 }}</td>
-            <td class="num">{{ z.woche.kle|floatformat:1 }}</td><td class="num muted">{{ z.woche.soll_kle|floatformat:1 }}</td>
-            <td class="num"><b>{{ z.woche.ist|floatformat:1 }}</b></td><td class="num muted">{{ z.woche.soll|floatformat:1 }}</td>
-            <td>{% widthratio z.woche.auslastung 1 100 as p %}
-              {% if z.woche.auslastung > 1 %}<span class="badge b-bad">{{ p }}%</span>
-              {% elif z.woche.auslastung >= 0.85 %}<span class="badge b-warn">{{ p }}%</span>
-              {% else %}<span class="badge b-ok">{{ p }}%</span>{% endif %}</td>
-            <td class="num muted" style="font-size:12px" title="Jahres-Ist / Jahres-Kontingent">{{ z.ist|floatformat:0 }} / {{ z.kontingent_jahr|floatformat:0 }}</td>
-            <td>
-              <form method="post" action="{% url 'nachweis:versendet_setzen' %}" style="display:flex;gap:6px;align-items:center;margin:0">
-                {% csrf_token %}<input type="hidden" name="klient" value="{{ z.klient.id }}">
-                <input type="date" name="datum" value="{{ z.klient.versendet_am|date:'Y-m-d' }}" style="padding:4px 8px;font-size:12px">
-                <button class="btn ghost" style="padding:3px 9px;font-size:12px" title="Datum speichern">✓</button>
-              </form>
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="10" class="muted" style="text-align:center;padding:20px">Dir sind aktuell keine Klient*innen als Bezugsbetreuer*in zugeordnet.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <p class="hint" style="color:var(--muted);font-size:12px;margin:10px 2px 0">
-        Werte pro Woche = bewilligt/Monat × 12/52. <b>AL</b> = direkte Leistung, <b>KLE</b> = kalkulatorisch (inkl. Teamsitzung), <b>FLS gesamt = AL + KLE</b>. „Jahr Ist/Kont" = Jahressummen.</p>
-    </div>
-  </div>
-
-  <!-- Letzte Dokumentationen -->
-  <div class="panel">
+  <!-- Dokumentation ZUERST (darüber), Karte in Fälligkeiten-Größe -->
+  <div class="panel doku-card">
     <div class="head"><h2>Letzte Dokumentationen</h2>
-      <a class="btn ghost" href="{% url 'nachweis:erfassung' %}">Zum Leistungsnachweis →</a></div>
+      <a class="btn ghost" href="{% url 'nachweis:erfassung' %}">Leistungsnachweis →</a></div>
     <div class="body" style="padding:0">
       {% for l in letzte_dokus %}
       <details class="doku-row">
         <summary><span class="dm">{{ l.datum|date:"d.m.Y" }}</span> · <b>{{ l.klient.name }}</b>
-          <span class="muted">· {{ l.betreuer }}{% if l.taetigkeit %} · {{ l.taetigkeit }}{% endif %}</span>
-          <span class="dx">— {{ l.dokumentation|truncatechars:90 }}</span></summary>
-        <div class="doku-full">{{ l.dokumentation|linebreaksbr }}</div>
+          <span class="muted">· {{ l.betreuer }}</span>
+          <span class="dx">— {{ l.dokumentation|truncatechars:64 }}</span></summary>
+        <div class="doku-full">{% if l.taetigkeit %}<span class="muted">{{ l.taetigkeit }}: </span>{% endif %}{{ l.dokumentation|linebreaksbr }}</div>
       </details>
       {% empty %}
-      <div class="empty">Noch keine Dokumentationen. Im Leistungsnachweis über 📝 je Zeile hinterlegen.</div>
+      <div class="empty">Noch keine Dokumentationen. Im Leistungsnachweis über 📝 hinterlegen.</div>
       {% endfor %}
+    </div>
+  </div>
+
+  <!-- Meine Klient*innen: kompaktes Auslastungs-Balkendiagramm (über-/unterbetreut) -->
+  <div class="panel kl-card">
+    <div class="head"><h2>Meine Klient*innen · KW{{ kw }}</h2>
+      {% if ist_leitung %}<a class="btn ghost" href="{% url 'nachweis:dashboard' %}">Team →</a>{% endif %}</div>
+    <div class="body" style="padding:8px 14px 12px">
+      <div class="klbars">
+        {% for z in eigene_zeilen %}
+        <details class="klbar">
+          <summary>
+            <span class="klname" title="{{ z.klient.name }}">{{ z.klient.kuerzel_anzeige }} · {{ z.klient.nachname }}</span>
+            <span class="track"><i class="fill s-{{ z.status }}" style="width:{% if z.pct > 100 %}100{% else %}{{ z.pct }}{% endif %}%"></i></span>
+            <span class="pc s-{{ z.status }}">{{ z.pct }}%</span>
+          </summary>
+          <div class="klmore muted">
+            Woche {{ z.woche.ist|floatformat:1 }} / {{ z.woche.soll|floatformat:1 }} Std · AL {{ z.woche.al|floatformat:1 }} · KLE {{ z.woche.kle|floatformat:1 }} · Jahr {{ z.ist|floatformat:0 }}/{{ z.kontingent_jahr|floatformat:0 }}
+            <form method="post" action="{% url 'nachweis:versendet_setzen' %}" style="display:flex;gap:6px;align-items:center;margin:6px 0 0">
+              {% csrf_token %}<input type="hidden" name="klient" value="{{ z.klient.id }}">
+              <span style="font-size:12px">…versendet am</span>
+              <input type="date" name="datum" value="{{ z.klient.versendet_am|date:'Y-m-d' }}" style="padding:3px 7px;font-size:12px">
+              <button class="btn ghost" style="padding:2px 8px;font-size:12px">✓</button>
+            </form>
+          </div>
+        </details>
+        {% empty %}
+        <div class="empty">Dir sind aktuell keine Klient*innen zugeordnet.</div>
+        {% endfor %}
+      </div>
+      <div class="kllegend"><span class="s-ok">■</span> im Rahmen &nbsp; <span class="s-unter">■</span> unterbetreut &nbsp; <span class="s-ueber">■</span> überbetreut</div>
     </div>
   </div>
   {% endif %}

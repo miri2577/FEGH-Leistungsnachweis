@@ -68,10 +68,22 @@ def mein_ueberblick(request):
     me = services.mitarbeiter_fuer(request.user)
     eigene = services.eigene_klienten(request.user)
     zeilen, summe = services.fachleistungsstunden(jahr, klienten=eigene)
-    # Wochensicht (laufende KW): verbrauchtes Wochenkontingent + FL/KLE-Verteilung
+    # Wochensicht (laufende KW): verbrauchtes Wochenkontingent + FL/KLE-Verteilung.
+    # Zusätzlich Status für das Balkendiagramm: ueber-/unterbetreut/ok.
     woche = services.wochenauslastung(eigene, jahr)
     for z in zeilen:
-        z["woche"] = woche["zeilen"].get(z["klient"].id)
+        w = woche["zeilen"].get(z["klient"].id)
+        z["woche"] = w
+        af = float(w["auslastung"]) if w else 0.0
+        z["pct"] = int(round(af * 100))
+        if not w or w["soll"] == 0:
+            z["status"] = "none"
+        elif af > 1.05:
+            z["status"] = "ueber"
+        elif af < 0.8:
+            z["status"] = "unter"
+        else:
+            z["status"] = "ok"
     # Berichte: eigene zuerst, sonst alle im Team-Zugriff (Vertretung)
     berichte = services.berichte_faellig(eigene) or services.berichte_faellig(services.klienten_fuer(request.user))
     feier = services._feiertage_set(jahr)
