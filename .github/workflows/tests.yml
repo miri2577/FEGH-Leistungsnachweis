@@ -1,0 +1,26 @@
+name: Tests (Django)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "nachweis/**"
+      - "config/**"
+      - "requirements.txt"
+      - ".github/workflows/tests.yml"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Abhängigkeiten installieren
+        run: pip install -r requirements.txt
+      # Team-Isolations- und Rechenkern-Regressionstests (SQLite; RLS ist DB-seitig separat)
+      - name: Testsuite
+        run: python manage.py test nachweis --verbosity=2
