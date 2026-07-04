@@ -60,6 +60,12 @@ nav:
       - "Backup & Wiederherstellung (verschlüsselt)": sicherheit/backup-restore.md
       - Wiederherstellung (Audit-Timeline): sicherheit/wiederherstellung.md
       - Aufbewahrung & Löschkonzept: sicherheit/backups-loeschkonzept.md
+  - "Datenschutz-Vorlagen (Träger/DSB)":
+      - "Verzeichnis von Verarbeitungstätigkeiten (Art. 30)": datenschutz/vvt.md
+      - "Datenschutz-Folgenabschätzung (Art. 35)": datenschutz/dsfa.md
+      - "Meldeprozess bei Datenpannen (Art. 33/34)": datenschutz/meldeprozess.md
+      - "AVV Träger ↔ Betreiber (Art. 28)": datenschutz/avv-traeger-betreiber.md
+      - "Rechtsgrundlage & Informationspflichten (Art. 6/9/13)": datenschutz/rechtsgrundlage-informationspflichten.md
 
 markdown_extensions:
   - admonition
