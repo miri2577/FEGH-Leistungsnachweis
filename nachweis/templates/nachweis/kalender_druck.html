@@ -1,0 +1,81 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Wochenplan drucken · FEGH{% endblock %}
+
+{% block extrastyle %}
+  @page{size:A4 landscape;margin:12mm}
+  .doc{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:20px 22px;margin-top:14px}
+  .doc h2{font-size:18px;margin:0 0 2px;color:var(--brand-d)}
+  .doc .meta{color:var(--muted);font-size:13px;margin-bottom:12px}
+  table.kal{border-collapse:collapse;width:100%;table-layout:fixed}
+  table.kal th,table.kal td{border:1px solid #cdd8e2;vertical-align:top}
+  table.kal thead th{background:#f2f7fb;padding:6px 5px;font-size:11.5px;text-align:center}
+  table.kal col.name{width:120px}
+  .kal .maz{padding:6px 8px;font-weight:600;font-size:12px}
+  .kal td.day{padding:4px;height:66px}
+  .kal td.we,.kal th.we{background:#f7f9fb}
+  .ev{display:block;border-radius:5px;padding:2px 5px;margin-bottom:3px;font-size:10.5px;line-height:1.25;
+      color:#1f2d3a;border:1px solid rgba(0,0,0,.12)}
+  .ev .t{font-variant-numeric:tabular-nums;font-weight:700;margin-right:3px}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:11.5px}
+  .legend .li{display:inline-flex;align-items:center;gap:6px}
+  .legend .sw{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.15)}
+  .sign{display:flex;gap:60px;margin-top:26px}
+  .sign div{flex:1;border-top:1px solid #444;padding-top:6px;color:var(--muted);font-size:12px}
+  @media print{
+    header.top,nav.side,.no-print{display:none !important}
+    body{background:#fff} main{padding:0}
+    .doc{border:0;box-shadow:none;border-radius:0;padding:0;margin:0}
+    .ev{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    table.kal th,table.kal td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+{% endblock %}
+
+{% block content %}
+  {% now "Y-m-d" as today %}
+  <div class="no-print" style="display:flex;gap:8px;margin-top:6px">
+    <button class="btn" onclick="window.print()">🖨️ Drucken / als PDF speichern</button>
+    <a class="btn ghost" href="{% url 'nachweis:kalender' %}?jahr={{ jahr }}&kw={{ kw }}{% if team_id %}&team={{ team_id }}{% endif %}">← Zurück</a>
+  </div>
+
+  <div class="doc">
+    <h2>Wochenplan · {{ team_name }}</h2>
+    <div class="meta">Kalenderwoche {{ kw }} · {{ mo|date:"d.m.Y" }} – {{ so|date:"d.m.Y" }}</div>
+
+    <table class="kal">
+      <colgroup><col class="name">{% for t in tage %}<col>{% endfor %}</colgroup>
+      <thead>
+        <tr>
+          <th style="text-align:left;padding-left:8px">Mitarbeiter*in</th>
+          {% for t in tage %}<th class="{% if t.we %}we{% endif %}">{{ t.wd }} {{ t.datum|date:"d.m." }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="maz">{{ row.m.name }}{% if row.m.vorname %}, {{ row.m.vorname }}{% endif %}</td>
+          {% for z in row.zellen %}
+          <td class="day {% if z.we %}we{% endif %}">
+            {% for t in z.termine %}
+            <span class="ev" style="background:{{ t.farbe }}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>
+            {% endfor %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" style="text-align:center;padding:18px;color:#697786">Keine Mitarbeiter*innen im Team.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if legende %}
+    <div class="legend"><span style="color:#697786">Legende:</span>
+      {% for k in legende %}<span class="li"><span class="sw" style="background:{{ k.farbe }}"></span><b>{{ k.kuerzel_anzeige }}</b> = {{ k.name }}</span>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="sign">
+      <div>Erstellt / Datum</div>
+      <div>Teamleitung / Datum</div>
+    </div>
+  </div>
+{% endblock %}

@@ -233,10 +233,16 @@ def fachleistungsstunden(jahr: int, klienten=None):
     angezeigten Zeilen ein (z. B. auf die eigenen). Rückgabe: (zeilen, summe)."""
     ts_pro, n_do = teamsitzung_pro_klient(jahr)
     gruppen = gruppen_anteile(jahr)
-    qs = klienten if klienten is not None else Klient.objects.all()
+    qs = (klienten if klienten is not None else Klient.objects.all()).select_related("bezugsbetreuer")
+    kl_list = list(qs)
+    # Manuelle Leistungen des Jahres in EINEM Query laden und nach Klient gruppieren (kein N+1)
+    manual_by_kl = defaultdict(list)
+    for l in Leistung.objects.filter(
+            klient_id__in=[k.id for k in kl_list], datum__year=jahr).exclude(auto=True):
+        manual_by_kl[l.klient_id].append(l)
     zeilen = []
-    for k in qs.select_related("bezugsbetreuer"):
-        manual = list(k.leistungen.filter(datum__year=jahr).exclude(auto=True))
+    for k in kl_list:
+        manual = manual_by_kl.get(k.id, [])
         ist_manual = sum((l.dauer_stunden for l in manual), Decimal("0"))
         fz = sum((l.dauer_stunden for l in manual if l.leistungsart == Leistungsart.FZ), Decimal("0"))
         kle_manual = sum((l.dauer_stunden for l in manual if l.leistungsart == Leistungsart.KLE), Decimal("0"))
@@ -284,17 +290,24 @@ def auslastung_zeitreihe(jahr: int, klienten):
     kont_jahr = kont_monat * 12
     kont_woche = (kont_jahr / Decimal(52)) if kont_jahr else Decimal("0")
 
-    ist_monat = [Decimal("0")] * 13          # Index 1..12
+    # Anzahl ISO-Wochen im Jahr (52 oder 53; der 28.12. liegt stets in der letzten ISO-Woche)
+    n_weeks = date(jahr, 12, 28).isocalendar()[1]
+    ist_monat = [Decimal("0")] * 13          # Index 1..12 (Kalendermonat)
     ist_woche = defaultdict(lambda: Decimal("0"))
 
     def add(d, betrag):
-        ist_monat[d.month] += betrag
-        ist_woche[d.isocalendar()[1]] += betrag
+        if d.year == jahr:                   # Monatsbuckets: Kalenderjahr
+            ist_monat[d.month] += betrag
+        iso = d.isocalendar()
+        if iso[0] == jahr:                   # Wochenbuckets: ISO-Jahr (Jahresrand korrekt)
+            ist_woche[iso[1]] += betrag
 
-    for l in Leistung.objects.filter(klient_id__in=kl_ids, datum__year=jahr).exclude(auto=True):
+    # Etwas über die Kalenderjahr-Grenzen hinaus laden, damit ISO-Randwochen vollständig sind
+    von, bis = date(jahr - 1, 12, 29), date(jahr + 1, 1, 3)
+    for l in Leistung.objects.filter(klient_id__in=kl_ids, datum__range=(von, bis)).exclude(auto=True):
         add(l.datum, l.dauer_stunden)
 
-    for g in Gruppe.objects.filter(datum__year=jahr).prefetch_related("teilnehmer"):
+    for g in Gruppe.objects.filter(datum__range=(von, bis)).prefetch_related("teilnehmer"):
         anteil = g.zeit_pro_klient
         if not anteil:
             continue
@@ -307,8 +320,10 @@ def auslastung_zeitreihe(jahr: int, klienten):
         p = get_parameter(jahr)
         n_glob = anzahl_klienten()
         share = (p.teamsitzung_dauer_std / Decimal(n_glob)).quantize(Q3, ROUND_HALF_UP) if n_glob else Decimal("0")
-        for d in teamsitzungstage(jahr, p.teamsitzung_wochentag):
-            add(d, share * n_active)
+        for j in {jahr - 1, jahr, jahr + 1}:
+            for d in teamsitzungstage(j, p.teamsitzung_wochentag):
+                if von <= d <= bis:
+                    add(d, share * n_active)
 
     def pct(ist, kont):
         return round(float(ist / kont * 100), 1) if kont else 0.0
@@ -316,7 +331,7 @@ def auslastung_zeitreihe(jahr: int, klienten):
     monate = [{"label": f"{m:02d}", "ist": round(float(ist_monat[m]), 2),
                "auslastung": pct(ist_monat[m], kont_monat)} for m in range(1, 13)]
     wochen = [{"label": f"KW{w}", "ist": round(float(ist_woche.get(w, 0)), 2),
-               "auslastung": pct(ist_woche.get(w, Decimal("0")), kont_woche)} for w in range(1, 53)]
+               "auslastung": pct(ist_woche.get(w, Decimal("0")), kont_woche)} for w in range(1, n_weeks + 1)]
     jahr_ist = sum((ist_monat[m] for m in range(1, 13)), Decimal("0"))
 
     return {
@@ -327,6 +342,99 @@ def auslastung_zeitreihe(jahr: int, klienten):
         "jahr": {"ist": round(float(jahr_ist), 2), "kontingent": round(float(kont_jahr), 2),
                  "auslastung": pct(jahr_ist, kont_jahr)},
     }
+
+
+def _woche_faktor() -> Decimal:
+    """Umrechnung Monatswert -> Wochenwert (12 Monate / 52 Wochen)."""
+    return Decimal(12) / Decimal(52)
+
+
+def aktuelle_kw(jahr: int) -> int:
+    """Laufende ISO-Kalenderwoche, sofern das heutige ISO-Jahr dem gewählten Jahr
+    entspricht – sonst KW 1. (ISO-Jahr, nicht Kalenderjahr, damit der Jahreswechsel
+    korrekt behandelt wird: 31.12.2025 gehört ISO zu 2026-W01.)"""
+    iso = date.today().isocalendar()
+    return iso[1] if iso[0] == jahr else 1
+
+
+def iso_wochenbereich(jahr: int, kw: int):
+    """(Montag, Sonntag) der ISO-Kalenderwoche. Existiert die KW im Jahr nicht
+    (z.B. KW53 in 52-Wochen-Jahren), wird auf KW1 zurückgefallen."""
+    try:
+        mo = date.fromisocalendar(jahr, kw, 1)
+    except ValueError:
+        mo = date.fromisocalendar(jahr, 1, 1)
+    return mo, mo + timedelta(days=6)
+
+
+def wochenauslastung(klienten, jahr: int, kw: int = None):
+    """AL/KLE-Soll & -Ist je Klient*in für eine Kalenderwoche (Default: laufende KW).
+    AL + KLE = bewilligte FLS. AL  = direkte Leistung (alles Verbrauchte außer KLE),
+    KLE = kalkulatorische Leistungseinheit (KLE-Leistungen + KLE-Gruppen + Teamsitzung).
+    Soll/Woche = Monatsbewilligung × 12/52 (Feld al → AL, Feld kle → KLE).
+    Die Woche wird exakt über ihren ISO-Datumsbereich (Mo–So) gefiltert – auch über
+    Jahresgrenzen hinweg. Rückgabe: {"kw", "zeilen": {klient_id: {...}}, "total": {...}}."""
+    if kw is None:
+        kw = aktuelle_kw(jahr)
+    faktor = _woche_faktor()
+    kl_list = list(klienten)
+    kl_ids = {k.id for k in kl_list}
+    mo, so = iso_wochenbereich(jahr, kw)
+
+    al_ist = defaultdict(lambda: Decimal("0"))
+    kle_ist = defaultdict(lambda: Decimal("0"))
+
+    # 1) manuell erfasste Leistungen dieser Woche: KLE separat, alles Übrige zählt als AL
+    for l in Leistung.objects.filter(klient_id__in=kl_ids, datum__range=(mo, so)).exclude(auto=True):
+        if l.leistungsart == Leistungsart.KLE:
+            kle_ist[l.klient_id] += l.dauer_stunden
+        else:
+            al_ist[l.klient_id] += l.dauer_stunden
+
+    # 2) Gruppen-Anteile dieser Woche: KLE-Gruppen -> KLE, alle übrigen -> AL
+    for g in Gruppe.objects.filter(datum__range=(mo, so)).prefetch_related("teilnehmer"):
+        anteil = g.zeit_pro_klient
+        if not anteil:
+            continue
+        ziel = kle_ist if g.leistungsart == Leistungsart.KLE else al_ist
+        for k in g.teilnehmer.all():
+            if k.id in kl_ids:
+                ziel[k.id] += anteil
+
+    # 3) Teamsitzung dieser Woche (zählt als KLE) – nur Klient*innen in Betreuung
+    p = get_parameter(jahr)
+    n_glob = anzahl_klienten()
+    if n_glob:
+        share = (p.teamsitzung_dauer_std / Decimal(n_glob)).quantize(Q3, ROUND_HALF_UP)
+        # ISO-Woche kann über den Jahresrand reichen → Sitzungstage beider Jahre prüfen
+        n_ts = sum(1 for j in {mo.year, so.year}
+                   for d in teamsitzungstage(j, p.teamsitzung_wochentag) if mo <= d <= so)
+        if n_ts:
+            for k in kl_list:
+                if k.status == Status.BETREUUNG:
+                    kle_ist[k.id] += share * n_ts
+
+    zeilen = {}
+    for k in kl_list:
+        soll_al = ((k.al or Decimal("0")) * faktor).quantize(Q3, ROUND_HALF_UP)
+        soll_kle = ((k.kle or Decimal("0")) * faktor).quantize(Q3, ROUND_HALF_UP)
+        al = al_ist[k.id].quantize(Q3, ROUND_HALF_UP)
+        kle = kle_ist[k.id].quantize(Q3, ROUND_HALF_UP)
+        soll = soll_al + soll_kle
+        ist = al + kle
+        zeilen[k.id] = {
+            "klient": k, "soll": soll, "soll_al": soll_al, "soll_kle": soll_kle,
+            "ist": ist, "al": al, "kle": kle,
+            "auslastung": (ist / soll) if soll else Decimal("0"),
+        }
+
+    def _sum(feld):
+        return sum((z[feld] for z in zeilen.values()), Decimal("0"))
+    total = {"kw": kw, "soll": _sum("soll"), "soll_al": _sum("soll_al"),
+             "soll_kle": _sum("soll_kle"), "ist": _sum("ist"),
+             "al": _sum("al"), "kle": _sum("kle")}
+    total["auslastung"] = (total["ist"] / total["soll"]) if total["soll"] else Decimal("0")
+    return {"kw": kw, "zeilen": zeilen, "total": total}
 
 
 def _feiertage_set(*jahre):
@@ -417,9 +525,10 @@ def stempel_status(mitarbeiter):
         b = max(timezone.localtime(s.beginn), tag_start)
         return max(0, int((bis - b).total_seconds()))
 
-    # Sitzungen, die heute (mit)laufen: heute begonnen ODER offen (evtl. seit gestern)
+    # Sitzungen, die heute (mit)laufen: heute begonnen ODER heute beendet
+    # (über Mitternacht abgeschlossen) ODER noch offen (evtl. seit gestern)
     sessions = mitarbeiter.stempelungen.filter(
-        Q(beginn__date=heute) | Q(ende__isnull=True))
+        Q(beginn__date=heute) | Q(ende__date=heute) | Q(ende__isnull=True))
     abgeschlossen = 0
     offen = None
     for s in sessions:

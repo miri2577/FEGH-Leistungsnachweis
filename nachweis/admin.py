@@ -2,7 +2,7 @@ from django.contrib import admin
 
 from .models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
                      Arbeitszeit, Abwesenheit, Team, Stempelung,
-                     Kasse, Kassenmonat, Kassenbuchung, Zaehlprotokoll)
+                     Kasse, Kassenmonat, Kassenbuchung, Zaehlprotokoll, Termin)
 
 
 @admin.register(Team)
@@ -159,6 +159,14 @@ class ZaehlprotokollAdmin(admin.ModelAdmin):
     @admin.display(description="Differenz")
     def differenz_display(self, obj):
         return obj.differenz
+
+
+@admin.register(Termin)
+class TerminAdmin(admin.ModelAdmin):
+    list_display = ("datum", "beginn", "ende", "mitarbeiter", "klient", "titel")
+    list_filter = ("mitarbeiter", "datum")
+    date_hierarchy = "datum"
+    autocomplete_fields = ("mitarbeiter", "klient")
 
 
 admin.site.site_header = "FEGH-Leistungsnachweis · Team TBEW"

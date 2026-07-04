@@ -43,11 +43,20 @@ def eindeutiger_benutzername(nachname, vorname=""):
 
 
 def konto_rechte_setzen(user, rolle):
-    """Setzt is_staff/is_superuser und Gruppen passend zur App-Rolle."""
+    """Setzt is_staff/is_superuser und Gruppen passend zur App-Rolle.
+
+    WICHTIG (Sicherheits-/DSGVO-Härtung): KEINE App-Rolle bekommt Django-Admin-Zugang
+    (is_staff=False). Der Django-Admin umgeht das objektbezogene Team-Scoping
+    (klienten_fuer/teams_fuer) komplett – eine Leitung könnte dort teamübergreifend
+    ALLE Klient*innen sehen/ändern, ein Admin sich per rolle-Feld selbst zur Leitung
+    machen (Rechte-Eskalation). Team-/Mitarbeiter-/Klienten-Pflege läuft ausschließlich
+    über die app-nativen, rollen- und team-gescopten Seiten. Django-Admin bleibt dem
+    technischen Break-Glass-Superuser vorbehalten."""
     ensure_gruppen()
-    user.is_staff = rolle in (Rolle.LEITUNG, Rolle.ADMIN)   # dürfen in den Django-Admin
-    user.is_superuser = False                               # Rechte ausschließlich über Gruppen
+    user.is_staff = False
+    user.is_superuser = False
     user.save(update_fields=["is_staff", "is_superuser"])
+    # Gruppen historisch/dokumentarisch weiter zuordnen (ohne is_staff wirkungslos im Admin)
     user.groups.clear()
     if rolle == Rolle.ADMIN:
         user.groups.add(Group.objects.get(name="Administration"))

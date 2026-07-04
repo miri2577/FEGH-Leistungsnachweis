@@ -15,6 +15,12 @@ urlpatterns = [
     path("gruppen/save/", views.gruppe_save, name="gruppe_save"),
     path("gruppen/delete/", views.gruppe_delete, name="gruppe_delete"),
 
+    # Wochenkalender (Team-Termine, Mo–So)
+    path("kalender/", views.kalender, name="kalender"),
+    path("kalender/save/", views.termin_save, name="termin_save"),
+    path("kalender/delete/", views.termin_delete, name="termin_delete"),
+    path("kalender/druck/", views.kalender_druck, name="kalender_druck"),
+
     # Druck-Center (Sammelseite unten in der Sidebar) + weitere Druck-Nachweise
     path("nachweise/", views.druck_center, name="druck_center"),
     path("arbeitszeit/druck/", views.arbeitszeit_druck, name="arbeitszeit_druck"),
@@ -50,6 +56,9 @@ urlpatterns = [
     path("api/leistungen/", views.api_leistungen, name="api_leistungen"),
     path("api/leistungen/save/", views.api_leistung_save, name="api_leistung_save"),
     path("api/leistungen/delete/", views.api_leistung_delete, name="api_leistung_delete"),
+    path("api/wochen-fls/", views.api_wochen_fls, name="api_wochen_fls"),
+    path("api/suche/", views.api_suche, name="api_suche"),
+    path("api/ping/", views.api_ping, name="api_ping"),
 
     # Auth
     path("login/", auth_views.LoginView.as_view(

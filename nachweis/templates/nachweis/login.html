@@ -42,6 +42,7 @@
     </div>
     <form method="post">
       {% csrf_token %}
+      {% if request.GET.timeout %}<div class="err" style="background:#fff4e5;color:#8a5a00;border-color:#f0d9a8">Wegen Inaktivität automatisch abgemeldet. Bitte erneut anmelden.</div>{% endif %}
       {% if form.errors %}<div class="err">Anmeldung fehlgeschlagen – Benutzername oder Passwort falsch.</div>{% endif %}
       <label for="id_username">Benutzername</label>
       {{ form.username }}

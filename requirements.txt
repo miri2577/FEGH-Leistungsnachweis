@@ -11,7 +11,9 @@ whitenoise>=6.6           # statische Dateien aus dem Django-Prozess
 dj-database-url>=2.1      # DATABASE_URL -> DATABASES
 argon2-cffi>=23.1         # Argon2-Passwort-Hash
 
-# --- Produktion: auf dem Server scharf schalten (INSTALLED_APPS/Middleware) ---
-# django-auditlog>=3.0    # Revisionssicherheit (Wer/Wann/Was) – bei öffentlichem Geld faktisch Pflicht
-# django-axes>=6.0        # Brute-Force-Schutz auf der Passwortstufe
+# --- Sicherheit/Revision (fest verdrahtet in settings.py) ---
+django-auditlog>=3.0      # Revisionssicherheit (Wer/Wann/Was) – bei öffentlichem Geld faktisch Pflicht
+django-axes>=6.0          # Brute-Force-Schutz auf der Passwortstufe
+
+# --- Optional (Server) ---
 # weasyprint>=61          # amtlicher Druck-Nachweis als echtes PDF (Server: Pango/Cairo nötig)

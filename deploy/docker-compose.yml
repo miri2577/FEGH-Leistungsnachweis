@@ -23,7 +23,14 @@ services:
     volumes:
       - staticfiles:/app/staticfiles
       - media:/app/media
-      - ./logs:/app/logs
+      - applog:/app/logs         # benanntes Volume (vom non-root-User beschreibbar)
+    healthcheck:
+      # reiner TCP-Check auf gunicorn:8000 (umgeht SSL-Redirect/Host-Prüfung)
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1',8000),3).close()"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
   caddy:
     image: caddy:2
@@ -34,11 +41,14 @@ services:
       - staticfiles:/srv/static:ro
       - caddy_data:/data
       - caddy_config:/config
-    depends_on: [web]
+    depends_on:
+      web:
+        condition: service_healthy   # erst proxyen, wenn gunicorn wirklich bereit ist
 
 volumes:
   pgdata: {}
   staticfiles: {}
   media: {}
+  applog: {}
   caddy_data: {}
   caddy_config: {}

@@ -23,4 +23,5 @@ def globale(request):
         "nav_ist_verwaltung": bool(me and me.ist_verwaltung),
         "nav_az_offen": az_offen,
         "nav_hat_kasse": services.kassen_fuer(request.user).exists(),
+        "IDLE_TIMEOUT_SEC": getattr(settings, "SESSION_IDLE_TIMEOUT", 0),
     }

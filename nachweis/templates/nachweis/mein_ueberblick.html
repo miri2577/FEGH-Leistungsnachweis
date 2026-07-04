@@ -84,6 +84,18 @@
     </form>
     {% endif %}
 
+    {% if not ist_verwaltung %}
+    <div class="kpi sm k-orange">
+      <div class="top">
+        <span class="chip"><svg viewBox="0 0 24 24"><path d="M4 9h4v11H4zM10 4h4v16h-4zM16 13h4v7h-4z"/></svg></span>
+        <span class="l">FLS diese Woche · KW{{ kw }}</span>
+      </div>
+      <div class="n">{{ woche_total.ist|floatformat:1 }}<span style="font-size:14px;color:var(--muted)"> / {{ woche_total.soll|floatformat:1 }}</span></div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:2px">AL {{ woche_total.al|floatformat:1 }} · KLE {{ woche_total.kle|floatformat:1 }} = FLS</div>
+      {% if woche_total.soll %}{% widthratio woche_total.ist woche_total.soll 100 as wp %}<div class="barwrap"><i style="width:{% if wp > 100 %}100{% else %}{{ wp }}{% endif %}%;{% if wp > 100 %}background:var(--bad){% endif %}"></i></div>{% endif %}
+    </div>
+    {% endif %}
+
     <div class="kpi sm k-green">
       <div class="top">
         <span class="chip"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm.5 5H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></span>
@@ -167,24 +179,39 @@
   {% if not ist_verwaltung %}
   <div class="panel">
     <div class="head">
-      <h2>Meine Klient*innen – Auslastung {{ jahr }}</h2>
+      <h2>Meine Klient*innen – diese Woche (KW{{ kw }})</h2>
       {% if ist_leitung %}<a class="btn ghost" href="{% url 'nachweis:dashboard' %}">Team-Übersicht →</a>{% endif %}
     </div>
     <div class="body">
       <table class="grid">
-        <thead><tr><th>Klient*in</th><th class="num">Kont./Jahr</th><th class="num">Ist</th>
-          <th class="num">Rest</th><th>Auslastung</th><th>Bericht …versendet am</th></tr></thead>
+        <thead>
+          <tr>
+            <th rowspan="2" style="vertical-align:bottom">Klient*in</th>
+            <th class="num" colspan="2">AL / Woche</th>
+            <th class="num" colspan="2">KLE / Woche</th>
+            <th class="num" colspan="2">FLS gesamt / Woche</th>
+            <th rowspan="2" style="vertical-align:bottom">Ausl. Woche</th>
+            <th rowspan="2" class="num" style="vertical-align:bottom">Jahr Ist/Kont</th>
+            <th rowspan="2" style="vertical-align:bottom">…versendet am</th>
+          </tr>
+          <tr>
+            <th class="num">Ist</th><th class="num">Soll</th>
+            <th class="num">Ist</th><th class="num">Soll</th>
+            <th class="num">Ist</th><th class="num">Soll</th>
+          </tr>
+        </thead>
         <tbody>
           {% for z in eigene_zeilen %}
           <tr>
             <td>{{ z.klient.name }}</td>
-            <td class="num">{{ z.kontingent_jahr|floatformat:2 }}</td>
-            <td class="num">{{ z.ist|floatformat:2 }}</td>
-            <td class="num {% if z.rest < 0 %}neg{% else %}pos{% endif %}">{{ z.rest|floatformat:2 }}</td>
-            <td>{% widthratio z.auslastung 1 100 as p %}
-              {% if z.auslastung > 1 %}<span class="badge b-bad">{{ p }}%</span>
-              {% elif z.auslastung >= 0.85 %}<span class="badge b-warn">{{ p }}%</span>
+            <td class="num">{{ z.woche.al|floatformat:1 }}</td><td class="num muted">{{ z.woche.soll_al|floatformat:1 }}</td>
+            <td class="num">{{ z.woche.kle|floatformat:1 }}</td><td class="num muted">{{ z.woche.soll_kle|floatformat:1 }}</td>
+            <td class="num"><b>{{ z.woche.ist|floatformat:1 }}</b></td><td class="num muted">{{ z.woche.soll|floatformat:1 }}</td>
+            <td>{% widthratio z.woche.auslastung 1 100 as p %}
+              {% if z.woche.auslastung > 1 %}<span class="badge b-bad">{{ p }}%</span>
+              {% elif z.woche.auslastung >= 0.85 %}<span class="badge b-warn">{{ p }}%</span>
               {% else %}<span class="badge b-ok">{{ p }}%</span>{% endif %}</td>
+            <td class="num muted" style="font-size:12px" title="Jahres-Ist / Jahres-Kontingent">{{ z.ist|floatformat:0 }} / {{ z.kontingent_jahr|floatformat:0 }}</td>
             <td>
               <form method="post" action="{% url 'nachweis:versendet_setzen' %}" style="display:flex;gap:6px;align-items:center;margin:0">
                 {% csrf_token %}<input type="hidden" name="klient" value="{{ z.klient.id }}">
@@ -194,10 +221,12 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="6" class="muted" style="text-align:center;padding:20px">Dir sind aktuell keine Klient*innen als Bezugsbetreuer*in zugeordnet.</td></tr>
+          <tr><td colspan="10" class="muted" style="text-align:center;padding:20px">Dir sind aktuell keine Klient*innen als Bezugsbetreuer*in zugeordnet.</td></tr>
           {% endfor %}
         </tbody>
       </table>
+      <p class="hint" style="color:var(--muted);font-size:12px;margin:10px 2px 0">
+        Werte pro Woche = bewilligt/Monat × 12/52. <b>AL</b> = direkte Leistung, <b>KLE</b> = kalkulatorisch (inkl. Teamsitzung), <b>FLS gesamt = AL + KLE</b>. „Jahr Ist/Kont" = Jahressummen.</p>
     </div>
   </div>
   {% endif %}

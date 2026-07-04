@@ -11,8 +11,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+# Least-Privilege: unprivilegierter Laufzeit-User; App-Verzeichnisse ihm übereignen.
 RUN mkdir -p /app/logs /app/media /app/staticfiles \
-    && chmod +x /app/deploy/entrypoint.sh
+    && chmod +x /app/deploy/entrypoint.sh \
+    && useradd -u 10001 -r -s /usr/sbin/nologin app \
+    && chown -R app:app /app
+USER app
 
 ENTRYPOINT ["/app/deploy/entrypoint.sh"]
 CMD ["gunicorn", "config.wsgi:application", "-c", "deploy/gunicorn.conf.py"]

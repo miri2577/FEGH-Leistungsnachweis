@@ -1,5 +1,5 @@
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from django.contrib import messages
@@ -15,7 +15,7 @@ from django.views.decorators.http import require_POST
 from . import services
 from .models import (Mitarbeiter, Team, Leistung, Gruppe, Klient, Leistungsart,
                      Arbeitszeit, Abwesenheit, AbwesenheitArt, AbwesenheitStatus,
-                     Genehmigungsstatus)
+                     Genehmigungsstatus, Termin)
 
 MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
                "August", "September", "Oktober", "November", "Dezember"]
@@ -68,6 +68,10 @@ def mein_ueberblick(request):
     me = services.mitarbeiter_fuer(request.user)
     eigene = services.eigene_klienten(request.user)
     zeilen, summe = services.fachleistungsstunden(jahr, klienten=eigene)
+    # Wochensicht (laufende KW): verbrauchtes Wochenkontingent + FL/KLE-Verteilung
+    woche = services.wochenauslastung(eigene, jahr)
+    for z in zeilen:
+        z["woche"] = woche["zeilen"].get(z["klient"].id)
     # Berichte: eigene zuerst, sonst alle im Team-Zugriff (Vertretung)
     berichte = services.berichte_faellig(eigene) or services.berichte_faellig(services.klienten_fuer(request.user))
     feier = services._feiertage_set(jahr)
@@ -77,6 +81,7 @@ def mein_ueberblick(request):
         "me": me,
         "eigene_zeilen": zeilen,
         "summe": summe,
+        "woche_total": woche["total"], "kw": woche["kw"],
         "az": services.arbeitszeit_monat(me, jahr, monat) if me else None,
         "urlaub": services.urlaub_uebersicht(me, jahr) if me else None,
         "berichte": berichte,
@@ -145,12 +150,16 @@ def dashboard(request):
 
     zeilen, summe = services.fachleistungsstunden(jahr, klienten=gefiltert)
     zeitreihe = services.auslastung_zeitreihe(jahr, gefiltert)
+    woche = services.wochenauslastung(gefiltert, jahr)
+    for z in zeilen:
+        z["woche"] = woche["zeilen"].get(z["klient"].id)
 
     context = {
         "aktiv": "dashboard",
         "jahr": jahr,
         "zeilen": zeilen,
         "summe": summe,
+        "woche_total": woche["total"], "kw": woche["kw"],
         "zeitreihe_json": zeitreihe,
         "team_liste": teams,
         "team_id": team_id,
@@ -266,6 +275,157 @@ def api_leistung_delete(request):
     return JsonResponse({"ok": True})
 
 
+def _volltext_q(felder, q):
+    """Multi-Wort-Volltext, DB-unabhängig (SQLite/PostgreSQL): jedes Token muss in
+    mindestens einem der Felder vorkommen (AND über Tokens, OR über Felder)."""
+    from django.db.models import Q
+    ausdruck = Q()
+    for token in q.split():
+        oder = Q()
+        for f in felder:
+            oder |= Q(**{f"{f}__icontains": token})
+        ausdruck &= oder
+    return ausdruck
+
+
+def _suche_kategorien(request, q, limit=7):
+    """Rollen-gescopte Trefferliste (dieselben Zugriffsgrenzen wie überall, DSGVO).
+    Rückgabe: Liste von {key, label, items:[{titel, sub, url}]}."""
+    user = request.user
+    kats = []
+
+    def add(key, label, items):
+        items = [i for i in items if i]
+        if items:
+            kats.append({"key": key, "label": label, "items": items})
+
+    # Klient*innen / Leistungen / Gruppen – nur mit Klientenarbeit (Admin/Verwaltung sehen nichts)
+    if not services.ohne_klientenarbeit(user):
+        kl = services.klienten_fuer(user)
+        leitung = services.ist_leitung(user)
+        klq = kl.filter(_volltext_q(["nachname", "vorname", "person_id", "thfd", "kommentar"], q)) \
+                .select_related("team", "bezugsbetreuer")[:limit]
+        add("klienten", "Klient*innen", [{
+            "titel": k.name,
+            "sub": " · ".join(filter(None, [k.team.name if k.team else "", str(k.bezugsbetreuer) if k.bezugsbetreuer_id else ""])),
+            "url": reverse("nachweis:klient_bearbeiten", args=[k.id]) if leitung
+                   else f"{reverse('nachweis:druck')}?klient={k.id}",
+        } for k in klq])
+
+        lq = (Leistung.objects.filter(klient__in=kl)
+              .filter(_volltext_q(["taetigkeit", "notiz", "klient__nachname", "klient__vorname"], q))
+              .select_related("klient").order_by("-datum")[:limit])
+        add("leistungen", "Leistungen", [{
+            "titel": l.taetigkeit or l.get_leistungsart_display(),
+            "sub": f"{l.datum:%d.%m.%Y} · {l.klient.name} · {l.leistungsart}",
+            "url": f"{reverse('nachweis:druck')}?klient={l.klient_id}&monat={l.datum.month}&jahr={l.datum.year}",
+        } for l in lq])
+
+        gq = (Gruppe.objects.filter(teilnehmer__in=kl)
+              .filter(_volltext_q(["thema", "teilnehmer__nachname", "teilnehmer__vorname"], q))
+              .distinct().order_by("-datum")[:limit])
+        add("gruppen", "Gruppen", [{
+            "titel": g.thema, "sub": f"{g.datum:%d.%m.%Y} · {g.get_leistungsart_display()}",
+            "url": reverse("nachweis:gruppe_druck", args=[g.id]),
+        } for g in gq])
+
+    # Kolleg*innen – team-gescopt (kein org-weites Personenverzeichnis für normale User);
+    # Admin/Superuser (Personalverwaltung) sehen alle.
+    if services.ist_admin(user) or user.is_superuser:
+        ma_basis = Mitarbeiter.objects.all()
+    else:
+        ma_basis = Mitarbeiter.objects.filter(team__in=services.teams_fuer(user))
+    mq = ma_basis.filter(_volltext_q(["name", "vorname", "kuerzel"], q)) \
+                 .select_related("team").order_by("name")[:limit]
+
+    def m_url(m):
+        if services.ist_admin(user) or user.is_superuser:
+            return reverse("nachweis:mitarbeiter_liste")
+        if services.ist_leitung(user):
+            return f"{reverse('nachweis:dashboard')}?betreuer={m.id}"
+        return ""
+    add("mitarbeiter", "Kolleg*innen", [{
+        "titel": f"{m.vorname} {m.name}".strip(),
+        "sub": " · ".join(filter(None, [m.get_rolle_display(), m.team.name if m.team else ""])),
+        "url": m_url(m),
+    } for m in mq])
+
+    # Teams – ebenfalls team-gescopt; Admin/Superuser sehen alle.
+    if services.ist_admin(user) or user.is_superuser:
+        team_basis = Team.objects.all()
+    else:
+        team_basis = services.teams_fuer(user)
+    tq = team_basis.filter(_volltext_q(["name"], q)).order_by("name")[:limit]
+
+    def t_url(t):
+        if services.ist_admin(user) or user.is_superuser:
+            return reverse("nachweis:teams_liste")
+        if services.ist_leitung(user):
+            return f"{reverse('nachweis:dashboard')}?team={t.id}"
+        return ""
+    add("teams", "Teams", [{"titel": t.name, "sub": t.get_typ_display(), "url": t_url(t)} for t in tq])
+
+    # Kasse (Buchungen) – nur mit Kassenzugriff
+    kassen = services.kassen_fuer(user)
+    if kassen.exists():
+        from .models import Kassenbuchung
+        bq = (Kassenbuchung.objects.filter(monat__kasse__in=kassen)
+              .filter(_volltext_q(["text", "kontonr", "kostenstelle"], q))
+              .select_related("monat", "monat__kasse").order_by("-datum")[:limit])
+        add("kasse", "Kasse", [{
+            "titel": f"Beleg {b.bel_nr}: {b.text}",
+            "sub": f"{b.datum:%d.%m.%Y} · {b.monat.kasse.bezeichnung} · {(b.einnahme or 0) - (b.ausgabe or 0):+.2f} €",
+            "url": f"{reverse('nachweis:kasse')}?kasse={b.monat.kasse_id}&jahr={b.monat.jahr}&monat={b.monat.monat}",
+        } for b in bq])
+
+    return kats
+
+
+@login_required
+def api_ping(request):
+    """Leichter Keepalive: hält die Session bei echter Interaktion frisch (der Idle-Timer
+    im Client ruft ihn gedrosselt auf). Jede Anfrage wertet die Middleware als Aktivität."""
+    return HttpResponse(status=204)
+
+
+@login_required
+def api_suche(request):
+    """Globale, rollen-gescopte Suche für das Spotlight-Overlay (Live-JSON)."""
+    q = (request.GET.get("q") or "").strip()
+    kategorien = _suche_kategorien(request, q) if len(q) >= 2 else []
+    total = sum(len(k["items"]) for k in kategorien)
+    return JsonResponse({"q": q, "total": total, "kategorien": kategorien})
+
+
+@login_required
+def api_wochen_fls(request):
+    """FL/KLE-Wochensicht (laufende KW) für die Zusammenfassungsleiste im Erfassungs-Grid.
+    Optional per ?klient= gefiltert; sonst alle sichtbaren Klient*innen."""
+    jahr = _jahr(request)
+    kl = services.klienten_fuer(request.user)
+    kid = _int(request.GET.get("klient"), 0)
+    if kid:
+        kl = kl.filter(pk=kid)
+    w = services.wochenauslastung(kl, jahr)
+    t = w["total"]
+
+    def f(x):
+        return round(float(x), 2)
+    klienten = [{
+        "name": z["klient"].name,
+        "soll": f(z["soll"]), "ist": f(z["ist"]),
+        "al": f(z["al"]), "soll_al": f(z["soll_al"]),
+        "kle": f(z["kle"]), "soll_kle": f(z["soll_kle"]),
+    } for z in sorted(w["zeilen"].values(), key=lambda z: z["klient"].name)]
+    return JsonResponse({
+        "kw": w["kw"],
+        "soll": f(t["soll"]), "ist": f(t["ist"]),
+        "al": f(t["al"]), "soll_al": f(t["soll_al"]),
+        "kle": f(t["kle"]), "soll_kle": f(t["soll_kle"]),
+        "klienten": klienten,
+    })
+
+
 # ---------------------------------------------------------------- Druck-Nachweis
 @login_required
 def druck(request):
@@ -361,6 +521,123 @@ def druck_pdf(request):
     resp["Content-Disposition"] = (
         f'inline; filename="Leistungsnachweis_{klient.nachname}_{monat:02d}_{jahr}.pdf"')
     return resp
+
+
+# ---------------------------------------------------------------- Wochenkalender (Team-Matrix, Mo–So)
+def _kalender_kontext(request):
+    """Gemeinsame Daten für Kalender-Ansicht und -Druck: Woche (Mo–So), Team-Filter,
+    Matrix Mitarbeiter*in × Tag, Legende (Klient*innen mit Farbe/Kürzel)."""
+    from collections import defaultdict
+    me = services.mitarbeiter_fuer(request.user)
+    teams = services.teams_fuer(request.user)
+    jahr = _jahr(request)
+    kw = min(53, max(1, _int(request.GET.get("kw"), 0) or services.aktuelle_kw(jahr)))
+    mo, so = services.iso_wochenbereich(jahr, kw)
+
+    team_id = request.GET.get("team") or ""
+    team_qs = teams.filter(id=int(team_id)) if team_id.isdigit() else teams
+    _namen = list(team_qs.values_list("name", flat=True))
+    team_name = _namen[0] if len(_namen) == 1 else "Alle Teams"
+    mitarbeiter = Mitarbeiter.objects.filter(aktiv=True, team__in=team_qs).order_by("name", "vorname")
+
+    termine = (Termin.objects.filter(mitarbeiter__in=mitarbeiter, datum__range=(mo, so))
+               .select_related("klient", "mitarbeiter"))
+    matrix = defaultdict(lambda: defaultdict(list))
+    klienten_used = {}
+    for t in termine:
+        matrix[t.mitarbeiter_id][(t.datum - mo).days].append(t)
+        if t.klient_id:
+            klienten_used[t.klient_id] = t.klient
+
+    wd = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+    tage = [{"datum": mo + timedelta(days=i), "wd": wd[i], "we": i >= 5} for i in range(7)]
+    rows = []
+    for m in mitarbeiter:
+        zellen = [{"datum": tage[i]["datum"], "we": tage[i]["we"],
+                   "termine": matrix[m.id].get(i, [])} for i in range(7)]
+        rows.append({"m": m, "ich": bool(me and m.id == me.id), "zellen": zellen})
+    legende = sorted(klienten_used.values(), key=lambda k: k.nachname.lower())
+
+    n_weeks = date(jahr, 12, 28).isocalendar()[1]
+    prev = (jahr, kw - 1) if kw > 1 else (jahr - 1, date(jahr - 1, 12, 28).isocalendar()[1])
+    nxt = (jahr, kw + 1) if kw < n_weeks else (jahr + 1, 1)
+
+    return {
+        "me": me, "jahr": jahr, "kw": kw, "mo": mo, "so": so,
+        "tage": tage, "rows": rows, "legende": legende,
+        "teams": teams, "team_id": team_id, "team_name": team_name,
+        "prev_jahr": prev[0], "prev_kw": prev[1], "next_jahr": nxt[0], "next_kw": nxt[1],
+    }
+
+
+@login_required
+def kalender(request):
+    if services.ohne_klientenarbeit(request.user):
+        return redirect("nachweis:start")
+    ctx = _kalender_kontext(request)
+    ctx["aktiv"] = "kalender"
+    me = ctx["me"]
+    ctx["bearbeiten"] = (Termin.objects.filter(pk=request.GET.get("edit"), mitarbeiter=me).first()
+                         if (request.GET.get("edit") and me) else None)
+    ctx["tag_prefill"] = request.GET.get("tag") or ""
+    ctx["klienten"] = services.klienten_fuer(request.user).order_by("nachname", "vorname")
+    return render(request, "nachweis/kalender.html", ctx)
+
+
+@require_POST
+@login_required
+def termin_save(request):
+    me = services.mitarbeiter_fuer(request.user)
+    if not me or services.ohne_klientenarbeit(request.user):
+        return HttpResponseForbidden()
+    jahr = _int(request.POST.get("jahr"), date.today().year)
+    kw = _int(request.POST.get("kw"), 1)
+    ziel = f"{reverse('nachweis:kalender')}?jahr={jahr}&kw={kw}"
+
+    pk = request.POST.get("id")
+    t = get_object_or_404(Termin, pk=pk, mitarbeiter=me) if pk else Termin(mitarbeiter=me)
+    try:
+        t.datum = date.fromisoformat(request.POST.get("datum"))
+    except (TypeError, ValueError):
+        messages.error(request, "Bitte ein gültiges Datum angeben.")
+        return redirect(ziel)
+    t.beginn = _parse_time(request.POST.get("beginn"))
+    if not t.beginn:
+        messages.error(request, "Bitte eine Beginn-Uhrzeit angeben.")
+        return redirect(ziel)
+    t.ende = _parse_time(request.POST.get("ende"))
+    kid = request.POST.get("klient") or ""
+    t.klient = services.klienten_fuer(request.user).filter(pk=kid).first() if kid.isdigit() else None
+    t.titel = (request.POST.get("titel") or "").strip()
+    t.ort = (request.POST.get("ort") or "").strip()
+    t.notiz = (request.POST.get("notiz") or "").strip()
+    if not t.klient and not t.titel:
+        messages.error(request, "Bitte eine*n Klient*in wählen oder einen Titel angeben.")
+        return redirect(ziel)
+    t.save()
+    messages.success(request, "Termin gespeichert.")
+    return redirect(ziel)
+
+
+@require_POST
+@login_required
+def termin_delete(request):
+    me = services.mitarbeiter_fuer(request.user)
+    jahr = _int(request.POST.get("jahr"), date.today().year)
+    kw = _int(request.POST.get("kw"), 1)
+    if me:
+        t = Termin.objects.filter(pk=request.POST.get("id"), mitarbeiter=me).first()
+        if t:
+            t.delete()
+            messages.success(request, "Termin gelöscht.")
+    return redirect(f"{reverse('nachweis:kalender')}?jahr={jahr}&kw={kw}")
+
+
+@login_required
+def kalender_druck(request):
+    if services.ohne_klientenarbeit(request.user):
+        return redirect("nachweis:start")
+    return render(request, "nachweis/kalender_druck.html", _kalender_kontext(request))
 
 
 # ---------------------------------------------------------------- Druck-Center (Sammelseite, unten in der Sidebar)

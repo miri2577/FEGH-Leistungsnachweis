@@ -19,14 +19,15 @@ Q3 = Decimal("0.001")  # Rundung auf 3 Nachkommastellen (Stunden)
 
 
 def _stunden(beginn, ende) -> Decimal:
-    """Dauer zwischen zwei Uhrzeiten in Dezimalstunden (0, falls unvollständig
-    oder Ende vor Beginn – Tippfehler werden nicht negativ gewertet)."""
+    """Dauer zwischen zwei Uhrzeiten in Dezimalstunden. Ist das Ende zeitlich vor dem
+    Beginn, wird ein Tageswechsel angenommen (Nacht-/Bereitschaftsdienst über
+    Mitternacht, z.B. 22:00–06:00 = 8 h) – so gehen solche Zeiten nicht verloren."""
     if not beginn or not ende:
         return Decimal("0")
     delta = datetime.combine(date.min, ende) - datetime.combine(date.min, beginn)
     sekunden = int(delta.total_seconds())
     if sekunden < 0:
-        return Decimal("0")
+        sekunden += 24 * 3600      # Ende am Folgetag (über Mitternacht)
     return (Decimal(sekunden) / Decimal(3600)).quantize(Q3, ROUND_HALF_UP)
 
 
@@ -43,6 +44,12 @@ class Leistungsart(models.TextChoices):
 
 # Leistungsarten, die als Fachleistungsstunden (FLS) zählen:
 FLS_ARTEN = {Leistungsart.FS, Leistungsart.WFS, Leistungsart.BAO}
+
+# Pastell-Palette für die Farbcodierung im Wochenkalender (heller Grund, dunkle Schrift).
+FARBPALETTE = [
+    "#dbeafe", "#dcfce7", "#fef9c3", "#fee2e2", "#f3e8ff", "#ffedd5",
+    "#cffafe", "#fce7f3", "#e0e7ff", "#d9f99d", "#fed7aa", "#c7d2fe",
+]
 
 
 class Rolle(models.TextChoices):
@@ -140,6 +147,8 @@ class Klient(models.Model):
     """Stammdaten aus der Belegungsliste. AL + kLE = bewilligte FLS pro MONAT."""
     nachname = models.CharField(max_length=80)
     vorname = models.CharField(max_length=80, blank=True)
+    kuerzel = models.CharField("Kürzel", max_length=6, blank=True,
+                               help_text="Kurzzeichen für den Wochenkalender (leer = automatisch aus dem Namen)")
     geburtsdatum = models.DateField("geb. am", null=True, blank=True)
     team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True,
                              related_name="klienten", verbose_name="Team")
@@ -188,6 +197,16 @@ class Klient(models.Model):
     def kle_anteil(self) -> Decimal:
         g = self.fls_gesamt
         return (self.kle / g).quantize(Decimal("0.001")) if g else Decimal("0")
+
+    @property
+    def kuerzel_anzeige(self) -> str:
+        """Kurzzeichen für den Wochenkalender: gepflegtes Kürzel oder aus dem Namen abgeleitet."""
+        return self.kuerzel or (self.nachname or "?")[:3].title()
+
+    @property
+    def farbe(self) -> str:
+        """Stabile Pastellfarbe (aus der ID) für die Farbcodierung im Kalender."""
+        return FARBPALETTE[self.pk % len(FARBPALETTE)] if self.pk else "#e5e7eb"
 
     # Frist für den Entwicklungsbericht: 10 Wochen (70 Tage) vor Ende der
     # Kostenübernahme (KÜ) muss der Bericht an den Träger geschrieben sein.
@@ -280,6 +299,42 @@ class Gruppe(models.Model):
         if not n:
             return Decimal("0")
         return (self.dauer_stunden / (Decimal(n) * Decimal(ma))).quantize(Q3, ROUND_HALF_UP)
+
+
+class Termin(models.Model):
+    """Termin im Wochenkalender – je Mitarbeiter*in, optional mit Klient*in.
+    Farbe/Kürzel werden zur besseren Unterscheidung aus der/dem Klient*in abgeleitet."""
+    mitarbeiter = models.ForeignKey(Mitarbeiter, on_delete=models.CASCADE, related_name="termine")
+    klient = models.ForeignKey(Klient, on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name="termine", verbose_name="Klient*in")
+    datum = models.DateField()
+    beginn = models.TimeField()
+    ende = models.TimeField(null=True, blank=True)
+    titel = models.CharField("Titel", max_length=120, blank=True,
+                             help_text="frei, z. B. für interne Termine ohne Klient*in")
+    ort = models.CharField("Ort", max_length=120, blank=True)
+    notiz = models.CharField(max_length=255, blank=True)
+    erstellt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Termin"
+        verbose_name_plural = "Termine"
+        ordering = ["datum", "beginn"]
+
+    def __str__(self):
+        return f"{self.datum} {self.beginn:%H:%M} · {self.anzeige}"
+
+    @property
+    def anzeige(self) -> str:
+        return self.klient.kuerzel_anzeige if self.klient_id else (self.titel or "Termin")
+
+    @property
+    def farbe(self) -> str:
+        return self.klient.farbe if self.klient_id else "#e5e7eb"
+
+    @property
+    def zeit(self) -> str:
+        return f"{self.beginn:%H:%M}–{self.ende:%H:%M}" if self.ende else f"{self.beginn:%H:%M}"
 
 
 class Arbeitszeit(models.Model):

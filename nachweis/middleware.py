@@ -5,11 +5,37 @@ Greift, wenn OTP_REQUIRED gesetzt ist ODER der Nutzer bereits ein bestätigtes G
 Ausgenommen: Login/Logout, die 2FA-Seiten selbst, statische Dateien und der
 Break-Glass-Superuser ohne Mitarbeiter-Profil.
 """
+import time as _time
+
 from django.conf import settings
+from django.contrib.auth import logout as _logout
 from django.shortcuts import redirect
 from django.urls import reverse
 
 from .services import _superuser_ohne_profil
+
+
+class InaktivitaetsAbmeldung:
+    """Meldet eingeloggte Nutzer*innen nach SESSION_IDLE_TIMEOUT Sekunden ohne Aktivität
+    automatisch ab (serverseitig erzwungen, auch ohne JavaScript). Jede Anfrage gilt als
+    Aktivität und setzt den Timer zurück (gleitendes Fenster). Bei sensiblen Daten Pflicht."""
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.timeout = getattr(settings, "SESSION_IDLE_TIMEOUT", 0)
+
+    def __call__(self, request):
+        u = request.user
+        if self.timeout and u.is_authenticated and not request.path.startswith(settings.STATIC_URL):
+            jetzt = int(_time.time())
+            letzte = request.session.get("last_activity")
+            if letzte and (jetzt - letzte) > self.timeout:
+                _logout(request)
+                login = reverse("nachweis:login")
+                if request.path != login:
+                    return redirect(f"{login}?timeout=1")
+            else:
+                request.session["last_activity"] = jetzt
+        return self.get_response(request)
 
 
 class OTPErzwingenMiddleware:

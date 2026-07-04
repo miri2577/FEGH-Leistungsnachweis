@@ -23,6 +23,12 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 
+# Fail-closed: Sobald Produktions-Indikatoren gesetzt sind (echte DB oder ALLOWED_HOSTS),
+# läuft die Instanz NIE im Debug-Modus – auch wenn DJANGO_DEBUG versehentlich fehlt/vertippt
+# ist. So kann ein Deploy-Konfigfehler keine offene Debug-Instanz mit Dev-Key erzeugen.
+if DEBUG and (os.environ.get("DATABASE_URL") or os.environ.get("DJANGO_ALLOWED_HOSTS")):
+    DEBUG = False
+
 # In Produktion NIEMALS mit dem unsicheren Dev-Key laufen (fail-closed).
 if not DEBUG and not os.environ.get("DJANGO_SECRET_KEY"):
     from django.core.exceptions import ImproperlyConfigured
@@ -45,6 +51,8 @@ INSTALLED_APPS = [
     'django_otp',
     'django_otp.plugins.otp_totp',
     'django_otp.plugins.otp_static',
+    'axes',            # Brute-Force-Schutz (Login-Lockout)
+    'auditlog',        # Revisionssichere Änderungsprotokollierung
     'nachweis',
 ]
 
@@ -55,9 +63,18 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django_otp.middleware.OTPMiddleware',            # NACH AuthenticationMiddleware
+    'nachweis.middleware.InaktivitaetsAbmeldung',     # Auto-Logout bei Inaktivität
     'nachweis.middleware.OTPErzwingenMiddleware',     # NACH OTPMiddleware
+    'auditlog.middleware.AuditlogMiddleware',         # Actor (request.user) für das Audit-Log
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'axes.middleware.AxesMiddleware',                 # MUSS als letzte Middleware laufen
+]
+
+# django-axes braucht seinen Auth-Backend VOR dem Standard-Backend
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -142,6 +159,10 @@ LOGOUT_REDIRECT_URL = 'nachweis:login'
 # Aktivierungs-/Passwort-Reset-Links: 7 Tage gültig (einmalig durch Token-Mechanik)
 PASSWORD_RESET_TIMEOUT = 60 * 60 * 24 * 7
 
+# Automatische Abmeldung nach Inaktivität (Sekunden). Bei besonders sensiblen Daten
+# üblich 10–15 Min. Serverseitig erzwungen (Middleware) + clientseitiger Timer.
+SESSION_IDLE_TIMEOUT = int(os.environ.get("DJANGO_IDLE_TIMEOUT_MIN", "15")) * 60
+
 # E-Mail (für optionalen Versand der Aktivierungslinks).
 # Dev: Konsole (Link landet im Terminal). Prod: SMTP via Env-Variablen.
 EMAIL_BACKEND = os.environ.get(
@@ -165,6 +186,28 @@ OTP_TOTP_ISSUER = "FEGH-Leistungsnachweis"     # Anzeigename in der Authenticato
 # Prototyp: 0 = optional (Opt-in, wer ein Gerät einrichtet wird gefragt).
 # Prod: DJANGO_OTP_REQUIRED=1 -> Pflicht für ALLE (außer Break-Glass-Superuser).
 OTP_REQUIRED = os.environ.get("DJANGO_OTP_REQUIRED", "0") == "1"
+
+# --- Brute-Force-Schutz (django-axes) ---
+AXES_FAILURE_LIMIT = int(os.environ.get("DJANGO_AXES_FAILURE_LIMIT", "5"))
+AXES_COOLOFF_TIME = int(os.environ.get("DJANGO_AXES_COOLOFF_HOURS", "1"))  # Stunden bis Auto-Entsperrung
+AXES_RESET_ON_SUCCESS = True                    # erfolgreicher Login setzt den Zähler zurück
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]  # sperrt die Kombination, nicht ganze NATs
+AXES_ENABLE_ADMIN = True
+AXES_VERBOSE = True
+
+# --- Änderungs-/Zugriffsprotokoll (django-auditlog) ---
+# Wer wann welche besonders sensiblen Datensätze angelegt/geändert/gelöscht hat.
+AUDITLOG_INCLUDE_TRACKING_MODELS = (
+    "nachweis.Klient",
+    "nachweis.Leistung",
+    "nachweis.Gruppe",
+    "nachweis.Arbeitszeit",
+    "nachweis.Abwesenheit",
+    "nachweis.Kassenbuchung",
+    "nachweis.Zaehlprotokoll",
+    "nachweis.Mitarbeiter",
+    "nachweis.Termin",
+)
 
 # =====================================================================
 #  PRODUKTION (greift nur bei DEBUG=False; lokal bleibt alles unverändert)

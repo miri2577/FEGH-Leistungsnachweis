@@ -24,6 +24,23 @@
   {{ klienten_json|json_script:"klienten-data" }}
   {{ leistungsarten_json|json_script:"arten-data" }}
 
+  <!-- Wochen-Zusammenfassung FL/KLE (laufende KW), aktualisiert live beim Speichern -->
+  <div class="panel tint-blue" id="wleiste" style="margin-bottom:12px">
+    <div class="head">
+      <h2 style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap">
+        <span id="wl-kw">Woche</span>
+        <span class="muted" style="font-weight:400;font-size:13px" id="wl-sum">lädt …</span>
+      </h2>
+      <button class="btn ghost" type="button" id="wl-toggle" style="font-size:12px">je Klient*in ▾</button>
+    </div>
+    <div class="body" id="wl-detail" style="display:none;padding:0">
+      <table class="grid">
+        <thead><tr><th>Klient*in</th><th class="num">AL Ist / Soll</th><th class="num">KLE Ist / Soll</th><th class="num">FLS Ist / Soll</th></tr></thead>
+        <tbody id="wl-rows"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="panel">
     <div class="head">
       <div class="toolbar">
@@ -103,13 +120,14 @@ table.on("cellEdited", async (cell) => {
     const saved = await api("{% url 'nachweis:api_leistung_save' %}", d);
     cell.getRow().update(saved);
     setStatus("✓ gespeichert " + new Date().toLocaleTimeString());
+    ladeWoche();
   }catch(e){}
 });
 
 async function delRow(row){
   const d = row.getData();
   if(d.id){ if(!confirm("Eintrag löschen?")) return; try{ await api("{% url 'nachweis:api_leistung_delete' %}", {id:d.id}); }catch(e){ return; } }
-  row.delete(); setStatus("gelöscht");
+  row.delete(); setStatus("gelöscht"); ladeWoche();
 }
 
 async function load(){
@@ -122,7 +140,37 @@ async function load(){
   const j = await r.json();
   table.setData(j.data);
   setStatus(j.data.length + " Einträge");
+  ladeWoche();
 }
+
+const fmt1 = (x) => Number(x||0).toFixed(1);
+const escH = (s) => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function ladeWoche(){
+  const kl = document.getElementById('f-klient').value;
+  const p = new URLSearchParams({ jahr: document.getElementById('f-jahr').value });
+  if(kl) p.set('klient', kl);
+  try{
+    const r = await fetch("{% url 'nachweis:api_wochen_fls' %}?"+p.toString());
+    const w = await r.json();
+    document.getElementById('wl-kw').textContent = 'Woche KW'+w.kw;
+    document.getElementById('wl-sum').textContent =
+      `AL ${fmt1(w.al)} / ${fmt1(w.soll_al)} · KLE ${fmt1(w.kle)} / ${fmt1(w.soll_kle)}  ·  FLS gesamt ${fmt1(w.ist)} / ${fmt1(w.soll)}`;
+    const tb = document.getElementById('wl-rows'); tb.innerHTML='';
+    if(!w.klienten.length){ tb.innerHTML = '<tr><td colspan="4" class="muted" style="text-align:center;padding:14px">keine Klient*innen</td></tr>'; }
+    w.klienten.forEach(k=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `<td>${escH(k.name)}</td><td class="num">${fmt1(k.al)} / ${fmt1(k.soll_al)}</td>`+
+        `<td class="num">${fmt1(k.kle)} / ${fmt1(k.soll_kle)}</td><td class="num">${fmt1(k.ist)} / ${fmt1(k.soll)}</td>`;
+      tb.appendChild(tr);
+    });
+  }catch(e){}
+}
+document.getElementById('wl-toggle').addEventListener('click', () => {
+  const d = document.getElementById('wl-detail');
+  const open = d.style.display === 'none';
+  d.style.display = open ? 'block' : 'none';
+  document.getElementById('wl-toggle').textContent = open ? 'je Klient*in ▴' : 'je Klient*in ▾';
+});
 
 document.getElementById('add').addEventListener('click', async () => {
   const today = new Date().toISOString().slice(0,10);

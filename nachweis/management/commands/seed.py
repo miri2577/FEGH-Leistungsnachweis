@@ -6,17 +6,19 @@ Aufruf:  python manage.py seed          (leert vorhandene Demodaten & befüllt n
 Struktur & Größenordnungen (AL/kLE pro Monat, HBG) sind der Excel nachempfunden,
 alle Namen sind frei erfunden.
 """
+import os
 import random
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 
 from nachweis.models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
                              Leistungsart, Rolle, Status, Team, Teamtyp, Arbeitszeit,
                              Abwesenheit, AbwesenheitArt, AbwesenheitStatus, Stempelung,
-                             Kasse, Kassenmonat, Kassenbuchung, Zaehlprotokoll)
+                             Kasse, Kassenmonat, Kassenbuchung, Zaehlprotokoll, Termin)
 
 JAHR = 2026
 RNG = random.Random(42)
@@ -73,7 +75,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **opts):
         if not opts["keep"]:
-            for M in (Zaehlprotokoll, Kassenbuchung, Kassenmonat, Kasse,
+            for M in (Zaehlprotokoll, Kassenbuchung, Kassenmonat, Kasse, Termin,
                       Stempelung, Arbeitszeit, Abwesenheit, Leistung, Gruppe, Klient,
                       Mitarbeiter, Team, Parameter):
                 M.objects.all().delete()
@@ -85,6 +87,8 @@ class Command(BaseCommand):
                 StaticDevice.objects.all().delete()
             except Exception:
                 pass
+            # Alt-Superuser 'admin/admin' aus früheren Seeds entfernen (wird nicht mehr angelegt).
+            get_user_model().objects.filter(username="admin", is_superuser=True).delete()
             self.stdout.write("Vorhandene Demodaten gelöscht.")
 
         Parameter.objects.get_or_create(
@@ -110,8 +114,8 @@ class Command(BaseCommand):
             if not user:
                 user = User.objects.create_user(uname, f"{uname}@example.com", "demo12345")
             user.first_name, user.last_name = vn, nn
-            user.is_staff = rolle in (Rolle.LEITUNG, Rolle.ADMIN)   # dürfen in den Django-Admin
-            user.is_superuser = False                               # kein Superuser (Rechte via Gruppe)
+            user.is_staff = False        # KEIN Django-Admin für App-Rollen (Team-Scoping-Bypass vermeiden)
+            user.is_superuser = False
             user.save()
             user.groups.clear()
             if rolle == Rolle.ADMIN:
@@ -123,9 +127,18 @@ class Command(BaseCommand):
                 rolle=rolle, team=TEAMS[tkey])
             mitarbeiter.append(m)
 
-        # Break-Glass: technischer Superuser OHNE Mitarbeiter-Profil (Notzugang)
-        if not User.objects.filter(username="root").exists():
-            User.objects.create_superuser("root", "root@example.com", "root12345")
+        # Break-Glass: technischer Superuser OHNE Mitarbeiter-Profil (Notzugang).
+        # Kein statisches Default-Passwort auf produktiven/öffentlichen Instanzen:
+        # Passwort aus Env (DJANGO_SEED_ROOT_PASSWORD); nur im lokalen DEBUG-Modus als
+        # Bequemlichkeit 'root12345'. Sonst gar nicht anlegen (dann via 'createsuperuser').
+        root_pw = os.environ.get("DJANGO_SEED_ROOT_PASSWORD") or ("root12345" if settings.DEBUG else "")
+        if root_pw:
+            if not User.objects.filter(username="root").exists():
+                User.objects.create_superuser("root", "root@example.com", root_pw)
+                self.stdout.write(self.style.WARNING("Break-Glass-Superuser 'root' angelegt."))
+        else:
+            self.stdout.write("Kein DJANGO_SEED_ROOT_PASSWORD gesetzt und DEBUG=0 – "
+                              "kein Seed-Superuser (bei Bedarf 'manage.py createsuperuser').")
 
         # Berger leitet TBEW + WG
         berger = next(m for m in mitarbeiter if m.name == "Berger")
@@ -202,11 +215,20 @@ class Command(BaseCommand):
                                    anz_ma=1)
         g2.teilnehmer.set(RNG.sample(aktive, 5))
 
-        # Demo-Superuser (nur Prototyp!)
-        User = get_user_model()
-        if not User.objects.filter(username="admin").exists():
-            User.objects.create_superuser("admin", "admin@example.com", "admin")
-            self.stdout.write(self.style.WARNING("Superuser angelegt: admin / admin (nur Demo!)"))
+        # Demo-Termine im Wochenkalender (aktuelle Woche, damit die Ansicht gefüllt ist)
+        montag = date.today() - timedelta(days=date.today().weekday())
+        slots = [time(9, 0), time(10, 30), time(13, 0), time(14, 30)]
+        for m in [x for x in mitarbeiter if x.rolle == Rolle.USER and x.team == team_tbew]:
+            eigene = list(Klient.objects.filter(bezugsbetreuer=m, status=Status.BETREUUNG)[:3])
+            for i, k in enumerate(eigene):
+                beg = slots[i % len(slots)]
+                Termin.objects.create(mitarbeiter=m, klient=k, ort="Klientenwohnung",
+                                      datum=montag + timedelta(days=(i * 2) % 5),
+                                      beginn=beg, ende=time(beg.hour + 1, beg.minute))
+            Termin.objects.create(mitarbeiter=m, datum=montag + timedelta(days=3),
+                                  beginn=time(9, 0), ende=time(10, 30), titel="Teamsitzung")
+
+        # (Kein 'admin/admin'-Superuser mehr – Sicherheitsrisiko, siehe Break-Glass 'root' oben.)
 
         # Teilzeit-Beispiel
         wolf = next((m for m in mitarbeiter if m.name == "Wolf"), None)
