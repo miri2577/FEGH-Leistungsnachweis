@@ -18,7 +18,7 @@
 
 {% block content %}
   <h1 class="page">Druck-Nachweise</h1>
-  <p class="sub">Alle Nachweise zum Ausdrucken oder als PDF: Klient*in · Arbeitszeit · Kasse · Gruppe. Auswahl treffen und „Öffnen".</p>
+  <p class="sub">Alle Nachweise zum Ausdrucken oder als PDF: Klient*in · Arbeitszeit · Kasse · Gruppe · Dokumentation · Wochenplan. Auswahl treffen und „Öffnen".</p>
 
   <div class="dcg">
 
@@ -99,6 +99,42 @@
         </div>
       </div>
       {% else %}<p class="hint"><i>Noch keine Gruppen erfasst.</i></p>{% endif %}
+    </div>
+    {% endif %}
+
+    {% if not ohne_klienten %}
+    <div class="dcard {% if not klienten %}leer{% endif %}">
+      <h2><span class="ico"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></span> Dokumentation</h2>
+      <p class="hint">Verlaufsdokumentation je Klient*in – alle ausführlichen Doku-Texte eines Zeitraums als Ausdruck.</p>
+      {% if klienten %}
+      <form class="go" method="get" action="{% url 'nachweis:doku_druck' %}">
+        <div class="row" style="margin-bottom:8px">
+          <select name="klient" required>
+            <option value="">Klient*in wählen …</option>
+            {% for k in klienten %}<option value="{{ k.id }}">{{ k.nachname }}, {{ k.vorname }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="row">
+          <select name="monat"><option value="0">ganzes Jahr</option>{% for m,n in monate %}<option value="{{ m }}" {% if m == monat %}selected{% endif %}>{{ n }}</option>{% endfor %}</select>
+          <select name="jahr">{% for j in jahre %}<option value="{{ j }}" {% if j == jahr %}selected{% endif %}>{{ j }}</option>{% endfor %}</select>
+          <button class="btn" type="submit">Öffnen</button>
+        </div>
+      </form>
+      {% else %}<p class="hint"><i>Keine Klient*innen sichtbar.</i></p>{% endif %}
+    </div>
+
+    <div class="dcard">
+      <h2><span class="ico"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V9h14v11zM5 7V5h14v2H5zm2 4h5v5H7z"/></svg></span> Wochenplan (Kalender)</h2>
+      <p class="hint">Team-Wochenplan (Mo–So) mit farbcodierten Terminen und Legende.</p>
+      <form class="go" method="get" action="{% url 'nachweis:kalender_druck' %}">
+        <input type="hidden" name="ansicht" value="woche">
+        <div class="row">
+          <input type="number" name="kw" min="1" max="53" value="{{ kal_kw }}" title="Kalenderwoche" style="max-width:120px">
+          <select name="jahr">{% for j in jahre %}<option value="{{ j }}" {% if j == jahr %}selected{% endif %}>{{ j }}</option>{% endfor %}</select>
+          <button class="btn" type="submit">Öffnen</button>
+        </div>
+      </form>
+      <p class="hint" style="margin-top:2px">Vorbelegt: aktuelle KW.</p>
     </div>
     {% endif %}
 

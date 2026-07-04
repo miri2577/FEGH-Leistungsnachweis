@@ -46,7 +46,6 @@
         <input type="number" name="jahr" value="{{ jahr }}" style="width:88px" onchange="this.form.submit()">
       </form>
       <a class="btn ghost" href="{% url 'nachweis:zaehlprotokoll' %}?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}">Zählprotokoll →</a>
-      <a class="btn ghost" href="{% url 'nachweis:kasse_druck' %}?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}" title="Kassenblatt + Zählprotokoll drucken">🖨️ Drucken</a>
     </div>
     <div class="body">
       <table class="grid">

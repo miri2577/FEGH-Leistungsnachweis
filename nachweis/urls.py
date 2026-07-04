@@ -26,6 +26,7 @@ urlpatterns = [
     path("arbeitszeit/druck/", views.arbeitszeit_druck, name="arbeitszeit_druck"),
     path("gruppen/<int:pk>/druck/", views.gruppe_druck, name="gruppe_druck"),
     path("kasse/druck/", views_kasse.kasse_druck, name="kasse_druck"),
+    path("doku/druck/", views.doku_druck, name="doku_druck"),
 
     # Arbeitszeit (Selfservice)
     path("versendet/", views.versendet_setzen, name="versendet_setzen"),

@@ -3,8 +3,10 @@
 
 {% block extrastyle %}
   /* Karten NICHT über die volle Breite ziehen – feste, angenehme Breiten + Weißraum */
-  .grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,270px));
-    gap:16px;margin-bottom:16px;justify-content:start}
+  .grid-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:16px;margin-bottom:16px;align-items:stretch}
+  .grid-cards>.panel{margin:0}
+  .grid-cards>.kpi,.grid-cards>.panel,.grid-cards>.stamp{height:100%}
   .freeflow{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;margin-bottom:16px}
   .freeflow .panel{margin:0}
   .card-faellig{flex:1 1 460px;max-width:660px}
@@ -48,8 +50,8 @@
   .doku-row .dx{color:var(--muted)}
   .doku-row[open] .dx{display:none}
   .doku-full{padding:2px 18px 14px;font-size:13.5px;line-height:1.55;color:#24313d}
-  /* Karten wie „Fälligkeiten & Hinweise" (gleiche Breite) */
-  .doku-card,.kl-card{max-width:660px}
+  /* Doku + Klient*innen: nebeneinander im Freeflow (wie Fälligkeiten) */
+  .doku-card,.kl-card{flex:1 1 380px;max-width:560px}
   /* Klient*innen-Auslastung als kompaktes Balkendiagramm */
   .klbars{max-height:264px;overflow-y:auto}
   .klbar{border-top:1px solid var(--line)}
@@ -141,9 +143,36 @@
       <div class="n">{{ eigene_zeilen|length }}</div>
     </div>
     {% endif %}
+
+    <!-- Urlaubskonto + Kalender: gleiche Reihe, gleiche Größe wie die KPI-Karten -->
+    <div class="panel tint-purple">
+      <div class="head"><h2>Urlaubskonto {{ jahr }}</h2></div>
+      <div class="konto">
+        <div class="ring"><svg viewBox="0 0 24 24"><path d="M17 3h-1V1h-2v2H10V1H8v2H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H7V8h10v11z"/></svg></div>
+        <div class="stats">
+          <div class="s"><div class="v">{{ urlaub.anspruch }}</div><div class="k">Anspruch</div></div>
+          <div class="s"><div class="v">{{ urlaub.genommen|add:urlaub.beantragt }}</div><div class="k">Verplant</div></div>
+          <div class="s rest"><div class="v">{{ urlaub.rest }}</div><div class="k">Rest</div></div>
+        </div>
+      </div>
+      <div class="kontozeile"><span class="muted">genommen</span><span>{{ urlaub.genommen }} Tage</span></div>
+      <div class="kontozeile"><span class="muted">beantragt / offen</span><span class="{% if urlaub.beantragt %}pos{% endif %}">{{ urlaub.beantragt }} Tage</span></div>
+    </div>
+
+    <div class="panel tint-blue">
+      <div class="head"><h2>Kalender</h2><span class="muted">Aktuelle Woche</span></div>
+      <div class="week">
+        {% for t in wochentage %}
+        <div class="day {% if t.heute %}today{% endif %}{% if t.frei %} frei{% endif %}">
+          <div class="wd">{{ t.wd }}</div><div class="dn">{{ t.tag }}</div>
+          {% if t.frei %}<span class="tag" style="background:var(--orange-soft);color:var(--orange-ink)">frei</span>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
   </div>
 
-  <!-- Fälligkeiten · Urlaubskonto · Kalender frei nebeneinander -->
+  <!-- Fälligkeiten · Dokumentation · Meine Klient*innen -->
   <div class="freeflow">
     <div class="panel faellig card-faellig tint-amber" id="faellig">
       <div class="head"><h2>Fälligkeiten &amp; Hinweise</h2>
@@ -175,35 +204,8 @@
       </div>
     </div>
 
-    <div class="panel card-urlaub tint-purple">
-      <div class="head"><h2>Urlaubskonto {{ jahr }}</h2></div>
-      <div class="konto">
-        <div class="ring"><svg viewBox="0 0 24 24"><path d="M17 3h-1V1h-2v2H10V1H8v2H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H7V8h10v11z"/></svg></div>
-        <div class="stats">
-          <div class="s"><div class="v">{{ urlaub.anspruch }}</div><div class="k">Anspruch</div></div>
-          <div class="s"><div class="v">{{ urlaub.genommen|add:urlaub.beantragt }}</div><div class="k">Verplant</div></div>
-          <div class="s rest"><div class="v">{{ urlaub.rest }}</div><div class="k">Rest</div></div>
-        </div>
-      </div>
-      <div class="kontozeile"><span class="muted">genommen</span><span>{{ urlaub.genommen }} Tage</span></div>
-      <div class="kontozeile"><span class="muted">beantragt / offen</span><span class="{% if urlaub.beantragt %}pos{% endif %}">{{ urlaub.beantragt }} Tage</span></div>
-    </div>
-
-    <div class="panel card-kalender tint-blue">
-      <div class="head"><h2>Kalender</h2><span class="muted">Aktuelle Woche</span></div>
-      <div class="week">
-        {% for t in wochentage %}
-        <div class="day {% if t.heute %}today{% endif %}{% if t.frei %} frei{% endif %}">
-          <div class="wd">{{ t.wd }}</div><div class="dn">{{ t.tag }}</div>
-          {% if t.frei %}<span class="tag" style="background:var(--orange-soft);color:var(--orange-ink)">frei</span>{% endif %}
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-
-  {% if not ist_verwaltung %}
-  <!-- Dokumentation ZUERST (darüber), Karte in Fälligkeiten-Größe -->
+    {% if not ist_verwaltung %}
+    <!-- Dokumentation + Meine Klient*innen: nebeneinander im selben Freeflow -->
   <div class="panel doku-card">
     <div class="head"><h2>Letzte Dokumentationen</h2>
       <a class="btn ghost" href="{% url 'nachweis:erfassung' %}">Leistungsnachweis →</a></div>
@@ -252,6 +254,7 @@
     </div>
   </div>
   {% endif %}
+  </div>
 
   <div class="acts">
     <a class="btn" href="{% url 'nachweis:arbeitszeit' %}">Arbeitszeit erfassen</a>

@@ -40,7 +40,6 @@
         </label>
         <input type="number" id="f-jahr" value="{{ jahr }}" style="width:88px" title="Jahr">
         <button class="btn ghost" id="reload">Aktualisieren</button>
-        <button class="btn ghost" type="button" id="drucken" title="Arbeitszeit-Nachweis für diesen Monat drucken">🖨️ Drucken</button>
       </div>
       <span id="status" class="muted"></span>
     </div>
@@ -94,11 +93,6 @@ document.getElementById('add').addEventListener('click',async()=>{
 });
 document.getElementById('reload').addEventListener('click',load);
 document.getElementById('f-monat').addEventListener('change',load);
-document.getElementById('drucken').addEventListener('click',function(){
-  const mo=document.getElementById('f-monat').value||({{ monat }});
-  const ja=document.getElementById('f-jahr').value||({{ jahr }});
-  location.href="{% url 'nachweis:arbeitszeit_druck' %}?jahr="+ja+"&monat="+parseInt(mo,10);
-});
 table.on("tableBuilt",load);
 </script>
 {% endif %}

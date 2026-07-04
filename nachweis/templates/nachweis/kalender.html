@@ -80,9 +80,6 @@
       <a class="btn ghost" href="?{{ nav_heute }}{{ filter_qs }}">Heute</a>
       <a class="btn ghost" href="?{{ nav_next }}{{ filter_qs }}" title="weiter">›</a>
       <button class="btn ghost" type="button" id="fs-toggle" title="Vollbild (Esc verlässt)">⛶ Vollbild</button>
-      {% if ansicht == 'woche' %}
-      <a class="btn ghost" href="{% url 'nachweis:kalender_druck' %}?ansicht=woche&jahr={{ jahr }}&kw={{ kw }}{{ filter_qs }}" title="Team-Wochenplan drucken">🖨️</a>
-      {% endif %}
     </div>
   </div>
 

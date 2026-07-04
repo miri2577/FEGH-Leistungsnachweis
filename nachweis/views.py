@@ -763,6 +763,7 @@ def druck_center(request):
     return render(request, "nachweis/druck_center.html", {
         "aktiv": "druck",
         "jahr": _jahr(request), "monat": _monat(request),
+        "kal_kw": services.aktuelle_kw(_jahr(request)),
         "kasse_jahr": kasse_jahr, "kasse_monat": kasse_monat,
         "monate": [(m, MONATSNAMEN[m]) for m in range(1, 13)],
         "jahre": range(date.today().year, date.today().year - 3, -1),
@@ -807,6 +808,25 @@ def gruppe_druck(request, pk):
         pk=pk)
     return render(request, "nachweis/gruppe_druck.html", {
         "g": g, "teilnehmer": g.teilnehmer.order_by("nachname", "vorname"),
+    })
+
+
+@login_required
+def doku_druck(request):
+    """Druckbare Verlaufsdokumentation je Klient*in (alle Leistungen mit Doku-Text im Zeitraum)."""
+    if services.ohne_klientenarbeit(request.user):
+        return redirect("nachweis:start")
+    sichtbar = services.klienten_fuer(request.user)
+    klient = get_object_or_404(sichtbar, pk=request.GET.get("klient"))
+    jahr = _jahr(request)
+    monat = _int(request.GET.get("monat"), 0)
+    qs = klient.leistungen.exclude(dokumentation="").filter(datum__year=jahr)
+    if 1 <= monat <= 12:
+        qs = qs.filter(datum__month=monat)
+    return render(request, "nachweis/doku_druck.html", {
+        "klient": klient, "jahr": jahr, "monat": monat,
+        "monat_name": MONATSNAMEN[monat] if 1 <= monat <= 12 else "",
+        "eintraege": list(qs.select_related("betreuer").order_by("datum", "beginn")),
     })
 
 
