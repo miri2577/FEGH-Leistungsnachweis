@@ -4,11 +4,15 @@
 # Aufruf:  ./restore-test.sh backups/fegh_2026-07-01_0230.sql.age
 set -euo pipefail
 FILE="${1:?Backup-Datei angeben}"
+NAME=fegh_restore_test
 
-docker run -d --name fegh_restore_test -e POSTGRES_PASSWORD=testpw postgres:16 >/dev/null
+cleanup() { docker rm -f "$NAME" >/dev/null 2>&1 || true; }
+trap cleanup EXIT          # Wegwerf-DB IMMER entfernen (auch bei Abbruch/Fehler)
+cleanup                    # evtl. Reste eines früheren Laufs vorab beseitigen
+
+docker run -d --name "$NAME" -e POSTGRES_PASSWORD=testpw postgres:16 >/dev/null
 sleep 5
-age -d -i ~/age-key.txt "$FILE" | docker exec -i fegh_restore_test psql -U postgres >/dev/null
+age -d -i ~/age-key.txt "$FILE" | docker exec -i "$NAME" psql -U postgres >/dev/null
 echo "Restore OK – Tabellen:"
-docker exec fegh_restore_test psql -U postgres -c '\dt' | head -40
-docker rm -f fegh_restore_test >/dev/null
-echo "Wegwerf-DB entfernt. Ergebnis mit Datum dokumentieren."
+docker exec "$NAME" psql -U postgres -c '\dt' | head -40
+echo "Restore-Test erfolgreich. Wegwerf-DB wird entfernt. Ergebnis mit Datum dokumentieren."
