@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}FEGH-Leistungsnachweis{% endblock %}</title>
-  <link rel="preconnect" href="">
+  <link rel="icon" type="image/svg+xml" href="{% static 'nachweis/logo.svg' %}">
   <style>
     :root{
       /* Primär / Navy */
@@ -38,8 +38,7 @@
       justify-content:space-between;padding:0 20px;color:#fff;
       background:linear-gradient(90deg,#003a72,var(--brand));box-shadow:0 2px 8px rgba(0,45,92,.22)}
     header.top .brand{display:flex;align-items:center;gap:11px;font-weight:600;font-size:16.5px;letter-spacing:.2px}
-    header.top .brand .logo{width:32px;height:32px;border-radius:8px;background:#fff;color:var(--brand);
-      display:grid;place-items:center;font-weight:800;font-size:17px}
+    header.top .brand .logo{width:34px;height:34px;display:block}
     header.top .user{font-size:13px;display:flex;gap:14px;align-items:center}
     header.top .user .chip{background:rgba(255,255,255,.16);padding:4px 11px;border-radius:999px}
     header.top .user form{margin:0}
@@ -208,7 +207,7 @@
 </head>
 <body>
   <header class="top">
-    <div class="brand"><span class="logo">F</span> FEGH-Leistungsnachweis</div>
+    <div class="brand"><img class="logo" src="{% static 'nachweis/logo.svg' %}" alt=""> FEGH-Leistungsnachweis</div>
     {% if user.is_authenticated %}
     <div class="searchbar" id="searchbar">
       <span class="sb-ic"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 10-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1114 9.5 4.5 4.5 0 019.5 14z"/></svg></span>

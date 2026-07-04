@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FEGH-Leistungsnachweis">
+  <defs>
+    <linearGradient id="lnBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fcd34d"/>
+      <stop offset=".5" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="lnGloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".38"/>
+      <stop offset=".45" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- Kachel (iOS-Squircle) mit Amber-Verlauf + Glanz -->
+  <rect x="16" y="16" width="480" height="480" rx="116" fill="url(#lnBg)"/>
+  <rect x="16" y="16" width="480" height="480" rx="116" fill="url(#lnGloss)"/>
+  <!-- Klemmbrett -->
+  <rect x="134" y="136" width="244" height="272" rx="30" fill="#ffffff" opacity=".97"/>
+  <!-- Klammer oben -->
+  <rect x="212" y="112" width="88" height="46" rx="16" fill="#ea8a0a"/>
+  <rect x="232" y="100" width="48" height="30" rx="15" fill="#ea8a0a"/>
+  <!-- Haekchen = gepruefter Nachweis -->
+  <path d="M182 250 l44 46 l104 -118" fill="none" stroke="#e07d0a"
+        stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Listenzeilen -->
+  <rect x="176" y="332" width="160" height="18" rx="9" fill="#f59e0b" opacity=".38"/>
+  <rect x="176" y="366" width="112" height="18" rx="9" fill="#f59e0b" opacity=".38"/>
+</svg>
