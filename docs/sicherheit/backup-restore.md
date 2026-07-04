@@ -245,26 +245,38 @@ Der Dump enthält `OWNER`- und `GRANT`-Zeilen für die Produktions-Rolle `fegh`.
 
 ---
 
-## Offsite-Spiegel (HiDrive, optional)
+## Offsite-Spiegel (HiDrive) — Pflicht vor Echtbetrieb
 
-Weil die `.age`-Datei bereits verschlüsselt ist, kann sie gefahrlos auch **extern** liegen – ein zweiter Aufbewahrungsort schützt vor Totalverlust des Servers (Feuer, Diebstahl, Ransomware). In `deploy/backup.sh` ist der Haken dafür bereits als Kommentar vorgesehen:
+!!! danger "Ohne Offsite = Totalverlust bei Serververlust"
+    Liegen die Backups nur auf demselben Server wie die Datenbank, vernichtet ein Serverdefekt, Diebstahl oder Ransomware **Datenbank UND Backups gleichzeitig**. Der Offsite-Spiegel ist daher vor dem ersten echten Klientendatensatz zwingend zu aktivieren.
 
-```bash
-# Offsite-Spiegel (verschlüsselte Datei ist auch extern sicher), z. B.:
-# rclone copy "$OUT/fegh_$STAMP.sql.age" hidrive:fegh-backups/
-```
-
-Aktivieren:
+Weil die `.age`-Datei bereits verschlüsselt ist, kann sie gefahrlos auch **extern** liegen. `deploy/backup.sh` spiegelt sie automatisch, sobald die Umgebungsvariable `RCLONE_REMOTE` gesetzt ist:
 
 ```bash
 apt install -y rclone
 rclone config          # Remote 'hidrive' (WebDAV) einrichten
 ```
 
-Danach die `rclone copy`-Zeile in `backup.sh` auskommentieren (das `#` entfernen). Der private Schlüssel bleibt weiterhin ausschließlich offline – am Sicherheitsmodell ändert der Offsite-Spiegel nichts.
+Dann in der Cron-Umgebung (bzw. vor dem Skriptaufruf) setzen:
+
+```bash
+export RCLONE_REMOTE="hidrive:fegh-backups/"
+```
+
+Ist `RCLONE_REMOTE` gesetzt, lädt das Skript jede Sicherung hoch; **schlägt der Upload fehl, bricht `backup.sh` ab** (kein „Backup ok", kein Erfolg-Ping → der Monitor alarmiert). Ist die Variable nicht gesetzt, warnt das Skript ausdrücklich, dass nur lokal gesichert wird. Der private Schlüssel bleibt weiterhin ausschließlich offline.
+
+### Überwachung (Dead-Man's-Switch)
+
+Ein stillschweigend fehlschlagendes Backup ist gefährlicher als ein lautes. Setze `HEALTHCHECK_URL` auf einen Ping-Dienst (z. B. healthchecks.io, EU-Hosting wählbar):
+
+```bash
+export HEALTHCHECK_URL="https://hc-ping.com/<deine-uuid>"
+```
+
+`backup.sh` pingt diese URL **nur bei Erfolg**. Bleibt der Ping zur erwarteten Zeit aus, alarmiert der Dienst automatisch. Ergänzend einen externen Uptime-Monitor auf `https://<domain>/healthz` richten (liefert `ok` und prüft die DB-Verbindung).
 
 !!! note "3-2-1-Regel"
-    Mit lokalem Backup (7-Tage-Rotation) + HiDrive-Spiegel + dem Produktivsystem sind Sie nah an der 3-2-1-Regel: drei Kopien, zwei Medien, eine außer Haus.
+    Mit lokalem Backup (7-Tage-Rotation) + HiDrive-Spiegel + dem Produktivsystem sind Sie an der 3-2-1-Regel: drei Kopien, zwei Medien, eine außer Haus.
 
 ---
 
@@ -286,4 +298,5 @@ Für den Alltag – versehentlich gelöschte oder falsch bearbeitete **einzelne*
 - [ ] Testlauf `./backup.sh` liefert nicht-leere `.age`-Datei
 - [ ] Cron-Job `30 2 * * *` aktiv, Log wächst
 - [ ] Restore-Test vierteljährlich, danach `rm ~/age-key.txt`, Ergebnis dokumentiert
-- [ ] (optional) Offsite-Spiegel HiDrive aktiv
+- [ ] **Offsite-Spiegel** (`RCLONE_REMOTE`) aktiv und einmal von der Offsite-Kopie zurückgespielt
+- [ ] **Backup-Überwachung**: `HEALTHCHECK_URL` (Dead-Man's-Switch) + externer Uptime-Monitor auf `/healthz`

@@ -21,6 +21,20 @@ docker compose exec -T db pg_dump -U fegh fegh \
 # Rotation: tägliche Backups 7 Tage behalten (wöchentlich/monatlich per separatem Cron/Copy)
 find "$OUT" -name 'fegh_*.sql.age' -mtime +7 -delete
 
-# Offsite-Spiegel (verschlüsselte Datei ist auch extern sicher), z. B.:
-# rclone copy "$OUT/fegh_$STAMP.sql.age" hidrive:fegh-backups/
+# Offsite-Spiegel (3-2-1-Regel): die verschlüsselte Datei zusätzlich extern ablegen,
+# damit Serververlust/Ransomware nicht Datenbank UND Backups gleichzeitig vernichtet.
+# RCLONE_REMOTE z. B. "hidrive:fegh-backups/" (einmalig 'rclone config' einrichten).
+# Schlägt der Upload fehl, bricht das Skript (set -e) VOR dem Erfolg-Ping ab -> Alarm.
+if [ -n "${RCLONE_REMOTE:-}" ]; then
+  rclone copy "$OUT/fegh_$STAMP.sql.age" "$RCLONE_REMOTE"
+  echo "Offsite-Kopie nach $RCLONE_REMOTE ok."
+else
+  echo "WARNUNG: RCLONE_REMOTE nicht gesetzt – Backup liegt NUR lokal (kein Schutz gegen Serververlust)." >&2
+fi
+
+# Dead-Man's-Switch: nur bei ERFOLG pingen. Bleibt der Ping aus (Backup-Fehler oder
+# Server tot), alarmiert der Monitor (z. B. healthchecks.io) automatisch.
+if [ -n "${HEALTHCHECK_URL:-}" ]; then
+  curl -fsS -m 10 --retry 3 "$HEALTHCHECK_URL" >/dev/null || true
+fi
 echo "Backup ok: fegh_$STAMP.sql.age"

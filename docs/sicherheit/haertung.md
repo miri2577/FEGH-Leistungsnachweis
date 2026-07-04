@@ -261,7 +261,7 @@ Der Test `TeamIsolationTests` baut zwei Fach-Teams (A, B), ein Verwaltungsteam s
 | `DJANGO_AXES_FAILURE_LIMIT` | `5` | Fehlversuche bis Login-Lockout. |
 | `DJANGO_AXES_COOLOFF_HOURS` | `1` | Stunden bis zur automatischen Entsperrung. |
 | `DJANGO_IDLE_TIMEOUT_MIN` | `15` | Inaktivitäts-Timeout in Minuten (→ `SESSION_IDLE_TIMEOUT`). |
-| `DJANGO_OTP_REQUIRED` | `0` | `1` = 2FA-Pflicht für alle (außer Break-Glass). |
+| `DJANGO_OTP_REQUIRED` | `0` | `1` = 2FA-Pflicht für **alle** (inkl. Break-Glass-Superuser). |
 | `DJANGO_SEED_ROOT_PASSWORD` | – | Passwort für Break-Glass `root` im Seed; ohne dies + `DEBUG=0` kein Seed-Superuser. |
 | `DJANGO_HSTS_SECONDS` | `31536000` | HSTS-Dauer (nur bei `DEBUG=0`). |
 | `DJANGO_LOG_FILE` | `logs/django.log` | Rotierendes Security-/Request-Log (nur bei `DEBUG=0`). |

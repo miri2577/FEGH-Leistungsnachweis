@@ -48,10 +48,10 @@ flowchart TB
 ```
 
 !!! info "Opt-in im Prototyp, Pflicht in Produktion"
-    Über `OTP_REQUIRED` (Umgebungsvariable `DJANGO_OTP_REQUIRED`) wird gesteuert, ob 2FA für **alle** Pflicht ist. Im Prototyp = `0` (optional/Opt-in: wer ein Gerät einrichtet, wird künftig gefragt). In Produktion `1` setzen → **Pflicht für alle**, ausgenommen nur der Break-Glass-Superuser.
+    Über `OTP_REQUIRED` (Umgebungsvariable `DJANGO_OTP_REQUIRED`) wird gesteuert, ob 2FA für **alle** Pflicht ist. Im Prototyp = `0` (optional/Opt-in: wer ein Gerät einrichtet, wird künftig gefragt). In Produktion `1` setzen → **Pflicht für alle – inkl. des Break-Glass-Superusers**.
 
 !!! tip "Break-Glass-Superuser"
-    Ein **Superuser ohne Mitarbeiter-Profil** ist von der 2FA-Erzwingung ausgenommen (`_superuser_ohne_profil`). Dieser Notfallzugang darf nur der technischen Administration vorbehalten sein, ein starkes Passwort haben und nicht für die tägliche Arbeit genutzt werden.
+    Auch der **Superuser ohne Mitarbeiter-Profil** unterliegt bei `OTP_REQUIRED=1` der 2FA-Pflicht (TOTP + gedruckte Recovery-Codes, sicher verwahrt) – so ist nicht ausgerechnet das mächtigste Konto (Vollzugriff, RLS-Bypass, Django-Admin) nur passwortgeschützt. Die letzte Rückfallebene im Notfall ist der **Server-Shell-Zugang** (`manage.py`), nicht der Web-Login. Der Zugang bleibt der technischen Administration vorbehalten und wird nicht für die tägliche Arbeit genutzt.
 
 ## Transportverschlüsselung (TLS)
 

@@ -240,6 +240,11 @@ if not DEBUG:
     # Caddy terminiert TLS und setzt X-Forwarded-Proto
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = True
+    # Hinter Caddy (genau EIN Proxy) die ECHTE Client-IP ermitteln. Ohne das sähe axes
+    # nur die interne Caddy-Container-IP -> Lockout degeneriert zu Username-only
+    # (gezielter Login-DoS aufs Team) und die Angreifer-IP fehlt in jedem Log.
+    AXES_IPWARE_PROXY_COUNT = 1
+    AXES_IPWARE_META_PRECEDENCE_ORDER = ["HTTP_X_FORWARDED_FOR", "REMOTE_ADDR"]
     # HSTS – auf dem Server zunächst kurz (300) testen, dann 1 Jahr:
     SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True

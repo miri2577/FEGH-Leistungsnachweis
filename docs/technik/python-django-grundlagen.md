@@ -249,7 +249,6 @@ class OTPErzwingenMiddleware:
     def __call__(self, request):
         u = request.user
         if (u.is_authenticated and not u.is_verified()
-                and not _superuser_ohne_profil(u)
                 and not self._exempt(request)):
             hat_device = u.totpdevice_set.filter(confirmed=True).exists()
             if settings.OTP_REQUIRED or hat_device:
@@ -263,7 +262,7 @@ Die Logik in Worten:
 - **Ausgenommen** (`_exempt`) sind Login/Logout, die 2FA-Seiten selbst, statische Dateien und `/admin/` – sonst könnte man sich nie einrichten.
 - Hat jemand bereits ein bestätigtes Gerät (`hat_device`), wird zur **Code-Eingabe** (`2fa_verify`) geleitet; sonst zur **Einrichtung** (`2fa_setup`).
 - Über `settings.OTP_REQUIRED` schaltet man zwischen **Opt-in** (Prototyp) und **Pflicht für alle** (Produktion) um.
-- Der **Break-Glass-Superuser** ohne Mitarbeiter-Profil ist ausgenommen (technischer Notzugang).
+- Bei `OTP_REQUIRED=1` gilt die 2FA-Pflicht **auch für den Break-Glass-Superuser** (TOTP + Recovery-Codes); die letzte Rückfallebene im Notfall ist der Server-Shell-Zugang (`manage.py`), nicht der Web-Login.
 
 !!! note "Opt-in vs. Pflicht per Umgebungsvariable"
     In `settings.py`: `OTP_REQUIRED = os.environ.get("DJANGO_OTP_REQUIRED", "0") == "1"`. Lokal (Default `0`) ist 2FA freiwillig – wer ein Gerät einrichtet, wird künftig danach gefragt. In Produktion setzt man `DJANGO_OTP_REQUIRED=1` und 2FA wird für alle verpflichtend.

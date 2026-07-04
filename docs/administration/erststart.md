@@ -253,7 +253,7 @@ environment:
 
 Danach wird jede*r Nutzer*in beim ersten Login nach dem Passwort-Setzen zur
 Einrichtung eines TOTP-Geraets (z. B. Authenticator-App) gefuehrt. Der
-Break-Glass-Superuser sollte ebenfalls 2FA einrichten.
+Auch der Break-Glass-Superuser wird dann zur 2FA-Einrichtung gefuehrt (TOTP + Recovery-Codes sicher verwahren); Notfall-Rueckfallebene bleibt der Server-Shell-Zugang.
 
 !!! warning "Reihenfolge beachten"
     `seed --leer` loescht bestehende 2FA-Geraete. Setze `DJANGO_OTP_REQUIRED=1`

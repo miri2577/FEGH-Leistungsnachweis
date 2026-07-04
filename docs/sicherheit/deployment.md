@@ -224,7 +224,7 @@ Konfiguriert in `deploy/.env.prod` (ausgewertet in `config/settings.py`).
 | `DJANGO_DEBUG` | `0` | `0` = Produktion. Fail-closed: sobald `DATABASE_URL` **oder** `DJANGO_ALLOWED_HOSTS` gesetzt ist, wird DEBUG auf `False` erzwungen. |
 | `DJANGO_ALLOWED_HOSTS` | `leistungsnachweis.eingliederungshilfe.cloud` | Komma-Liste erlaubter Hosts. In Prod leer = keine Requests akzeptiert. |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | `https://leistungsnachweis.eingliederungshilfe.cloud` | Komma-Liste der HTTPS-Origins (Django 4+ nötig für POST/CSRF). |
-| `DJANGO_OTP_REQUIRED` | `1` | 2FA-Pflicht für alle (außer Break-Glass-Superuser `root`). |
+| `DJANGO_OTP_REQUIRED` | `1` | 2FA-Pflicht für **alle** – inkl. Break-Glass-Superuser `root` (TOTP + Recovery-Codes). |
 | `DJANGO_HSTS_SECONDS` | `300` → `31536000` | HSTS-Dauer. Erst kurz (300 s) testen, dann 1 Jahr. |
 | `DJANGO_IDLE_TIMEOUT_MIN` | `15` | Leerlauf-Timeout der Session in Minuten (`SESSION_IDLE_TIMEOUT`). |
 | `POSTGRES_DB` | `fegh` | DB-Name (von `db`- und `web`-Container genutzt). |
@@ -234,6 +234,8 @@ Konfiguriert in `deploy/.env.prod` (ausgewertet in `config/settings.py`).
 | `DJANGO_SEED_ROOT_PASSWORD` | – (optional) | Passwort für Break-Glass `root` im `seed`-Command. Ohne diese + `DEBUG=0` wird **kein** Seed-Superuser erzeugt. |
 | `DJANGO_AXES_FAILURE_LIMIT` | `5` (optional) | Fehlversuche bis Sperre (django-axes). |
 | `DJANGO_AXES_COOLOFF_HOURS` | `1` (optional) | Stunden bis Auto-Entsperrung (django-axes). |
+| `RCLONE_REMOTE` | `hidrive:fegh-backups/` | Ziel des Offsite-Backup-Spiegels in `backup.sh`. **Vor Echtbetrieb setzen** – sonst liegt das Backup nur lokal (Serververlust = Totalverlust). |
+| `HEALTHCHECK_URL` | – (optional) | Dead-Man's-Switch: `backup.sh` pingt diese URL nur bei Erfolg (z. B. healthchecks.io). Bleibt der Ping aus, alarmiert der Monitor. |
 
 !!! note "Weitere fixe Prod-Härtung"
     Bei `DEBUG=False` setzt `config/settings.py` u. a. automatisch: WhiteNoise +

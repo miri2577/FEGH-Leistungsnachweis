@@ -2,8 +2,10 @@
 
 Greift, wenn OTP_REQUIRED gesetzt ist ODER der Nutzer bereits ein bestätigtes Gerät hat
 (=> Opt-in im Prototyp funktioniert, "für alle verpflichtend" per Setting umschaltbar).
-Ausgenommen: Login/Logout, die 2FA-Seiten selbst, statische Dateien und der
-Break-Glass-Superuser ohne Mitarbeiter-Profil.
+Ausgenommen sind nur Login/Logout, die 2FA-Seiten selbst und statische Dateien.
+Auch der Break-Glass-Superuser unterliegt der 2FA-Pflicht (TOTP + Recovery-Codes) –
+die letzte Rückfallebene im Notfall ist der Server-Shell-Zugang (manage.py), nicht
+der Web-Login. So ist nicht ausgerechnet das mächtigste Konto nur passwortgeschützt.
 """
 import time as _time
 
@@ -94,7 +96,6 @@ class OTPErzwingenMiddleware:
     def __call__(self, request):
         u = request.user
         if (u.is_authenticated and not u.is_verified()
-                and not _superuser_ohne_profil(u)
                 and not self._exempt(request)):
             hat_device = u.totpdevice_set.filter(confirmed=True).exists()
             if settings.OTP_REQUIRED or hat_device:
