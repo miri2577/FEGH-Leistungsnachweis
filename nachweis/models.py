@@ -176,6 +176,7 @@ class Klient(models.Model):
         verbose_name = "Klient*in"
         verbose_name_plural = "Belegungsliste (Klient*innen)"
         ordering = ["nachname", "vorname"]
+        indexes = [models.Index(fields=["team", "status"])]
 
     def __str__(self):
         return self.name
@@ -238,6 +239,8 @@ class Leistung(models.Model):
     beginn = models.TimeField(null=True, blank=True)
     ende = models.TimeField(null=True, blank=True)
     notiz = models.CharField(max_length=255, blank=True)
+    dokumentation = models.TextField("Dokumentation", blank=True,
+                                     help_text="ausführlicher Verlaufstext bei Bedarf")
     # Herkunft: manuell erfasst oder automatisch aus Gruppe/Teamsitzung erzeugt
     auto = models.BooleanField("automatisch", default=False)
     erstellt = models.DateTimeField(auto_now_add=True)
@@ -247,6 +250,10 @@ class Leistung(models.Model):
         verbose_name = "Leistung"
         verbose_name_plural = "Leistungsnachweis"
         ordering = ["-datum", "beginn"]
+        indexes = [
+            models.Index(fields=["klient", "datum"]),
+            models.Index(fields=["betreuer", "datum"]),
+        ]
 
     def __str__(self):
         return f"{self.datum} · {self.klient} · {self.leistungsart} · {self.dauer_stunden} h"
@@ -320,6 +327,10 @@ class Termin(models.Model):
         verbose_name = "Termin"
         verbose_name_plural = "Termine"
         ordering = ["datum", "beginn"]
+        indexes = [
+            models.Index(fields=["mitarbeiter", "datum"]),
+            models.Index(fields=["datum"]),
+        ]
 
     def __str__(self):
         return f"{self.datum} {self.beginn:%H:%M} · {self.anzeige}"
@@ -352,6 +363,7 @@ class Arbeitszeit(models.Model):
         verbose_name = "Arbeitszeit"
         verbose_name_plural = "Arbeitszeiten"
         ordering = ["-datum", "beginn"]
+        indexes = [models.Index(fields=["mitarbeiter", "datum"])]
 
     def __str__(self):
         return f"{self.mitarbeiter} · {self.datum} · {self.dauer_stunden} h"

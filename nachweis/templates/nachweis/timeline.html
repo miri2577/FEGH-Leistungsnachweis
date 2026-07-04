@@ -1,0 +1,79 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Wiederherstellung · FEGH{% endblock %}
+
+{% block extrastyle %}
+  .tl{display:flex;flex-direction:column}
+  .tl-row{display:grid;grid-template-columns:150px 130px 1fr auto;gap:12px;align-items:start;
+    padding:11px 14px;border-top:1px solid var(--line);font-size:13px}
+  .tl-row:first-child{border-top:0}
+  .tl-when{color:var(--muted);font-variant-numeric:tabular-nums}
+  .tl-who b{font-weight:600}
+  .tl-what .obj{font-weight:600;color:#16212c}
+  .tl-changes{margin-top:4px;display:flex;flex-direction:column;gap:2px}
+  .tl-changes .c{font-size:12px}
+  .tl-changes .f{color:var(--muted)} .tl-changes .old{color:#b42318;text-decoration:line-through}
+  .tl-changes .new{color:#1a7f37}
+  .badge.b-cre{background:var(--okbg);color:var(--ok)} .badge.b-upd{background:var(--warnbg);color:var(--warn)}
+  .badge.b-del{background:var(--badbg);color:var(--bad)} .badge.b-acc{background:var(--bg-2);color:var(--muted)}
+{% endblock %}
+
+{% block content %}
+  <h1 class="page">Wiederherstellung &amp; Änderungs-Timeline</h1>
+  <p class="sub">Wer hat wann was geändert – mit „Rückgängig" für versehentliche Änderungen. Nur für den technischen Notzugang (Superuser). Löschungen und komplexe Fälle über das verschlüsselte Backup.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:9px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div class="panel">
+    <div class="head">
+      <h2>Letzte Änderungen</h2>
+      <form class="filter" method="get">
+        <select name="model" onchange="this.form.submit()">
+          <option value="">Alle Objekte</option>
+          {% for m in modelle %}<option value="{{ m }}" {% if model == m %}selected{% endif %}>{{ m }}</option>{% endfor %}
+        </select>
+        <select name="aktion" onchange="this.form.submit()">
+          <option value="">Alle Aktionen</option>
+          <option value="0" {% if aktion == '0' %}selected{% endif %}>Angelegt</option>
+          <option value="1" {% if aktion == '1' %}selected{% endif %}>Geändert</option>
+          <option value="2" {% if aktion == '2' %}selected{% endif %}>Gelöscht</option>
+        </select>
+      </form>
+    </div>
+    <div class="body" style="padding:0">
+      <div class="tl">
+        {% for e in eintraege %}
+        <div class="tl-row">
+          <div class="tl-when">{{ e.le.timestamp|date:"d.m.Y H:i" }}</div>
+          <div class="tl-who">
+            {% if e.le.action == 0 %}<span class="badge b-cre">angelegt</span>
+            {% elif e.le.action == 1 %}<span class="badge b-upd">geändert</span>
+            {% elif e.le.action == 2 %}<span class="badge b-del">gelöscht</span>
+            {% else %}<span class="badge b-acc">Zugriff</span>{% endif %}
+            <div style="margin-top:3px"><b>{{ e.le.actor|default:"System" }}</b></div>
+          </div>
+          <div class="tl-what">
+            <span class="muted">{{ e.le.content_type.model }}</span> · <span class="obj">{{ e.le.object_repr }}</span>
+            {% if e.aenderungen %}
+            <div class="tl-changes">
+              {% for feld, alt, neu in e.aenderungen %}
+              <div class="c"><span class="f">{{ feld }}:</span> <span class="old">{{ alt|truncatechars:40 }}</span> → <span class="new">{{ neu|truncatechars:40 }}</span></div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          <div>
+            {% if e.kann_zuruecksetzen %}
+            <form method="post" action="{% url 'nachweis:timeline_restore' %}" onsubmit="return confirm('Diese Änderung rückgängig machen (auf den Stand davor)?')">
+              {% csrf_token %}<input type="hidden" name="id" value="{{ e.le.id }}">
+              <button class="btn ghost" style="font-size:12px;padding:4px 10px" type="submit">↩ Rückgängig</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        {% empty %}
+        <div class="empty">Keine Änderungen protokolliert.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

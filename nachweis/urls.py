@@ -60,6 +60,10 @@ urlpatterns = [
     path("api/suche/", views.api_suche, name="api_suche"),
     path("api/ping/", views.api_ping, name="api_ping"),
 
+    # Wiederherstellungs-Timeline (nur Superuser)
+    path("timeline/", views.timeline, name="timeline"),
+    path("timeline/restore/", views.timeline_restore, name="timeline_restore"),
+
     # Auth
     path("login/", auth_views.LoginView.as_view(
         template_name="nachweis/login.html"), name="login"),

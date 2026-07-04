@@ -72,6 +72,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--keep", action="store_true", help="vorhandene Daten nicht löschen")
+        parser.add_argument("--leer", action="store_true",
+                            help="Leerstart: Demodaten entfernen, KEINE anlegen (echter Produktivstart)")
 
     def handle(self, *args, **opts):
         if not opts["keep"]:
@@ -94,6 +96,21 @@ class Command(BaseCommand):
         Parameter.objects.get_or_create(
             jahr=JAHR,
             defaults=dict(teamsitzung_wochentag=3, teamsitzung_dauer_std=Decimal("3.0")))
+
+        # Rechte-Gruppen sicherstellen (auch für den Leerstart nötig)
+        from nachweis.accounts import ensure_gruppen
+        ensure_gruppen()
+
+        if opts.get("leer"):
+            self.stdout.write(self.style.SUCCESS("Leerstart bereit – keine Demodaten angelegt."))
+            self.stdout.write(
+                "Nächste Schritte für den echten Produktivstart:\n"
+                "  1) Superuser (Break-Glass) anlegen:  python manage.py createsuperuser\n"
+                "  2) Einloggen -> Sidebar 'Teams' -> reale Teams anlegen (BEW/WG/Verwaltung)\n"
+                "  3) 'Mitarbeiter-Verwaltung' -> Mitarbeiter anlegen; jede*r erhält einen\n"
+                "     Aktivierungslink und vergibt das eigene Passwort selbst\n"
+                "  4) Als Leitung -> 'Belegungsliste' -> Klient*innen anlegen")
+            return
 
         # Teams
         team_tbew = Team.objects.create(name="TBEW", typ=Teamtyp.BEW)
@@ -203,6 +220,21 @@ class Command(BaseCommand):
                     datum=date(JAHR, monat, tag), klient=k, leistungsart=art,
                     taetigkeit=taet, betreuer=k.bezugsbetreuer, beginn=beginn, ende=ende)
                 n_leist += 1
+
+        # Demo-Dokumentationen auf ein paar der jüngsten Leistungen (fürs Dashboard)
+        DOKU_TEXTE = [
+            "Hausbesuch: aktuelle Situation besprochen, Wohnung in gutem Zustand. "
+            "Klient*in wirkt stabil; Termine für anstehende Amtsgänge vereinbart.",
+            "Begleitung zum Fachdienst. Anliegen geklärt, Folgetermin notiert; "
+            "Rückmeldung an die Bezugsbetreuung erfolgt.",
+            "Krisengespräch nach Konflikt in der WG. Deeskalation gelungen, "
+            "gemeinsame Vereinbarung getroffen; Beobachtung in der Folgewoche.",
+            "Unterstützung bei der Antragstellung (Eingliederungshilfe). Unterlagen "
+            "vollständig zusammengestellt, Versand vorbereitet.",
+        ]
+        for i, l in enumerate(Leistung.objects.exclude(auto=True).order_by("-datum", "-id")[:10]):
+            l.dokumentation = DOKU_TEXTE[i % len(DOKU_TEXTE)]
+            l.save(update_fields=["dokumentation"])
 
         # zwei Gruppen mit Teilnehmern
         aktive = [k for k in klienten if k.status == Status.BETREUUNG]

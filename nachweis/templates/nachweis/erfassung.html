@@ -15,6 +15,12 @@
   .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .del-btn{color:#c0392b;cursor:pointer;font-weight:700}
   .hint{color:#697786;font-size:12.5px;margin:10px 2px 0}
+  .doku-modal{position:fixed;inset:0;background:rgba(15,30,50,.45);z-index:80;display:grid;place-items:center;padding:20px}
+  .doku-box{background:#fff;border-radius:12px;box-shadow:0 20px 50px rgba(0,40,80,.3);width:min(680px,96vw);padding:18px 20px}
+  .doku-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px}
+  .doku-head b{font-size:16px;color:var(--brand-d)}
+  #doku-text{width:100%;min-height:220px;border:1px solid var(--border);border-radius:9px;padding:11px 13px;font-family:inherit;font-size:14px;line-height:1.5;resize:vertical}
+  .doku-actions{display:flex;gap:8px;margin-top:12px}
 {% endblock %}
 
 {% block content %}
@@ -65,7 +71,19 @@
     </div>
     <div class="body"><div id="grid"></div></div>
   </div>
-  <p class="hint">FS/WFS/BAO zählen als Fachleistungsstunden · FZ = Fahrtzeit · KLE = kalkulatorisch · FH = Freihaltung (50 %).</p>
+  <p class="hint">FS/WFS/BAO zählen als Fachleistungsstunden · FZ = Fahrtzeit · KLE = kalkulatorisch · FH = Freihaltung (50 %) · 📝 = Dokumentation je Zeile.</p>
+
+  <!-- Dokumentations-Editor (ausführlicher Verlaufstext je Leistung) -->
+  <div class="doku-modal" id="dokuModal" hidden>
+    <div class="doku-box">
+      <div class="doku-head"><b>Dokumentation</b><span id="doku-info" class="muted"></span></div>
+      <textarea id="doku-text" placeholder="Ausführlicher Verlaufstext bei Bedarf …"></textarea>
+      <div class="doku-actions">
+        <button class="btn" id="doku-save">Speichern</button>
+        <button class="btn ghost" id="doku-cancel">Abbrechen</button>
+      </div>
+    </div>
+  </div>
 {% endblock %}
 
 {% block extrajs %}
@@ -106,6 +124,10 @@ const table = new Tabulator("#grid", {
      editorParams:{elementAttributes:{type:"time"}}},
     {title:"Dauer", field:"dauer", width:80, hozAlign:"right", editor:false,
      formatter:(c)=> (c.getValue()!=null ? Number(c.getValue()).toFixed(2) : "")},
+    {title:"Doku", field:"dokumentation", width:64, hozAlign:"center", headerSort:false,
+     formatter:(c)=> c.getValue() ? '<span title="Dokumentation vorhanden" style="cursor:pointer">📝</span>'
+                                  : '<span title="Dokumentation hinzufügen" style="cursor:pointer;opacity:.4">✎</span>',
+     cellClick:(e,cell)=> openDoku(cell.getRow())},
     {title:"", field:"_del", width:44, hozAlign:"center", headerSort:false,
      formatter:()=> '<span class="del-btn" title="Löschen">✕</span>',
      cellClick:(e,cell)=> delRow(cell.getRow())},
@@ -170,6 +192,33 @@ document.getElementById('wl-toggle').addEventListener('click', () => {
   const open = d.style.display === 'none';
   d.style.display = open ? 'block' : 'none';
   document.getElementById('wl-toggle').textContent = open ? 'je Klient*in ▴' : 'je Klient*in ▾';
+});
+
+// --- Dokumentation (ausführlicher Text je Leistung) ---
+let dokuRow = null;
+function openDoku(row){
+  const d = row.getData();
+  if(!d.datum || !d.klient || !d.leistungsart){ setStatus("Erst Datum, Klient*in und Leistung ausfüllen, dann Doku."); return; }
+  dokuRow = row;
+  document.getElementById('doku-text').value = d.dokumentation || '';
+  document.getElementById('doku-info').textContent = (d.datum || '') + ' · ' + (klientMap[d.klient] || '');
+  document.getElementById('dokuModal').hidden = false;
+  document.getElementById('doku-text').focus();
+}
+function closeDoku(){ document.getElementById('dokuModal').hidden = true; dokuRow = null; }
+document.getElementById('doku-cancel').addEventListener('click', closeDoku);
+document.getElementById('dokuModal').addEventListener('click', (e) => { if(e.target.id === 'dokuModal') closeDoku(); });
+document.getElementById('doku-save').addEventListener('click', async () => {
+  if(!dokuRow) return;
+  const d = Object.assign({}, dokuRow.getData());
+  d.dokumentation = document.getElementById('doku-text').value;
+  try{
+    setStatus("speichere Doku …");
+    const saved = await api("{% url 'nachweis:api_leistung_save' %}", d);
+    dokuRow.update(saved);
+    setStatus("✓ Dokumentation gespeichert " + new Date().toLocaleTimeString());
+    closeDoku();
+  }catch(e){}
 });
 
 document.getElementById('add').addEventListener('click', async () => {

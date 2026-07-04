@@ -75,6 +75,14 @@ def mein_ueberblick(request):
     # Berichte: eigene zuerst, sonst alle im Team-Zugriff (Vertretung)
     berichte = services.berichte_faellig(eigene) or services.berichte_faellig(services.klienten_fuer(request.user))
     feier = services._feiertage_set(jahr)
+    # Letzte 10 Dokumentationen (team-gescopt) – nicht für Verwaltung/Admin
+    letzte_dokus = []
+    if not services.ohne_klientenarbeit(request.user):
+        letzte_dokus = list(Leistung.objects
+                            .filter(klient__in=services.klienten_fuer(request.user))
+                            .exclude(dokumentation="")
+                            .select_related("klient", "betreuer")
+                            .order_by("-datum", "-id")[:10])
     return render(request, "nachweis/mein_ueberblick.html", {
         "aktiv": "start",
         "jahr": jahr, "monat": monat, "monat_name": MONATSNAMEN[monat],
@@ -90,6 +98,7 @@ def mein_ueberblick(request):
         "ist_verwaltung": bool(me and me.ist_verwaltung),
         "stempel": services.stempel_status(me) if (me and me.ist_verwaltung) else None,
         "offene_antraege": me.abwesenheiten.filter(status=AbwesenheitStatus.BEANTRAGT).count() if me else 0,
+        "letzte_dokus": letzte_dokus,
     })
 
 
@@ -204,6 +213,7 @@ def _row(l: Leistung):
         "ende": l.ende.strftime("%H:%M") if l.ende else "",
         "dauer": float(l.dauer_stunden),
         "betreuer": str(l.betreuer),
+        "dokumentation": l.dokumentation,
     }
 
 
@@ -256,6 +266,8 @@ def api_leistung_save(request):
     l.beginn = _parse_time(p.get("beginn"))
     l.ende = _parse_time(p.get("ende"))
     l.notiz = (p.get("notiz") or "").strip()
+    if "dokumentation" in p:
+        l.dokumentation = (p.get("dokumentation") or "").strip()
     l.betreuer = services.mitarbeiter_fuer(request.user) or klient.bezugsbetreuer
     l.save()
     return JsonResponse(_row(l))
@@ -523,51 +535,128 @@ def druck_pdf(request):
     return resp
 
 
-# ---------------------------------------------------------------- Wochenkalender (Team-Matrix, Mo–So)
+# ---------------------------------------------------------------- Wochenkalender (Team-Termine)
+WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+
+
+def _kalender_ziel(request):
+    """Sicheres Rücksprungziel (nur eigene Kalender-URL) für Speichern/Löschen."""
+    z = request.POST.get("zurueck") or ""
+    return z if z.startswith("/kalender/") else reverse("nachweis:kalender")
+
+
 def _kalender_kontext(request):
-    """Gemeinsame Daten für Kalender-Ansicht und -Druck: Woche (Mo–So), Team-Filter,
-    Matrix Mitarbeiter*in × Tag, Legende (Klient*innen mit Farbe/Kürzel)."""
+    """Daten für Kalender-Ansicht + -Druck. Ansicht = tag | woche | monat, mit
+    Team-/Mitarbeiter-/Klient-Filter, Legende (Klient*innen mit Farbe/Kürzel)."""
     from collections import defaultdict
+    from calendar import monthrange
     me = services.mitarbeiter_fuer(request.user)
     teams = services.teams_fuer(request.user)
     jahr = _jahr(request)
-    kw = min(53, max(1, _int(request.GET.get("kw"), 0) or services.aktuelle_kw(jahr)))
-    mo, so = services.iso_wochenbereich(jahr, kw)
+    heute = date.today()
+    ansicht = request.GET.get("ansicht") or "woche"
+    if ansicht not in ("tag", "woche", "monat"):
+        ansicht = "woche"
 
+    # Filter (Team / Mitarbeiter / Klient)
     team_id = request.GET.get("team") or ""
     team_qs = teams.filter(id=int(team_id)) if team_id.isdigit() else teams
     _namen = list(team_qs.values_list("name", flat=True))
     team_name = _namen[0] if len(_namen) == 1 else "Alle Teams"
-    mitarbeiter = Mitarbeiter.objects.filter(aktiv=True, team__in=team_qs).order_by("name", "vorname")
+    alle_ma = Mitarbeiter.objects.filter(aktiv=True, team__in=team_qs).order_by("name", "vorname")
+    ma_id = request.GET.get("mitarbeiter") or ""
+    mitarbeiter = list(alle_ma.filter(id=int(ma_id)) if ma_id.isdigit() else alle_ma)
+    kl_id = request.GET.get("klient") or ""
 
-    termine = (Termin.objects.filter(mitarbeiter__in=mitarbeiter, datum__range=(mo, so))
-               .select_related("klient", "mitarbeiter"))
-    matrix = defaultdict(lambda: defaultdict(list))
-    klienten_used = {}
-    for t in termine:
-        matrix[t.mitarbeiter_id][(t.datum - mo).days].append(t)
-        if t.klient_id:
-            klienten_used[t.klient_id] = t.klient
+    # Zeitraum je Ansicht
+    if ansicht == "tag":
+        try:
+            tag = date.fromisoformat(request.GET.get("tag"))
+        except (TypeError, ValueError):
+            tag = heute
+        von = bis = tag
+        titel = f"{WOCHENTAGE[tag.weekday()]}, {tag:%d.%m.%Y}"
+    elif ansicht == "monat":
+        monat = min(12, max(1, _int(request.GET.get("monat"), heute.month)))
+        erster = date(jahr, monat, 1)
+        letzter = date(jahr, monat, monthrange(jahr, monat)[1])
+        von = erster - timedelta(days=erster.weekday())
+        bis = letzter + timedelta(days=6 - letzter.weekday())
+        titel = f"{MONATSNAMEN[monat]} {jahr}"
+    else:
+        kw = min(53, max(1, _int(request.GET.get("kw"), 0) or services.aktuelle_kw(jahr)))
+        von, bis = services.iso_wochenbereich(jahr, kw)
+        titel = f"KW {kw} · {von:%d.%m.}–{bis:%d.%m.%Y}"
 
-    wd = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
-    tage = [{"datum": mo + timedelta(days=i), "wd": wd[i], "we": i >= 5} for i in range(7)]
-    rows = []
-    for m in mitarbeiter:
-        zellen = [{"datum": tage[i]["datum"], "we": tage[i]["we"],
-                   "termine": matrix[m.id].get(i, [])} for i in range(7)]
-        rows.append({"m": m, "ich": bool(me and m.id == me.id), "zellen": zellen})
+    termine = list(Termin.objects.filter(mitarbeiter__in=mitarbeiter, datum__range=(von, bis))
+                   .select_related("klient", "mitarbeiter").order_by("beginn"))
+    if kl_id.isdigit():
+        termine = [t for t in termine if t.klient_id == int(kl_id)]
+    klienten_used = {t.klient_id: t.klient for t in termine if t.klient_id}
     legende = sorted(klienten_used.values(), key=lambda k: k.nachname.lower())
 
-    n_weeks = date(jahr, 12, 28).isocalendar()[1]
-    prev = (jahr, kw - 1) if kw > 1 else (jahr - 1, date(jahr - 1, 12, 28).isocalendar()[1])
-    nxt = (jahr, kw + 1) if kw < n_weeks else (jahr + 1, 1)
+    # Filter-Querystring für view-erhaltende Navigations-Links
+    fq = "".join(f"&{k}={v}" for k, v in (("team", team_id), ("mitarbeiter", ma_id), ("klient", kl_id)) if v)
 
-    return {
-        "me": me, "jahr": jahr, "kw": kw, "mo": mo, "so": so,
-        "tage": tage, "rows": rows, "legende": legende,
+    ctx = {
+        "aktiv": "kalender", "ansicht": ansicht, "titel": titel, "me": me, "jahr": jahr,
         "teams": teams, "team_id": team_id, "team_name": team_name,
-        "prev_jahr": prev[0], "prev_kw": prev[1], "next_jahr": nxt[0], "next_kw": nxt[1],
+        "alle_ma": alle_ma, "ma_id": ma_id, "kl_id": kl_id, "filter_qs": fq,
+        "legende": legende,
+        "klienten": services.klienten_fuer(request.user).order_by("nachname", "vorname"),
+        "heute_iso": heute.isoformat(),
     }
+
+    if ansicht == "woche":
+        matrix = defaultdict(lambda: defaultdict(list))
+        for t in termine:
+            matrix[t.mitarbeiter_id][(t.datum - von).days].append(t)
+        tage = [{"datum": von + timedelta(days=i), "wd": WOCHENTAGE[i], "we": i >= 5} for i in range(7)]
+        rows = [{"m": m, "ich": bool(me and m.id == me.id),
+                 "zellen": [{"datum": tage[i]["datum"], "we": tage[i]["we"],
+                             "termine": matrix[m.id].get(i, [])} for i in range(7)]}
+                for m in mitarbeiter]
+        n_weeks = date(jahr, 12, 28).isocalendar()[1]
+        kw = min(53, max(1, _int(request.GET.get("kw"), 0) or services.aktuelle_kw(jahr)))
+        p = (jahr, kw - 1) if kw > 1 else (jahr - 1, date(jahr - 1, 12, 28).isocalendar()[1])
+        n = (jahr, kw + 1) if kw < n_weeks else (jahr + 1, 1)
+        ctx.update(tage=tage, rows=rows, kw=kw, mo=von, so=bis,
+                   nav_prev=f"ansicht=woche&jahr={p[0]}&kw={p[1]}",
+                   nav_next=f"ansicht=woche&jahr={n[0]}&kw={n[1]}",
+                   nav_heute="ansicht=woche")
+    elif ansicht == "tag":
+        tag_spalten = [{"m": m, "ich": bool(me and m.id == me.id),
+                        "termine": [t for t in termine if t.mitarbeiter_id == m.id]}
+                       for m in mitarbeiter]
+        ctx.update(tag_spalten=tag_spalten, tag=von,
+                   nav_prev=f"ansicht=tag&tag={(von - timedelta(days=1)).isoformat()}",
+                   nav_next=f"ansicht=tag&tag={(von + timedelta(days=1)).isoformat()}",
+                   nav_heute="ansicht=tag")
+    else:  # monat
+        by_day = defaultdict(list)
+        for t in termine:
+            by_day[t.datum].append(t)
+        monat = min(12, max(1, _int(request.GET.get("monat"), heute.month)))
+        wochen, d = [], von
+        while d <= bis:
+            wochen.append([{"datum": d, "im_monat": d.month == monat, "heute": d == heute,
+                            "termine": by_day.get(d, [])} for d in (d + timedelta(days=i) for i in range(7))])
+            d += timedelta(days=7)
+        pm = (jahr, monat - 1) if monat > 1 else (jahr - 1, 12)
+        nm = (jahr, monat + 1) if monat < 12 else (jahr + 1, 1)
+        ctx.update(monat_wochen=wochen, monat=monat,
+                   nav_prev=f"ansicht=monat&jahr={pm[0]}&monat={pm[1]}",
+                   nav_next=f"ansicht=monat&jahr={nm[0]}&monat={nm[1]}",
+                   nav_heute="ansicht=monat")
+
+    # aktuelle View+Zeitraum-Parameter (für Bearbeiten-Links, die die Ansicht erhalten)
+    if ansicht == "woche":
+        ctx["nav_self"] = f"ansicht=woche&jahr={jahr}&kw={ctx['kw']}"
+    elif ansicht == "tag":
+        ctx["nav_self"] = f"ansicht=tag&tag={von.isoformat()}"
+    else:
+        ctx["nav_self"] = f"ansicht=monat&jahr={jahr}&monat={ctx['monat']}"
+    return ctx
 
 
 @login_required
@@ -575,12 +664,10 @@ def kalender(request):
     if services.ohne_klientenarbeit(request.user):
         return redirect("nachweis:start")
     ctx = _kalender_kontext(request)
-    ctx["aktiv"] = "kalender"
     me = ctx["me"]
     ctx["bearbeiten"] = (Termin.objects.filter(pk=request.GET.get("edit"), mitarbeiter=me).first()
                          if (request.GET.get("edit") and me) else None)
     ctx["tag_prefill"] = request.GET.get("tag") or ""
-    ctx["klienten"] = services.klienten_fuer(request.user).order_by("nachname", "vorname")
     return render(request, "nachweis/kalender.html", ctx)
 
 
@@ -590,10 +677,7 @@ def termin_save(request):
     me = services.mitarbeiter_fuer(request.user)
     if not me or services.ohne_klientenarbeit(request.user):
         return HttpResponseForbidden()
-    jahr = _int(request.POST.get("jahr"), date.today().year)
-    kw = _int(request.POST.get("kw"), 1)
-    ziel = f"{reverse('nachweis:kalender')}?jahr={jahr}&kw={kw}"
-
+    ziel = _kalender_ziel(request)
     pk = request.POST.get("id")
     t = get_object_or_404(Termin, pk=pk, mitarbeiter=me) if pk else Termin(mitarbeiter=me)
     try:
@@ -623,14 +707,12 @@ def termin_save(request):
 @login_required
 def termin_delete(request):
     me = services.mitarbeiter_fuer(request.user)
-    jahr = _int(request.POST.get("jahr"), date.today().year)
-    kw = _int(request.POST.get("kw"), 1)
     if me:
         t = Termin.objects.filter(pk=request.POST.get("id"), mitarbeiter=me).first()
         if t:
             t.delete()
             messages.success(request, "Termin gelöscht.")
-    return redirect(f"{reverse('nachweis:kalender')}?jahr={jahr}&kw={kw}")
+    return redirect(_kalender_ziel(request))
 
 
 @login_required
@@ -902,3 +984,100 @@ def abwesenheit_status(request):
         a.save()
         messages.success(request, f"Antrag {a.get_status_display()}.")
     return redirect("nachweis:abwesenheit")
+
+
+# ---------------------------------------------------------------- Wiederherstellungs-Timeline (nur Superuser)
+def _log_changes(le):
+    """Änderungs-Dict {feld: [alt, neu]} robust aus einem auditlog-LogEntry lesen."""
+    try:
+        d = le.changes_dict
+        if isinstance(d, dict):
+            return d
+    except Exception:
+        pass
+    c = getattr(le, "changes", None)
+    if isinstance(c, dict):
+        return c
+    try:
+        return json.loads(c or "{}")
+    except Exception:
+        return {}
+
+
+@login_required
+def timeline(request):
+    """Änderungs-Timeline (Wer/Wann/Was) mit „Rückgängig" – Notfall-Wiederherstellung.
+    Ausschließlich für den technischen Break-Glass-Superuser."""
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    from auditlog.models import LogEntry
+    from django.contrib.contenttypes.models import ContentType
+    qs = LogEntry.objects.select_related("actor", "content_type").order_by("-timestamp")
+    model = request.GET.get("model") or ""
+    if model:
+        qs = qs.filter(content_type__app_label="nachweis", content_type__model=model)
+    aktion = request.GET.get("aktion") or ""
+    if aktion.isdigit():
+        qs = qs.filter(action=int(aktion))
+    eintraege = [{
+        "le": le,
+        "aenderungen": [(f, p[0], p[1]) for f, p in _log_changes(le).items() if isinstance(p, (list, tuple)) and len(p) == 2],
+        "kann_zuruecksetzen": le.action == LogEntry.Action.UPDATE,
+    } for le in qs[:150]]
+    modelle = list(ContentType.objects.filter(app_label="nachweis")
+                   .order_by("model").values_list("model", flat=True))
+    return render(request, "nachweis/timeline.html", {
+        "aktiv": "timeline", "eintraege": eintraege,
+        "modelle": modelle, "model": model, "aktion": aktion,
+    })
+
+
+def _coerce_alt(field, val):
+    from django.db.models import BooleanField
+    if val is None or val == "None":
+        return None
+    if isinstance(field, BooleanField):
+        return str(val).strip().lower() in ("true", "1", "yes", "t", "ja")
+    return field.to_python(val)
+
+
+@require_POST
+@login_required
+def timeline_restore(request):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden()
+    from auditlog.models import LogEntry
+    le = get_object_or_404(LogEntry, pk=request.POST.get("id"))
+    if le.action != LogEntry.Action.UPDATE:
+        messages.error(request, "Nur Änderungen (Updates) sind automatisch rücksetzbar; Löschungen aus Backup.")
+        return redirect("nachweis:timeline")
+    model = le.content_type.model_class()
+    obj = model.objects.filter(pk=le.object_pk).first() if model else None
+    if not obj:
+        messages.error(request, "Objekt existiert nicht mehr – bitte aus dem Backup wiederherstellen.")
+        return redirect("nachweis:timeline")
+    zurueck, skip = [], []
+    for feld, paar in _log_changes(le).items():
+        if not (isinstance(paar, (list, tuple)) and len(paar) == 2):
+            continue
+        try:
+            f = obj._meta.get_field(feld)
+        except Exception:
+            skip.append(feld); continue
+        if f.is_relation or not getattr(f, "concrete", True):
+            skip.append(feld); continue
+        try:
+            setattr(obj, feld, _coerce_alt(f, paar[0]))
+            zurueck.append(feld)
+        except Exception:
+            skip.append(feld)
+    try:
+        obj.save()
+    except Exception as e:
+        messages.error(request, f"Zurücksetzen fehlgeschlagen: {e}")
+        return redirect("nachweis:timeline")
+    meldung = f'„{obj}" zurückgesetzt ({", ".join(zurueck) or "keine Felder"}).'
+    if skip:
+        meldung += f' Nicht automatisch: {", ".join(skip)}.'
+    messages.success(request, meldung)
+    return redirect("nachweis:timeline")

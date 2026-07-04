@@ -1,20 +1,30 @@
 {% extends "nachweis/base.html" %}
-{% block title %}Wochenkalender · FEGH{% endblock %}
+{% block title %}Kalender · FEGH{% endblock %}
 
 {% block extrastyle %}
-  .kal-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-  .kal-nav{display:flex;align-items:center;gap:8px}
-  .kal-nav .wk{font-weight:600;min-width:210px;text-align:center}
+  /* Vollbild: Sidebar/Topbar ausblenden, Kalender volle Breite */
+  body.kal-fs header.top, body.kal-fs nav.side{display:none !important}
+  body.kal-fs .shell{min-height:100vh}
+  body.kal-fs main{padding:14px 20px}
+
+  .kal-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .kal-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+  .seg a{padding:6px 14px;font-size:13px;color:#41546a;background:#eef3f8;text-decoration:none;border-left:1px solid var(--border)}
+  .seg a:first-child{border-left:0}
+  .seg a.on{background:var(--brand);color:#fff}
+  .kal-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .kal-filter select{padding:6px 9px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:#fff}
+
   .kal-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--card)}
-  table.kal{border-collapse:collapse;width:100%;min-width:820px;table-layout:fixed}
+  table.kal{border-collapse:collapse;width:100%;table-layout:fixed}
   table.kal th,table.kal td{border:1px solid var(--line);vertical-align:top}
-  table.kal thead th{background:var(--bg-2);padding:7px 6px;font-size:12.5px;text-align:center;position:sticky;top:0}
-  table.kal col.name{width:150px} table.kal col.day{width:132px}
-  .kal .maz{padding:8px 10px;font-weight:600;font-size:13px;background:var(--card);position:sticky;left:0;z-index:1}
+  table.kal thead th{background:var(--bg-2);padding:7px 6px;font-size:12.5px;text-align:center}
+  table.kal col.name{width:150px}
+  .kal .maz{padding:8px 10px;font-weight:600;font-size:13px}
   .kal tr.ich .maz{box-shadow:inset 3px 0 0 var(--brand)}
-  .kal td.day{padding:5px;height:74px}
-  .kal td.we{background:#fbfcfd}
-  .kal th.we{color:var(--muted)}
+  .kal td.day{padding:5px;height:74px;min-width:120px}
+  .kal td.we,.kal th.we{background:#fbfcfd}
   .kal th.today{background:var(--brand-soft);color:var(--brand-d)}
   .kal .dnum{font-size:15px;font-weight:700}
   .ev{display:block;border-radius:7px;padding:3px 7px;margin-bottom:4px;font-size:12px;line-height:1.25;
@@ -23,9 +33,29 @@
   .ev .t{font-variant-numeric:tabular-nums;font-weight:600;margin-right:3px}
   .addcell{display:block;height:100%;min-height:60px;border-radius:7px;color:transparent;text-decoration:none}
   tr.ich td.day:hover .addcell{color:var(--muted);background:#f4f8fb;display:grid;place-items:center;font-size:20px}
+
+  /* Tagesansicht: Karten je Mitarbeiter*in */
+  .tagcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+  .tagcard{border:1px solid var(--border);border-radius:11px;background:var(--card);overflow:hidden}
+  .tagcard .h{padding:8px 12px;background:var(--bg-2);font-weight:600;font-size:13px;display:flex;justify-content:space-between}
+  .tagcard.ich .h{box-shadow:inset 3px 0 0 var(--brand)}
+  .tagcard .b{padding:8px 10px;display:flex;flex-direction:column;gap:5px;min-height:40px}
+  .tagcard .ev{font-size:12.5px}
+  .tagcard .ev .ort{color:#5a6b7a;font-size:11px}
+
+  /* Monatsansicht */
+  table.month{border-collapse:collapse;width:100%;table-layout:fixed}
+  table.month th{background:var(--bg-2);padding:6px;font-size:12px;border:1px solid var(--line)}
+  table.month td{border:1px solid var(--line);height:104px;vertical-align:top;padding:4px}
+  table.month td.out{background:#fafbfc;color:#aab4bd}
+  table.month td.today{background:var(--brand-soft)}
+  table.month .mn{font-size:12.5px;font-weight:700;color:#3a4a58;display:block;margin-bottom:3px}
+  table.month .ev{font-size:11px;padding:2px 5px;margin-bottom:2px}
+
   .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:12px 2px 0;font-size:12.5px}
   .legend .li{display:inline-flex;align-items:center;gap:6px}
   .legend .sw{width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.08)}
+
   .tform{display:grid;grid-template-columns:repeat(6,1fr);gap:12px 14px;padding:16px}
   .tform label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
   .tform label.full{grid-column:1 / -1} .tform label.w2{grid-column:span 2} .tform label.w3{grid-column:span 3}
@@ -37,89 +67,133 @@
   {% now "Y-m-d" as today %}
   <div class="kal-top">
     <div>
-      <h1 class="page" style="margin-bottom:2px">Wochenkalender</h1>
-      <p class="sub" style="margin:0">{{ team_name }} · {{ mo|date:"d.m." }}–{{ so|date:"d.m.Y" }}</p>
+      <h1 class="page" style="margin-bottom:2px">Kalender</h1>
+      <p class="sub" style="margin:0">{{ team_name }} · {{ titel }}</p>
     </div>
-    <div class="kal-nav">
-      {% if teams|length > 1 %}
-      <form method="get" style="margin:0"><input type="hidden" name="jahr" value="{{ jahr }}"><input type="hidden" name="kw" value="{{ kw }}">
-        <select name="team" onchange="this.form.submit()">
-          <option value="">Alle Teams</option>
-          {% for t in teams %}<option value="{{ t.id }}" {% if team_id == t.id|stringformat:'s' %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
-        </select>
-      </form>
+    <div class="kal-controls">
+      <span class="seg">
+        <a href="?ansicht=tag{{ filter_qs }}" class="{% if ansicht == 'tag' %}on{% endif %}">Tag</a>
+        <a href="?ansicht=woche{{ filter_qs }}" class="{% if ansicht == 'woche' %}on{% endif %}">Woche</a>
+        <a href="?ansicht=monat{{ filter_qs }}" class="{% if ansicht == 'monat' %}on{% endif %}">Monat</a>
+      </span>
+      <a class="btn ghost" href="?{{ nav_prev }}{{ filter_qs }}" title="zurück">‹</a>
+      <a class="btn ghost" href="?{{ nav_heute }}{{ filter_qs }}">Heute</a>
+      <a class="btn ghost" href="?{{ nav_next }}{{ filter_qs }}" title="weiter">›</a>
+      <button class="btn ghost" type="button" id="fs-toggle" title="Vollbild (Esc verlässt)">⛶ Vollbild</button>
+      {% if ansicht == 'woche' %}
+      <a class="btn ghost" href="{% url 'nachweis:kalender_druck' %}?ansicht=woche&jahr={{ jahr }}&kw={{ kw }}{{ filter_qs }}" title="Team-Wochenplan drucken">🖨️</a>
       {% endif %}
-      <a class="btn ghost" href="?jahr={{ prev_jahr }}&kw={{ prev_kw }}{% if team_id %}&team={{ team_id }}{% endif %}" title="Vorherige Woche">‹</a>
-      <span class="wk">KW {{ kw }} · {{ jahr }}</span>
-      <a class="btn ghost" href="?jahr={{ next_jahr }}&kw={{ next_kw }}{% if team_id %}&team={{ team_id }}{% endif %}" title="Nächste Woche">›</a>
-      <a class="btn ghost" href="{% url 'nachweis:kalender' %}{% if team_id %}?team={{ team_id }}{% endif %}">Diese Woche</a>
-      <a class="btn ghost" href="{% url 'nachweis:kalender_druck' %}?jahr={{ jahr }}&kw={{ kw }}{% if team_id %}&team={{ team_id }}{% endif %}" title="Team-Wochenplan drucken">🖨️ Drucken</a>
     </div>
   </div>
 
+  <!-- Filter -->
+  <form method="get" class="kal-filter" id="kal-filter">
+    <input type="hidden" name="ansicht" value="{{ ansicht }}">
+    {% if teams|length > 1 %}
+    <select name="team" onchange="this.form.submit()">
+      <option value="">Alle Teams</option>
+      {% for t in teams %}<option value="{{ t.id }}" {% if team_id == t.id|stringformat:'s' %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+    </select>
+    {% endif %}
+    <select name="mitarbeiter" onchange="this.form.submit()">
+      <option value="">Alle Mitarbeiter*innen</option>
+      {% for m in alle_ma %}<option value="{{ m.id }}" {% if ma_id == m.id|stringformat:'s' %}selected{% endif %}>{{ m.name }}{% if m.vorname %}, {{ m.vorname }}{% endif %}</option>{% endfor %}
+    </select>
+    <select name="klient" onchange="this.form.submit()">
+      <option value="">Alle Klient*innen</option>
+      {% for k in klienten %}<option value="{{ k.id }}" {% if kl_id == k.id|stringformat:'s' %}selected{% endif %}>{{ k.name }}</option>{% endfor %}
+    </select>
+  </form>
+
   {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:9px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
+  {# ---------------- WOCHE ---------------- #}
+  {% if ansicht == 'woche' %}
   <div class="kal-wrap">
     <table class="kal">
-      <colgroup><col class="name">{% for t in tage %}<col class="day">{% endfor %}</colgroup>
-      <thead>
-        <tr>
-          <th style="text-align:left;padding-left:10px">Mitarbeiter*in</th>
-          {% for t in tage %}
-          <th class="{% if t.we %}we{% endif %}{% if t.datum|date:'Y-m-d' == today %} today{% endif %}">
-            {{ t.wd }}<br><span class="dnum">{{ t.datum|date:"d.m." }}</span></th>
-          {% endfor %}
-        </tr>
-      </thead>
+      <colgroup><col class="name">{% for t in tage %}<col>{% endfor %}</colgroup>
+      <thead><tr>
+        <th style="text-align:left;padding-left:10px">Mitarbeiter*in</th>
+        {% for t in tage %}<th class="{% if t.we %}we{% endif %}{% if t.datum|date:'Y-m-d' == today %} today{% endif %}">{{ t.wd }}<br><span class="dnum">{{ t.datum|date:"d.m." }}</span></th>{% endfor %}
+      </tr></thead>
       <tbody>
         {% for row in rows %}
         <tr class="{% if row.ich %}ich{% endif %}">
           <td class="maz">{{ row.m.name }}{% if row.m.vorname %}, {{ row.m.vorname }}{% endif %}{% if row.ich %} <span class="muted" style="font-weight:400">(ich)</span>{% endif %}</td>
           {% for z in row.zellen %}
           <td class="day {% if z.we %}we{% endif %}">
-            {% for t in z.termine %}
-              {% if row.ich %}
-              <a class="ev" style="background:{{ t.farbe }}" href="?jahr={{ jahr }}&kw={{ kw }}{% if team_id %}&team={{ team_id }}{% endif %}&edit={{ t.id }}#form"
-                 title="{{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}{% if t.ort %} · {{ t.ort }}{% endif %}">
-                <span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</a>
-              {% else %}
-              <span class="ev" style="background:{{ t.farbe }}" title="{{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}">
-                <span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>
-              {% endif %}
-            {% endfor %}
-            {% if row.ich %}<a class="addcell" href="?jahr={{ jahr }}&kw={{ kw }}{% if team_id %}&team={{ team_id }}{% endif %}&tag={{ z.datum|date:'Y-m-d' }}#form" title="Termin eintragen">＋</a>{% endif %}
+            {% for t in z.termine %}{% if row.ich %}<a class="ev" style="background:{{ t.farbe }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form" title="{{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}{% if t.ort %} · {{ t.ort }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</a>{% else %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.zeit }}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endif %}{% endfor %}
+            {% if row.ich %}<a class="addcell" href="?{{ nav_self }}{{ filter_qs }}&tag={{ z.datum|date:'Y-m-d' }}#form" title="Termin eintragen">＋</a>{% endif %}
           </td>
           {% endfor %}
         </tr>
-        {% empty %}
-        <tr><td colspan="8" class="muted" style="text-align:center;padding:22px">Keine Mitarbeiter*innen im Team.</td></tr>
-        {% endfor %}
+        {% empty %}<tr><td colspan="8" class="muted" style="text-align:center;padding:22px">Keine Mitarbeiter*innen.</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
 
+  {# ---------------- TAG ---------------- #}
+  {% elif ansicht == 'tag' %}
+  <div class="tagcards">
+    {% for s in tag_spalten %}
+    <div class="tagcard {% if s.ich %}ich{% endif %}">
+      <div class="h"><span>{{ s.m.name }}{% if s.m.vorname %}, {{ s.m.vorname }}{% endif %}</span>{% if s.ich %}<span class="muted" style="font-weight:400">ich</span>{% endif %}</div>
+      <div class="b">
+        {% for t in s.termine %}
+          {% if s.ich %}
+          <a class="ev" style="background:{{ t.farbe }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form">
+            <span class="t">{{ t.zeit }}</span>{% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}{% if t.ort %}<span class="ort"> · {{ t.ort }}</span>{% endif %}</a>
+          {% else %}
+          <span class="ev" style="background:{{ t.farbe }}"><span class="t">{{ t.zeit }}</span>{% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}{% if t.ort %}<span class="ort"> · {{ t.ort }}</span>{% endif %}</span>
+          {% endif %}
+        {% empty %}<span class="muted" style="font-size:12px">—</span>{% endfor %}
+        {% if s.ich %}<a class="btn ghost" style="font-size:12px;padding:3px 8px;margin-top:2px" href="?{{ nav_self }}{{ filter_qs }}&tag={{ tag|date:'Y-m-d' }}#form">＋ Termin</a>{% endif %}
+      </div>
+    </div>
+    {% empty %}<div class="muted">Keine Mitarbeiter*innen.</div>{% endfor %}
+  </div>
+
+  {# ---------------- MONAT ---------------- #}
+  {% else %}
+  <div class="kal-wrap">
+    <table class="month">
+      <thead><tr><th>Mo</th><th>Di</th><th>Mi</th><th>Do</th><th>Fr</th><th class="we">Sa</th><th class="we">So</th></tr></thead>
+      <tbody>
+        {% for woche in monat_wochen %}
+        <tr>
+          {% for tag in woche %}
+          <td class="{% if not tag.im_monat %}out{% endif %}{% if tag.heute %} today{% endif %}">
+            <span class="mn">{{ tag.datum|date:"j" }}</span>
+            {% for t in tag.termine %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.mitarbeiter.name }} · {{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endfor %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
   {% if legende %}
-  <div class="legend">
-    <span class="muted">Legende:</span>
+  <div class="legend"><span class="muted">Legende:</span>
     {% for k in legende %}<span class="li"><span class="sw" style="background:{{ k.farbe }}"></span><b>{{ k.kuerzel_anzeige }}</b> = {{ k.name }}</span>{% endfor %}
   </div>
   {% endif %}
 
+  {# ---------------- Termin-Formular ---------------- #}
   {% if me %}
   <div class="panel" id="form" style="margin-top:16px">
     <div class="head"><h2>{% if bearbeiten %}Termin bearbeiten{% else %}Neuer Termin{% endif %}</h2>
-      {% if bearbeiten %}<a class="btn ghost" href="?jahr={{ jahr }}&kw={{ kw }}{% if team_id %}&team={{ team_id }}{% endif %}">Abbrechen</a>{% endif %}</div>
+      {% if bearbeiten %}<a class="btn ghost" href="?{{ nav_self }}{{ filter_qs }}">Abbrechen</a>{% endif %}</div>
     <form method="post" action="{% url 'nachweis:termin_save' %}">
       {% csrf_token %}
-      <input type="hidden" name="jahr" value="{{ jahr }}"><input type="hidden" name="kw" value="{{ kw }}">
+      <input type="hidden" name="zurueck" value="{{ request.get_full_path }}">
       {% if bearbeiten %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">{% endif %}
       <div class="tform">
         <label class="w2">Datum
           <input type="date" name="datum" required value="{% if bearbeiten %}{{ bearbeiten.datum|date:'Y-m-d' }}{% else %}{{ tag_prefill }}{% endif %}"></label>
-        <label>Beginn
-          <input type="time" name="beginn" required value="{{ bearbeiten.beginn|time:'H:i' }}"></label>
-        <label>Ende
-          <input type="time" name="ende" value="{{ bearbeiten.ende|time:'H:i' }}"></label>
+        <label>Beginn <input type="time" name="beginn" required value="{{ bearbeiten.beginn|time:'H:i' }}"></label>
+        <label>Ende <input type="time" name="ende" value="{{ bearbeiten.ende|time:'H:i' }}"></label>
         <label class="w2">Klient*in
           <select name="klient">
             <option value="">— (interner Termin)</option>
@@ -127,10 +201,8 @@
           </select></label>
         <label class="w3">Titel <span class="muted">(bei internem Termin)</span>
           <input type="text" name="titel" maxlength="120" value="{{ bearbeiten.titel }}" placeholder="z. B. Teamsitzung, Supervision"></label>
-        <label class="w3">Ort
-          <input type="text" name="ort" maxlength="120" value="{{ bearbeiten.ort }}"></label>
-        <label class="full">Notiz
-          <input type="text" name="notiz" maxlength="255" value="{{ bearbeiten.notiz }}"></label>
+        <label class="w3">Ort <input type="text" name="ort" maxlength="120" value="{{ bearbeiten.ort }}"></label>
+        <label class="full">Notiz <input type="text" name="notiz" maxlength="255" value="{{ bearbeiten.notiz }}"></label>
       </div>
       <div style="padding:0 16px 16px;display:flex;gap:8px;align-items:center">
         <button class="btn" type="submit">{% if bearbeiten %}Speichern{% else %}Termin anlegen{% endif %}</button>
@@ -140,10 +212,17 @@
     {% if bearbeiten %}
     <form method="post" action="{% url 'nachweis:termin_delete' %}" onsubmit="return confirm('Termin löschen?')" style="padding:0 16px 16px">
       {% csrf_token %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">
-      <input type="hidden" name="jahr" value="{{ jahr }}"><input type="hidden" name="kw" value="{{ kw }}">
+      <input type="hidden" name="zurueck" value="{{ request.get_full_path }}">
       <button class="btn ghost" style="color:var(--bad)" type="submit">Termin löschen</button>
     </form>
     {% endif %}
   </div>
   {% endif %}
+{% endblock %}
+
+{% block extrajs %}
+<script>
+  document.getElementById('fs-toggle').addEventListener('click', () => document.body.classList.toggle('kal-fs'));
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape') document.body.classList.remove('kal-fs'); });
+</script>
 {% endblock %}
