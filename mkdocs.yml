@@ -21,13 +21,18 @@ theme:
 
 nav:
   - Start: index.md
+  - "Was wurde umgesetzt (Juli 2026)": changelog.md
   - Anleitung:
       - Erste Schritte: anleitung/erste-schritte.md
       - Zwei-Faktor-Anmeldung: anleitung/zwei-faktor.md
       - Mein Überblick (Startseite): anleitung/mein-ueberblick.md
       - Leistung erfassen (Grid): anleitung/leistungsnachweis.md
+      - Dokumentation (Verlaufstexte): anleitung/dokumentation.md
+      - Globale Suche: anleitung/globale-suche.md
+      - Wochenkalender: anleitung/kalender.md
       - Arbeitszeit & Stempeluhr: anleitung/arbeitszeit-stempeluhr.md
       - Urlaub & Abwesenheit: anleitung/urlaub-abwesenheit.md
+      - Kasse (Kassenbuch & Zählprotokoll): anleitung/kasse.md
       - Gruppen anlegen: anleitung/gruppen.md
       - Druck-Nachweis erstellen: anleitung/druck-nachweis.md
   - Fachliches:
@@ -43,13 +48,18 @@ nav:
       - Projektstruktur des Repos: technik/projektstruktur.md
       - Lokale Entwicklung: technik/entwicklung-lokal.md
   - Administration:
+      - Erststart für ein echtes Team: administration/erststart.md
       - Belegungsliste pflegen: administration/belegungsliste.md
       - Teams & Mitarbeitende: administration/teams-mitarbeiter.md
       - Team-Parameter: administration/parameter.md
   - Betrieb & Sicherheit:
       - Datenschutz: sicherheit/datenschutz.md
+      - Sicherheitshärtung: sicherheit/haertung.md
+      - "Datentrennung & Row-Level-Security": sicherheit/rls.md
       - Deployment (Produktivbetrieb): sicherheit/deployment.md
-      - Backups & Löschkonzept: sicherheit/backups-loeschkonzept.md
+      - "Backup & Wiederherstellung (verschlüsselt)": sicherheit/backup-restore.md
+      - Wiederherstellung (Audit-Timeline): sicherheit/wiederherstellung.md
+      - Aufbewahrung & Löschkonzept: sicherheit/backups-loeschkonzept.md
 
 markdown_extensions:
   - admonition
