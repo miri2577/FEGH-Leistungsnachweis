@@ -108,6 +108,21 @@ class TeamIsolationTests(TestCase):
         r = self.cl(self.uLA).post("/kalender/move/", {"id": t.id, "datum": "2026-07-03"})
         self.assertEqual(r.status_code, 403)              # nur geleitete Teams
 
+    def test_termin_zeit_aendern(self):
+        t = Termin.objects.create(mitarbeiter=self.mA, datum=date(2026, 7, 1),
+                                  beginn=time(9, 0), ende=time(10, 0))
+        r = self.cl(self.uA).post("/kalender/zeit/", {"id": t.id, "beginn": "11:15", "ende": "12:00"})
+        self.assertEqual(r.status_code, 200)
+        t.refresh_from_db()
+        self.assertEqual((t.beginn, t.ende), (time(11, 15), time(12, 0)))
+
+    def test_termin_zeit_fremd_verboten(self):
+        t = Termin.objects.create(mitarbeiter=self.mB, datum=date(2026, 7, 1), beginn=time(9, 0))
+        r = self.cl(self.uA).post("/kalender/zeit/", {"id": t.id, "beginn": "11:00", "ende": "12:00"})
+        self.assertEqual(r.status_code, 403)
+        t.refresh_from_db()
+        self.assertEqual(t.beginn, time(9, 0))            # unverändert
+
     def test_kalender_nur_eigenes_team(self):
         r = self.cl(self.uA).get("/kalender/")
         self.assertContains(r, "Anna")        # eigenes Team

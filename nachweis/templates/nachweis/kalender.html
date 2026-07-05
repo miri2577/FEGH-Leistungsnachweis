@@ -81,6 +81,26 @@
   .kal-side .tform input,.kal-side .tform select{font-size:13px;padding:7px 9px}
   body.kal-fs .kal-side{top:14px}
   @media(max-width:1100px){.kal-layout{flex-direction:column}.kal-side{width:100%;position:static}}
+  /* Tag-Ansicht als Stunden-Raster */
+  .daygrid{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card)}
+  .dg-head{display:flex;border-bottom:1px solid var(--border);background:var(--bg-2)}
+  .dg-time-sp{width:56px;flex:0 0 auto}
+  .dg-hcol{flex:1;min-width:78px;padding:8px 6px;text-align:center;font-size:12.5px;font-weight:600;border-left:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dg-hcol.ich{box-shadow:inset 0 -3px 0 var(--brand);color:var(--brand-d)}
+  .dg-scroll{max-height:72vh;overflow:auto}
+  .dg-body{display:flex;position:relative}
+  .dg-times{width:56px;flex:0 0 auto;position:relative}
+  .dg-hlabel{position:absolute;right:7px;transform:translateY(-50%);font-size:11px;color:var(--muted);background:var(--card);padding:0 2px}
+  .dg-col{flex:1;min-width:78px;position:relative;border-left:1px solid var(--line);
+    background-image:linear-gradient(var(--line) 1px, transparent 1px);background-size:100% 48px}
+  .dg-ev{position:absolute;left:3px;right:3px;border-radius:6px;padding:2px 5px;overflow:hidden;
+    font-size:11px;line-height:1.25;color:#20303f;border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+  .dg-ev.drag{cursor:grab;user-select:none}
+  .dg-ev.dragging{opacity:.75;box-shadow:0 5px 14px rgba(0,0,0,.3);z-index:5}
+  .dg-ev-time{font-weight:700;font-variant-numeric:tabular-nums}
+  .dg-ev-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dg-resize{position:absolute;left:0;right:0;bottom:0;height:9px;cursor:ns-resize}
+  body.kal-fs .dg-scroll{max-height:calc(100vh - 120px)}
 {% endblock %}
 
 {% block content %}
@@ -170,24 +190,34 @@
     <div class="b" style="flex-direction:row;flex-wrap:wrap">{% for s in tag_serien %}<span class="ev serie" style="background:{{ s.farbe }}">{{ s.bezeichnung }} <span class="muted">· {{ s.art }}</span></span>{% endfor %}</div>
   </div>
   {% endif %}
-  <div class="tagcards">
-    {% for s in tag_spalten %}
-    <div class="tagcard {% if s.ich %}ich{% endif %}">
-      <div class="h"><span>{{ s.m.name }}{% if s.m.vorname %}, {{ s.m.vorname }}{% endif %}</span>{% if s.ich %}<span class="muted" style="font-weight:400">ich</span>{% endif %}</div>
-      <div class="b">
-        {% for t in s.termine %}
-          {% if s.ich %}
-          <a class="ev" style="background:{{ t.farbe }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form">
-            <span class="t">{{ t.zeit }}</span>{% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}{% if t.ort %}<span class="ort"> · {{ t.ort }}</span>{% endif %}</a>
-          {% else %}
-          <span class="ev" style="background:{{ t.farbe }}"><span class="t">{{ t.zeit }}</span>{% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}{% if t.ort %}<span class="ort"> · {{ t.ort }}</span>{% endif %}</span>
-          {% endif %}
-        {% empty %}<span class="muted" style="font-size:12px">—</span>{% endfor %}
-        {% if s.ich %}<a class="btn ghost" style="font-size:12px;padding:3px 8px;margin-top:2px" href="?{{ nav_self }}{{ filter_qs }}&tag={{ tag|date:'Y-m-d' }}#form">＋ Termin</a>{% endif %}
+  <div class="daygrid" data-pxh="{{ dg_pxh }}" data-hstart="{{ dg_hstart }}" data-hend="{{ dg_hend }}">
+    <div class="dg-head">
+      <div class="dg-time-sp"></div>
+      {% for s in tag_spalten %}<div class="dg-hcol{% if s.ich %} ich{% endif %}" title="{{ s.m.name }}{% if s.m.vorname %}, {{ s.m.vorname }}{% endif %}">{{ s.m.name }}{% if s.m.vorname %}, {{ s.m.vorname|slice:':1' }}.{% endif %}</div>{% empty %}<div class="dg-hcol muted">Keine Mitarbeiter*innen</div>{% endfor %}
+    </div>
+    <div class="dg-scroll">
+      <div class="dg-body" style="height:{{ dg_hoehe }}px">
+        <div class="dg-times" style="height:{{ dg_hoehe }}px">
+          {% for hr in dg_stunden %}<span class="dg-hlabel" style="top:{{ hr.top }}px">{{ hr.h }}:00</span>{% endfor %}
+        </div>
+        {% for s in tag_spalten %}
+        <div class="dg-col" data-ma="{{ s.m.id }}" data-datum="{{ tag|date:'Y-m-d' }}">
+          {% for e in s.evs %}
+          <div class="dg-ev{% if s.ich or kann_alle %} drag{% endif %}" data-termin="{{ e.t.id }}"
+               style="top:{{ e.top }}px;height:{{ e.h }}px;background:{{ e.t.farbe }}"
+               {% if s.ich or kann_alle %}data-edit="?{{ nav_self }}{{ filter_qs }}&edit={{ e.t.id }}#form"{% endif %}
+               title="{{ e.t.zeit }} · {% if e.t.klient %}{{ e.t.klient.name }}{% else %}{{ e.t.titel }}{% endif %}{% if e.t.ort %} · {{ e.t.ort }}{% endif %}">
+            <div class="dg-ev-time">{{ e.t.beginn|time:'H:i' }}{% if e.t.ende %}–{{ e.t.ende|time:'H:i' }}{% endif %}</div>
+            <div class="dg-ev-name">{% if e.t.klient %}{{ e.t.klient.kuerzel_anzeige }}{% else %}{{ e.t.titel }}{% endif %}</div>
+            {% if s.ich or kann_alle %}<div class="dg-resize" title="Dauer ziehen"></div>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
       </div>
     </div>
-    {% empty %}<div class="muted">Keine Mitarbeiter*innen.</div>{% endfor %}
   </div>
+  {% if me %}<p class="drag-hint">Block <b>ziehen</b> = Uhrzeit (15-Min-Raster) · <b>untere Kante ziehen</b> = Dauer · <b>Doppelklick</b> = bearbeiten. Neuen Termin rechts anlegen.</p>{% endif %}
 
   {# ---------------- MONAT ---------------- #}
   {% else %}
@@ -307,6 +337,44 @@
           .then(function(j){ if(!j.ok) throw 0; })
           .catch(function(){ alert('Verschieben fehlgeschlagen – die Seite wird neu geladen.'); location.reload(); });
       });
+    });
+  })();
+
+  // Tag-Raster: Block ziehen = Startzeit, untere Kante = Dauer (15-Min-Raster)
+  (function(){
+    var grid = document.querySelector('.daygrid'); if(!grid) return;
+    var PXH = +grid.dataset.pxh || 48, HSTART = +grid.dataset.hstart || 6, PXMIN = PXH/60, SNAP = 15*PXMIN;
+    var ZEIT = "{% url 'nachweis:termin_zeit' %}", CSRF = "{{ csrf_token }}";
+    function snap(px){ return Math.round(px/SNAP)*SNAP; }
+    function toTime(px){ var m = Math.max(0, Math.min(1439, HSTART*60 + Math.round(px/PXMIN)));
+      return ('0'+Math.floor(m/60)).slice(-2)+':'+('0'+(m%60)).slice(-2); }
+    function label(ev){ var el = ev.querySelector('.dg-ev-time');
+      if(el) el.textContent = toTime(ev.offsetTop)+'–'+toTime(ev.offsetTop+ev.offsetHeight); }
+    function save(ev){
+      fetch(ZEIT, {method:'POST', headers:{'X-CSRFToken':CSRF,'Content-Type':'application/x-www-form-urlencoded'},
+        body: new URLSearchParams({id: ev.dataset.termin, beginn: toTime(ev.offsetTop), ende: toTime(ev.offsetTop+ev.offsetHeight)})})
+        .then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(j){ if(!j.ok) throw 0; })
+        .catch(function(){ alert('Speichern fehlgeschlagen – die Seite wird neu geladen.'); location.reload(); });
+    }
+    function startDrag(ev, e, mode){
+      e.preventDefault(); if(mode==='resize') e.stopPropagation();
+      var colH = ev.parentElement.clientHeight, startY = e.clientY, top0 = ev.offsetTop, h0 = ev.offsetHeight;
+      ev.classList.add('dragging');
+      function mm(e2){
+        var dy = e2.clientY - startY;
+        if(mode==='move'){ ev.style.top = snap(Math.max(0, Math.min(colH-h0, top0+dy)))+'px'; }
+        else { ev.style.height = snap(Math.max(SNAP, Math.min(colH-top0, h0+dy)))+'px'; }
+        label(ev);
+      }
+      function mu(){ document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu);
+        ev.classList.remove('dragging'); save(ev); }
+      document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu);
+    }
+    grid.querySelectorAll('.dg-ev.drag').forEach(function(ev){
+      var handle = ev.querySelector('.dg-resize');
+      ev.addEventListener('mousedown', function(e){ if(handle && e.target===handle) return; startDrag(ev, e, 'move'); });
+      if(handle) handle.addEventListener('mousedown', function(e){ startDrag(ev, e, 'resize'); });
+      ev.addEventListener('dblclick', function(){ if(ev.dataset.edit) location.href = ev.dataset.edit; });
     });
   })();
 </script>

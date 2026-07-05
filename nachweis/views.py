@@ -650,10 +650,27 @@ def _kalender_kontext(request):
                    nav_next=f"ansicht=woche&jahr={n[0]}&kw={n[1]}",
                    nav_heute="ansicht=woche")
     elif ansicht == "tag":
-        tag_spalten = [{"m": m, "ich": bool(me and m.id == me.id),
-                        "termine": [t for t in termine if t.mitarbeiter_id == m.id]}
-                       for m in mitarbeiter]
+        HSTART, HEND, PXH = 6, 22, 48          # Stunden-Raster 6–22 Uhr, 48 px/Std
+        PXMIN = PXH / 60.0
+
+        def _pos(t):
+            bmin = t.beginn.hour * 60 + t.beginn.minute
+            if t.ende:
+                dur = (t.ende.hour * 60 + t.ende.minute) - bmin
+                if dur <= 0:
+                    dur += 24 * 60
+            else:
+                dur = 60
+            return round(max(0, bmin - HSTART * 60) * PXMIN), round(max(22, dur * PXMIN))
+
+        tag_spalten = []
+        for m in mitarbeiter:
+            evs = [{"t": t, "top": _pos(t)[0], "h": _pos(t)[1]}
+                   for t in termine if t.mitarbeiter_id == m.id and t.beginn]
+            tag_spalten.append({"m": m, "ich": bool(me and m.id == me.id), "evs": evs})
         ctx.update(tag_spalten=tag_spalten, tag=von, tag_serien=serien_by_date.get(von, []),
+                   dg_stunden=[{"h": h, "top": (h - HSTART) * PXH} for h in range(HSTART, HEND + 1)],
+                   dg_pxh=PXH, dg_hstart=HSTART, dg_hend=HEND, dg_hoehe=(HEND - HSTART) * PXH,
                    nav_prev=f"ansicht=tag&tag={(von - timedelta(days=1)).isoformat()}",
                    nav_next=f"ansicht=tag&tag={(von + timedelta(days=1)).isoformat()}",
                    nav_heute="ansicht=tag")
@@ -767,6 +784,22 @@ def termin_move(request):
     except (TypeError, ValueError):
         return JsonResponse({"ok": False}, status=400)
     t.save(update_fields=["datum"])
+    return JsonResponse({"ok": True})
+
+
+@require_POST
+@login_required
+def termin_zeit(request):
+    """Uhrzeit/Dauer eines Termins ändern (Tages-Raster: ziehen/resizen). Nur berechtigt."""
+    t = Termin.objects.filter(pk=request.POST.get("id")).first()
+    if not t or not _termin_bearbeitbar(request, t):
+        return HttpResponseForbidden()
+    b = _parse_time(request.POST.get("beginn"))
+    if not b:
+        return JsonResponse({"ok": False}, status=400)
+    t.beginn = b
+    t.ende = _parse_time(request.POST.get("ende"))
+    t.save(update_fields=["beginn", "ende"])
     return JsonResponse({"ok": True})
 
 

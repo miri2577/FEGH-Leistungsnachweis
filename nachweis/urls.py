@@ -20,6 +20,7 @@ urlpatterns = [
     path("kalender/save/", views.termin_save, name="termin_save"),
     path("kalender/delete/", views.termin_delete, name="termin_delete"),
     path("kalender/move/", views.termin_move, name="termin_move"),
+    path("kalender/zeit/", views.termin_zeit, name="termin_zeit"),
     path("kalender/druck/", views.kalender_druck, name="kalender_druck"),
 
     # Druck-Center (Sammelseite unten in der Sidebar) + weitere Druck-Nachweise
