@@ -67,7 +67,8 @@
   .serienrow td.day{background:var(--bg-2)}
   .ev[draggable="true"]{cursor:grab}
   .ev.dragging{opacity:.4}
-  td.day.drop-hi{outline:2px dashed var(--brand);outline-offset:-2px;background:var(--brand-soft)}
+  td.drop-hi{outline:2px dashed var(--brand);outline-offset:-2px;background:var(--brand-soft)}
+  table.month td[data-drop] .ev[draggable]{cursor:grab}
   .drag-hint{font-size:11.5px;color:var(--muted);margin:8px 2px 0}
 {% endblock %}
 
@@ -184,9 +185,9 @@
         {% for woche in monat_wochen %}
         <tr>
           {% for tag in woche %}
-          <td class="{% if not tag.im_monat %}out{% endif %}{% if tag.heute %} today{% endif %}">
+          <td class="{% if not tag.im_monat %}out{% endif %}{% if tag.heute %} today{% endif %}" data-datum="{{ tag.datum|date:'Y-m-d' }}" data-drop="1">
             <span class="mn">{{ tag.datum|date:"j" }}</span>
-            {% for t in tag.termine %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.mitarbeiter.name }} · {{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endfor %}
+            {% for t in tag.termine %}<span class="ev"{% if me and t.mitarbeiter_id == me.id %} draggable="true" data-termin="{{ t.id }}"{% endif %} style="background:{{ t.farbe }}" title="{{ t.mitarbeiter.name }} · {{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endfor %}
             {% for s in tag.serien %}<span class="ev serie" style="background:{{ s.farbe }}" title="{{ s.bezeichnung }}">{{ s.bezeichnung }}</span>{% endfor %}
           </td>
           {% endfor %}
@@ -261,7 +262,7 @@
       });
       ev.addEventListener('dragend', function(){ ev.classList.remove('dragging'); dragged = null; });
     });
-    document.querySelectorAll('td.day[data-drop="1"]').forEach(function(cell){
+    document.querySelectorAll('[data-drop="1"]').forEach(function(cell){
       cell.addEventListener('dragover', function(e){ if(dragged){ e.preventDefault(); cell.classList.add('drop-hi'); } });
       cell.addEventListener('dragleave', function(){ cell.classList.remove('drop-hi'); });
       cell.addEventListener('drop', function(e){
