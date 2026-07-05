@@ -47,6 +47,7 @@
         <div><label class="fld">BRP zu Teamltg. bis</label><input type="date" name="brp_bis" value="{{ klient.brp_bis|date:'Y-m-d' }}"></div>
         <div><label class="fld">…versendet am</label><input type="date" name="versendet_am" value="{{ klient.versendet_am|date:'Y-m-d' }}"></div>
         <div><label class="fld">Zuständigkeit THFD</label><input type="text" name="thfd" value="{{ klient.thfd|default:'' }}"></div>
+        <div><label class="fld">Kostenträger <span class="muted" style="font-weight:400">(Rechnungsempfänger)</span></label><input type="text" name="kostentraeger" value="{{ klient.kostentraeger|default:'' }}" placeholder="z. B. Bezirksamt …"></div>
         <div class="full"><label class="fld">Kommentar</label><textarea name="kommentar">{{ klient.kommentar|default:'' }}</textarea></div>
 
         <div class="full" style="margin-top:6px">

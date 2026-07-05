@@ -10,7 +10,8 @@ from django.db.models import Q
 
 from .models import (Klient, Gruppe, Leistung, Parameter, Leistungsart,
                      Mitarbeiter, Team, Rolle, FLS_ARTEN, Status,
-                     WiederkehrendeLeistung, Rhythmus, Anrechnung)
+                     WiederkehrendeLeistung, Rhythmus, Anrechnung,
+                     Freigabestatus, Monatsfreigabe, Rechnung, Rechnungsstatus)
 
 Q3 = Decimal("0.001")
 
@@ -736,3 +737,118 @@ def druck_nachweis(klient, jahr: int, monat: int):
         "eintraege": eintraege, "summen": summen,
         "fls_summe": total_fls.quantize(Q3, ROUND_HALF_UP), "gesamt": total_alle.quantize(Q3, ROUND_HALF_UP),
     }
+
+
+# ==========================================================================
+#  Abrechnung: Freigabe-Workflow (MA → Leitung → Verwaltung) + Rechnungen
+#  DSGVO: Verwaltung sieht nur Abrechnungsdaten (Name/Aktenzeichen,
+#  Kostenträger, FLS/Betrag, Monat, Status) – KEINE Tätigkeits-Doku.
+# ==========================================================================
+E2 = Decimal("0.01")
+
+
+def darf_freigeben(user) -> bool:
+    """Leitung (oder Break-Glass-Superuser) darf Monatsnachweise freigeben/zurückweisen."""
+    return ist_leitung(user)
+
+
+def darf_abrechnen(user) -> bool:
+    """Verwaltung (oder Break-Glass-Superuser) darf freigegebene Nachweise abrechnen."""
+    return ist_verwaltung(user) or _superuser_ohne_profil(user)
+
+
+def fls_preis(jahr: int) -> Decimal:
+    """€-Satz je Fachleistungsstunde aus den Team-Parametern des Jahres."""
+    return get_parameter(jahr).fls_preis or Decimal("0")
+
+
+def betrag_fuer(fls_summe, jahr: int) -> Decimal:
+    """Abrechnungsbetrag = FLS × FLS-Preis (auf Cent gerundet)."""
+    return (Decimal(fls_summe) * fls_preis(jahr)).quantize(E2, ROUND_HALF_UP)
+
+
+def freigabe_holen(klient, jahr: int, monat: int, erzeugen: bool = False):
+    """Monatsfreigabe zu (Klient, Monat) – optional anlegen (Status OFFEN)."""
+    mf = Monatsfreigabe.objects.filter(klient=klient, jahr=jahr, monat=monat).first()
+    if mf is None and erzeugen:
+        mf = Monatsfreigabe.objects.create(klient=klient, jahr=jahr, monat=monat)
+    return mf
+
+
+def freigaben_map(klienten, jahr: int, monat: int) -> dict:
+    """klient_id -> Monatsfreigabe (nur vorhandene)."""
+    return {f.klient_id: f for f in Monatsfreigabe.objects.filter(
+        klient__in=klienten, jahr=jahr, monat=monat)}
+
+
+def freigabe_snapshot(mf) -> None:
+    """FLS/Betrag des Monats festschreiben (beim Einreichen/Freigeben)."""
+    d = druck_nachweis(mf.klient, mf.jahr, mf.monat)
+    mf.fls_summe = d["fls_summe"]
+    mf.betrag = betrag_fuer(mf.fls_summe, mf.jahr)
+
+
+def abrechnungsuebersicht(klienten, jahr: int, monat: int):
+    """Zeilen für die Freigabe-Übersicht (MA/Leitung): je Klient*in FLS, Betrag, Status.
+    Für offene Monate live berechnet, ab 'eingereicht' die festgeschriebenen Werte."""
+    fmap = freigaben_map(klienten, jahr, monat)
+    preis = fls_preis(jahr)
+    zeilen = []
+    for k in klienten.select_related("bezugsbetreuer"):
+        mf = fmap.get(k.id)
+        if mf and mf.status != Freigabestatus.OFFEN:
+            fls, betrag = mf.fls_summe, mf.betrag
+        else:
+            fls = druck_nachweis(k, jahr, monat)["fls_summe"]
+            betrag = (fls * preis).quantize(E2, ROUND_HALF_UP)
+        zeilen.append({
+            "klient": k, "betreuer": k.bezugsbetreuer, "fls": fls, "betrag": betrag,
+            "status": mf.status if mf else Freigabestatus.OFFEN,
+            "mf": mf, "hinweis": mf.hinweis if mf else "",
+        })
+    return zeilen
+
+
+def offene_abrechnung(jahr: int = None, monat: int = None):
+    """Freigegebene, noch nicht abgerechnete Monatsnachweise – für die Verwaltung."""
+    qs = (Monatsfreigabe.objects.filter(status=Freigabestatus.FREIGEGEBEN)
+          .select_related("klient", "klient__team", "klient__bezugsbetreuer"))
+    if jahr:
+        qs = qs.filter(jahr=jahr)
+    if monat:
+        qs = qs.filter(monat=monat)
+    return qs
+
+
+def naechste_rechnungsnummer(jahr: int) -> str:
+    """Fortlaufende Rechnungsnummer JAHR-NNNN (lückenlos je Jahr)."""
+    prefix = f"{jahr}-"
+    seqs = [int(n[len(prefix):]) for n in
+            Rechnung.objects.filter(nummer__startswith=prefix).values_list("nummer", flat=True)
+            if n[len(prefix):].isdigit()]
+    return f"{prefix}{(max(seqs) + 1 if seqs else 1):04d}"
+
+
+def rechnung_erstellen(freigaben, empfaenger, jahr, monat, datum, ersteller,
+                       anschrift="", notiz=""):
+    """Sammelrechnung aus freigegebenen Monatsnachweisen erzeugen; markiert sie als abgerechnet."""
+    from django.utils import timezone
+    freigaben = list(freigaben)
+    r = Rechnung.objects.create(
+        nummer=naechste_rechnungsnummer(jahr), empfaenger=empfaenger,
+        empfaenger_anschrift=anschrift, jahr=jahr, monat=monat, datum=datum,
+        betrag=sum((f.betrag for f in freigaben), Decimal("0")),
+        notiz=notiz, erstellt_von=ersteller)
+    jetzt = timezone.now()
+    for f in freigaben:
+        f.rechnung = r
+        f.status = Freigabestatus.ABGERECHNET
+        f.abgerechnet_am = jetzt
+        f.save(update_fields=["rechnung", "status", "abgerechnet_am", "geaendert"])
+    return r
+
+
+def kostentraeger_liste():
+    """Vorhandene Kostenträger (für Auswahl bei der Rechnungserstellung)."""
+    return sorted({k for k in Klient.objects.exclude(kostentraeger="")
+                   .values_list("kostentraeger", flat=True)})

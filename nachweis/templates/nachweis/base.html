@@ -336,6 +336,19 @@
         <span style="display:flex;align-items:center;gap:11px"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4zM12 2a10 10 0 100 20 10 10 0 000-20z" opacity=".0"/><path d="M20 6 9 17l-5-5 1.41-1.41L9 14.17l9.59-9.58z"/></svg></span> Arbeitszeit-Freigaben</span>
         {% if nav_az_offen %}<span style="background:var(--orange);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 7px">{{ nav_az_offen }}</span>{% endif %}</a>
       {% endif %}
+      {% if not nav_ist_admin %}
+      <div class="grp">Abrechnung</div>
+      {% if nav_ist_verwaltung %}
+      <a href="{% url 'nachweis:rechnungen' %}" class="{% if aktiv == 'abrechnung' %}active{% endif %}" style="justify-content:space-between">
+        <span style="display:flex;align-items:center;gap:11px"><span class="ico"><svg viewBox="0 0 24 24"><path d="M18 17H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2zM3 22l1.5-1.5L6 22l1.5-1.5L9 22l1.5-1.5L12 22l1.5-1.5L15 22l1.5-1.5L18 22l1.5-1.5L21 22V2l-1.5 1.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2 4.5 3.5 3 2z"/></svg></span> Rechnungen</span>
+        {% if nav_abr_offen %}<span style="background:var(--orange);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 7px">{{ nav_abr_offen }}</span>{% endif %}</a>
+      {% else %}
+      <a href="{% url 'nachweis:abrechnung' %}" class="{% if aktiv == 'abrechnung' %}active{% endif %}" style="justify-content:space-between">
+        <span style="display:flex;align-items:center;gap:11px"><span class="ico"><svg viewBox="0 0 24 24"><path d="M18 17H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2zM3 22l1.5-1.5L6 22l1.5-1.5L9 22l1.5-1.5L12 22l1.5-1.5L15 22l1.5-1.5L18 22l1.5-1.5L21 22V2l-1.5 1.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2 4.5 3.5 3 2z"/></svg></span> Abrechnung / Freigabe</span>
+        {% if nav_abr_offen %}<span style="background:var(--orange);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 7px">{{ nav_abr_offen }}</span>{% endif %}</a>
+      {% endif %}
+      {% endif %}
+
       {% if nav_ist_leitung %}
       <div class="grp">Stammdaten (Leitung)</div>
       <a href="{% url 'nachweis:belegungsliste' %}" class="{% if aktiv == 'belegungsliste' %}active{% endif %}">

@@ -3,7 +3,7 @@ from django.contrib import admin
 from .models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
                      Arbeitszeit, Abwesenheit, Team, Stempelung,
                      Kasse, Kassenmonat, Kassenbuchung, Zaehlprotokoll, Termin,
-                     WiederkehrendeLeistung)
+                     WiederkehrendeLeistung, Rechnung, Monatsfreigabe)
 
 
 @admin.register(WiederkehrendeLeistung)
@@ -60,7 +60,7 @@ class KlientAdmin(admin.ModelAdmin):
         ("Person", {"fields": ("nachname", "vorname", "geburtsdatum", "person_id")}),
         ("Team & Betreuung", {"fields": ("team", "bezugsbetreuer", "vertretung1", "vertretung2", "status")}),
         ("Fachleistungsstunden (pro Monat)", {"fields": ("al", "kle", "hbg")}),
-        ("Verwaltung", {"fields": ("kue_bis", "brp_bis", "versendet_am", "thfd", "kommentar")}),
+        ("Verwaltung", {"fields": ("kostentraeger", "kue_bis", "brp_bis", "versendet_am", "thfd", "kommentar")}),
     )
 
     @admin.display(description="FLS gesamt/Monat")
@@ -175,6 +175,29 @@ class TerminAdmin(admin.ModelAdmin):
     list_filter = ("mitarbeiter", "datum")
     date_hierarchy = "datum"
     autocomplete_fields = ("mitarbeiter", "klient")
+
+
+class MonatsfreigabeInline(admin.TabularInline):
+    model = Monatsfreigabe
+    extra = 0
+    fields = ("klient", "jahr", "monat", "status", "fls_summe", "betrag")
+    autocomplete_fields = ("klient",)
+
+
+@admin.register(Rechnung)
+class RechnungAdmin(admin.ModelAdmin):
+    list_display = ("nummer", "datum", "empfaenger", "monat_text", "betrag", "status")
+    list_filter = ("status", "jahr", "empfaenger")
+    search_fields = ("nummer", "empfaenger")
+    inlines = [MonatsfreigabeInline]
+
+
+@admin.register(Monatsfreigabe)
+class MonatsfreigabeAdmin(admin.ModelAdmin):
+    list_display = ("klient", "jahr", "monat", "status", "fls_summe", "betrag", "rechnung")
+    list_filter = ("status", "jahr", "monat")
+    search_fields = ("klient__nachname", "klient__vorname")
+    autocomplete_fields = ("klient", "rechnung")
 
 
 admin.site.site_header = "FEGH-Leistungsnachweis · Team TBEW"

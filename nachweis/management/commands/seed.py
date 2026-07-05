@@ -56,6 +56,10 @@ HBG_WERTE = {
 TAETIGKEITEN_FS = ["Hausbesuch", "direkte Betreuung", "Begleitung Amt", "Krisengespräch"]
 TAETIGKEITEN_WFS = ["Verlaufsdokumentation", "Fallbesprechung", "Bericht an THFD"]
 
+# frei erfundene Kostenträger (Rechnungsempfänger für die Abrechnung)
+BEZIRKE = ["Bezirksamt Mitte von Berlin", "Bezirksamt Pankow von Berlin",
+           "Bezirksamt Neukölln von Berlin", "Bezirksamt Charlottenburg-Wilmersdorf"]
+
 
 def _gruppe(name, modelle):
     """Django-Gruppe mit allen Rechten (add/change/delete/view) auf die genannten Modelle."""
@@ -95,7 +99,8 @@ class Command(BaseCommand):
 
         Parameter.objects.get_or_create(
             jahr=JAHR,
-            defaults=dict(teamsitzung_wochentag=3, teamsitzung_dauer_std=Decimal("3.0")))
+            defaults=dict(teamsitzung_wochentag=3, teamsitzung_dauer_std=Decimal("3.0"),
+                          fls_preis=Decimal("64.80")))
 
         # Rechte-Gruppen sicherstellen (auch für den Leerstart nötig)
         from nachweis.accounts import ensure_gruppen
@@ -188,6 +193,7 @@ class Command(BaseCommand):
                 team=team, bezugsbetreuer=bez, al=al, kle=kle, hbg=hbg, kue_bis=kue,
                 status=Status.BEENDIGUNG if i in (7, 18, 30) else Status.BETREUUNG,
                 person_id=f"BE-{100000 + i}",
+                kostentraeger=BEZIRKE[i % len(BEZIRKE)],
             )
             klienten.append(k)
         betreuer = [m for m in mitarbeiter if m.rolle == Rolle.USER and m.team != team_vw]
@@ -358,10 +364,41 @@ class Command(BaseCommand):
         Zaehlprotokoll.objects.create(monat=km, datum=date(JAHR, 6, 30),
                                       n50=1, n20=18, n10=13, m2=1, m005=1)
 
+        # Demo-Abrechnung (Juni 2026): Monatsfreigaben in verschiedenen Zuständen + eine Rechnung.
+        from nachweis.models import Monatsfreigabe, Freigabestatus
+        from nachweis import services as _svc
+        from django.utils import timezone as _tz2
+        MONAT_ABR = 6
+        jetzt = _tz2.now()
+        aktive_tbew = [k for k in klienten if k.status == Status.BETREUUNG and k.team == team_tbew]
+        muster = ([Freigabestatus.OFFEN] * 3 + [Freigabestatus.EINGEREICHT] * 3
+                  + [Freigabestatus.FREIGEGEBEN] * 4)
+        freigegeben = []
+        for k, st in zip(aktive_tbew, muster):
+            fls = _svc.druck_nachweis(k, JAHR, MONAT_ABR)["fls_summe"]
+            betrag = _svc.betrag_fuer(fls, JAHR)
+            mf = Monatsfreigabe.objects.create(
+                klient=k, jahr=JAHR, monat=MONAT_ABR, status=st,
+                fls_summe=(fls if st != Freigabestatus.OFFEN else Decimal("0")),
+                betrag=(betrag if st != Freigabestatus.OFFEN else Decimal("0")))
+            if st in (Freigabestatus.EINGEREICHT, Freigabestatus.FREIGEGEBEN):
+                mf.eingereicht_am, mf.eingereicht_von = jetzt, k.bezugsbetreuer
+            if st == Freigabestatus.FREIGEGEBEN:
+                mf.freigegeben_am, mf.freigegeben_von = jetzt, berger
+                freigegeben.append(mf)
+            mf.save()
+        n_rech = 0
+        if len(freigegeben) >= 2:
+            _svc.rechnung_erstellen(
+                freigegeben[:2], freigegeben[0].klient.kostentraeger or BEZIRKE[0],
+                JAHR, MONAT_ABR, date(JAHR, 7, 1), berger, notiz="Sammelrechnung (Demo)")
+            n_rech = 1
+
         self.stdout.write(self.style.SUCCESS(
             f"Fertig: {len(mitarbeiter)} Mitarbeiter, {len(klienten)} Klienten, "
             f"{n_leist} Leistungen, 2 Gruppen, {n_az} Arbeitszeiten, 3 Abwesenheiten, "
-            f"1 Kasse ({km.buchungen.count()} Buchungen, Endbestand {km.endbestand})."))
+            f"1 Kasse ({km.buchungen.count()} Buchungen, Endbestand {km.endbestand}), "
+            f"{len(muster)} Monatsfreigaben (Demo 06.2026), {n_rech} Rechnung."))
         self.stdout.write("Demo-Logins (Passwort: demo12345):")
         for m in mitarbeiter:
             self.stdout.write(f"  {m.user.username:12s} · {m.get_rolle_display():18s} · "

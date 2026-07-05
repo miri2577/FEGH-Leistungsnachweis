@@ -168,8 +168,10 @@ class Klient(models.Model):
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.BETREUUNG)
     brp_bis = models.DateField("BRP zu Teamleitung bis", null=True, blank=True)
     versendet_am = models.DateField("… versendet am", null=True, blank=True)
-    person_id = models.CharField("Person-ID", max_length=40, blank=True)
+    person_id = models.CharField("Person-ID / Aktenzeichen", max_length=40, blank=True)
     thfd = models.CharField("Zuständigkeit THFD", max_length=120, blank=True)
+    kostentraeger = models.CharField("Kostenträger", max_length=120, blank=True,
+                                     help_text="Bezirksamt / überörtlicher Träger – Rechnungsempfänger für die Abrechnung")
     kommentar = models.TextField(blank=True)
 
     class Meta:
@@ -671,3 +673,95 @@ class WiederkehrendeLeistung(models.Model):
                      "August", "September", "Oktober", "November", "Dezember"][self.monat_im_jahr]
             return f"{wann} im {monat}"
         return wann
+
+
+# ==========================================================================
+#  Abrechnung: Freigabe-Workflow (Monatsnachweis) + Rechnungen (Verwaltung)
+# ==========================================================================
+class Freigabestatus(models.TextChoices):
+    """Status des Monatsnachweises je Klient*in. MA stellt fertig, Leitung gibt
+    frei, Verwaltung rechnet ab. Jeder Schritt ist protokolliert (Festschreibung)."""
+    OFFEN = "offen", "offen"
+    EINGEREICHT = "eingereicht", "fertiggestellt (MA)"
+    FREIGEGEBEN = "freigegeben", "freigegeben (Leitung)"
+    ABGERECHNET = "abgerechnet", "abgerechnet"
+
+
+class Rechnungsstatus(models.TextChoices):
+    ENTWURF = "entwurf", "Entwurf"
+    GESTELLT = "gestellt", "gestellt"
+    BEZAHLT = "bezahlt", "bezahlt"
+    STORNIERT = "storniert", "storniert"
+
+
+class Rechnung(models.Model):
+    """Sammelrechnung an einen Kostenträger für einen Leistungsmonat.
+    Positionen = die freigegebenen Monatsnachweise (Monatsfreigabe)."""
+    nummer = models.CharField("Rechnungsnummer", max_length=20, unique=True)
+    empfaenger = models.CharField("Empfänger (Kostenträger)", max_length=120)
+    empfaenger_anschrift = models.TextField("Anschrift", blank=True)
+    jahr = models.PositiveIntegerField()
+    monat = models.PositiveSmallIntegerField()
+    datum = models.DateField("Rechnungsdatum")
+    betrag = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    status = models.CharField(max_length=10, choices=Rechnungsstatus.choices,
+                              default=Rechnungsstatus.ENTWURF)
+    notiz = models.CharField(max_length=255, blank=True)
+    erstellt_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True, blank=True,
+                                     related_name="rechnungen")
+    erstellt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Rechnung"
+        verbose_name_plural = "Rechnungen"
+        ordering = ["-datum", "-nummer"]
+
+    def __str__(self):
+        return f"{self.nummer} · {self.empfaenger} · {self.betrag} €"
+
+    @property
+    def monat_text(self) -> str:
+        return f"{self.monat:02d}.{self.jahr}"
+
+
+class Monatsfreigabe(models.Model):
+    """Freigabe-/Abrechnungsstatus eines Monatsnachweises (Klient*in × Monat).
+    Workflow: OFFEN → (MA) EINGEREICHT → (Leitung) FREIGEGEBEN → (Verwaltung) ABGERECHNET.
+    fls_summe/betrag werden beim Einreichen/Freigeben festgeschrieben (abrechnungsrelevant)."""
+    klient = models.ForeignKey(Klient, on_delete=models.PROTECT, related_name="freigaben")
+    jahr = models.PositiveIntegerField()
+    monat = models.PositiveSmallIntegerField()
+    status = models.CharField(max_length=12, choices=Freigabestatus.choices,
+                              default=Freigabestatus.OFFEN)
+    fls_summe = models.DecimalField("Σ FLS (festgeschrieben)", max_digits=8, decimal_places=3, default=0)
+    betrag = models.DecimalField("Betrag € (festgeschrieben)", max_digits=12, decimal_places=2, default=0)
+    hinweis = models.CharField("Hinweis (Rückweisung)", max_length=255, blank=True)
+    eingereicht_am = models.DateTimeField(null=True, blank=True)
+    eingereicht_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True, blank=True,
+                                        related_name="+")
+    freigegeben_am = models.DateTimeField(null=True, blank=True)
+    freigegeben_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True, blank=True,
+                                        related_name="+")
+    abgerechnet_am = models.DateTimeField(null=True, blank=True)
+    rechnung = models.ForeignKey(Rechnung, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name="positionen")
+    geaendert = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Monatsfreigabe"
+        verbose_name_plural = "Monatsfreigaben"
+        ordering = ["-jahr", "-monat", "klient__nachname"]
+        constraints = [models.UniqueConstraint(fields=["klient", "jahr", "monat"],
+                                               name="eine_freigabe_pro_klient_monat")]
+
+    def __str__(self):
+        return f"{self.klient} · {self.monat:02d}.{self.jahr} · {self.get_status_display()}"
+
+    @property
+    def monat_text(self) -> str:
+        return f"{self.monat:02d}.{self.jahr}"
+
+    @property
+    def ist_gesperrt(self) -> bool:
+        """Nachweis festgeschrieben (nicht mehr durch MA änderbar)?"""
+        return self.status in (Freigabestatus.FREIGEGEBEN, Freigabestatus.ABGERECHNET)

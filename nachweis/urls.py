@@ -1,7 +1,8 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
-from . import views, views_2fa, views_onboarding, views_stammdaten, views_kasse
+from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse,
+               views_abrechnung)
 
 app_name = "nachweis"
 
@@ -41,6 +42,16 @@ urlpatterns = [
     # Arbeitszeit-Freigaben (Leitung)
     path("arbeitszeit/freigaben/", views.arbeitszeit_freigaben, name="arbeitszeit_freigaben"),
     path("arbeitszeit/status/", views.arbeitszeit_status, name="arbeitszeit_status"),
+
+    # Abrechnung (Freigabe-Workflow MA→Leitung→Verwaltung + Rechnungen)
+    path("abrechnung/", views_abrechnung.abrechnung, name="abrechnung"),
+    path("abrechnung/aktion/", views_abrechnung.freigabe_aktion, name="freigabe_aktion"),
+    path("rechnungen/", views_abrechnung.rechnungen, name="rechnungen"),
+    path("rechnungen/neu/", views_abrechnung.rechnung_neu, name="rechnung_neu"),
+    path("rechnungen/<int:pk>/", views_abrechnung.rechnung_detail, name="rechnung_detail"),
+    path("rechnungen/<int:pk>/pdf/", views_abrechnung.rechnung_pdf, name="rechnung_pdf"),
+    path("rechnungen/<int:pk>/csv/", views_abrechnung.rechnung_csv, name="rechnung_csv"),
+    path("rechnungen/<int:pk>/status/", views_abrechnung.rechnung_status, name="rechnung_status"),
 
     # Kasse (Kassenbuch + Zählprotokoll)
     path("kasse/", views_kasse.kasse, name="kasse"),

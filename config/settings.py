@@ -186,6 +186,9 @@ EMAIL_AKTIV = bool(EMAIL_HOST) or EMAIL_BACKEND.endswith("console.EmailBackend")
 # Externes Wiki (Material for MkDocs, GitHub Pages) – Link in der Sidebar
 WIKI_URL = os.environ.get("WIKI_URL", "https://miri2577.github.io/FEGH-Leistungsnachweis/")
 
+# Absender (Trägeranschrift) auf Rechnungen – mehrzeilig via Env (\n). Leer = Platzhalter.
+RECHNUNG_ABSENDER = os.environ.get("RECHNUNG_ABSENDER", "").replace("\\n", "\n")
+
 # Zwei-Faktor (django-otp / TOTP)
 OTP_TOTP_ISSUER = "FEGH-Leistungsnachweis"     # Anzeigename in der Authenticator-App
 # Prototyp: 0 = optional (Opt-in, wer ein Gerät einrichtet wird gefragt).

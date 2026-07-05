@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<style>
+  @page{size:A4;margin:20mm 18mm}
+  body{font-family:"Segoe UI",Arial,sans-serif;color:#1e2a37;font-size:11pt}
+  .top{display:flex;justify-content:space-between;gap:24px}
+  .abs{font-size:8.5pt;color:#666;white-space:pre-line;line-height:1.5;max-width:55%}
+  .to{font-size:11pt;line-height:1.6}
+  .to .lbl{font-size:8pt;color:#888;text-transform:uppercase;letter-spacing:.4px}
+  h2{font-size:16pt;color:#0e7490;margin:26px 0 4px}
+  .meta{margin:6px 0 16px;font-size:10pt;line-height:1.7}
+  .meta b{color:#555}
+  table{width:100%;border-collapse:collapse;font-size:10pt;margin:8px 0}
+  th,td{border:1px solid #bcd;padding:5px 8px}
+  th{background:#eef4fa;text-align:left}
+  td.num,th.num{text-align:right}
+  tr.sum td{background:#0e7490;color:#fff;font-weight:700}
+  .legal{margin-top:18px;color:#666;font-size:8.5pt;line-height:1.6}
+</style></head>
+<body>
+  <div class="top">
+    <div class="abs">{% if absender %}{{ absender }}{% else %}[ Trägeranschrift – über RECHNUNG_ABSENDER konfigurierbar ]{% endif %}</div>
+    <div class="to">
+      <div class="lbl">Rechnungsempfänger</div>
+      <b>{{ r.empfaenger }}</b>{% if r.empfaenger_anschrift %}<br>{{ r.empfaenger_anschrift|linebreaksbr }}{% endif %}
+    </div>
+  </div>
+
+  <h2>Rechnung {{ r.nummer }}</h2>
+  <div class="meta">
+    <b>Rechnungsdatum:</b> {{ r.datum|date:"d.m.Y" }} &nbsp;&nbsp;
+    <b>Leistungszeitraum:</b> {{ monatsname }} {{ r.jahr }}<br>
+    <b>Leistung:</b> Fachleistungsstunden Eingliederungshilfe (SGB IX)
+  </div>
+
+  <table>
+    <thead><tr><th>Klient*in</th><th style="width:150px">Aktenzeichen</th>
+      <th class="num" style="width:90px">Σ FLS</th><th class="num" style="width:110px">Betrag</th></tr></thead>
+    <tbody>
+      {% for p in positionen %}
+      <tr><td>{{ p.name }}</td><td>{{ p.az|default:"—" }}</td>
+        <td class="num">{{ p.fls|floatformat:2 }}</td><td class="num">{{ p.betrag|floatformat:2 }} €</td></tr>
+      {% empty %}<tr><td colspan="4" style="text-align:center">Keine Positionen.</td></tr>{% endfor %}
+      <tr class="sum"><td colspan="3">Gesamtbetrag</td><td class="num">{{ r.betrag|floatformat:2 }} €</td></tr>
+    </tbody>
+  </table>
+
+  {% if r.notiz %}<p style="font-size:9.5pt;color:#555">Notiz: {{ r.notiz }}</p>{% endif %}
+  <p class="legal">Leistung nach SGB IX (Eingliederungshilfe), Abrechnung in Fachleistungsstunden.
+    Umsatzsteuerbefreit gem. § 4 Nr. 16 UStG (soweit zutreffend – Trägerangabe).
+    Elektronische Übermittlung (XRechnung/Fachverfahren) nach Abstimmung mit dem Kostenträger.</p>
+</body></html>

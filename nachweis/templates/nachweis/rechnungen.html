@@ -1,0 +1,92 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Rechnungen · FEGH{% endblock %}
+
+{% block extrastyle %}
+  table.abr{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--card);
+    border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  table.abr th,table.abr td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left}
+  table.abr thead th{background:var(--bg-2);font-size:12.5px;color:var(--muted)}
+  table.abr td.num,table.abr th.num{text-align:right;font-variant-numeric:tabular-nums}
+  table.abr tr:last-child td{border-bottom:0}
+  .kt-card{border:1px solid var(--border);border-radius:12px;background:var(--card);margin:14px 0;overflow:hidden}
+  .kt-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+    padding:11px 14px;background:var(--bg-2);border-bottom:1px solid var(--line)}
+  .kt-head h3{margin:0;font-size:14.5px;color:var(--brand-d)}
+  .kt-head .sum{font-variant-numeric:tabular-nums;font-weight:700}
+  .kt-form{display:flex;gap:8px;flex-wrap:wrap;align-items:end;padding:12px 14px;border-top:1px solid var(--line)}
+  .kt-form label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+  .kt-form input{padding:6px 9px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit}
+  .st{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
+  .st-entwurf{background:#eef2f5;color:#51606e}
+  .st-gestellt{background:var(--brand-soft);color:var(--brand-d)}
+  .st-bezahlt{background:#dcfce7;color:#166534}
+  .st-storniert{background:#fee2e2;color:#b91c1c;text-decoration:line-through}
+  .dsgvo{color:var(--muted);font-size:12px;margin:2px 2px 0}
+{% endblock %}
+
+{% block content %}
+  <h1 class="page">Rechnungen</h1>
+  <p class="sub">Freigegebene Monatsnachweise zu Sammelrechnungen bündeln und abrechnen.</p>
+  <p class="dsgvo">Datenschutz: Die Verwaltung sieht hier ausschließlich Abrechnungsdaten (Name, Aktenzeichen, Kostenträger, FLS, Betrag) – keine Tätigkeits-Dokumentation.</p>
+
+  <div class="panel" style="margin-top:12px">
+    <div class="head">
+      <h2>Zeitraum {{ monatsname }} {{ jahr }}</h2>
+      <form class="filter" method="get">
+        <select name="monat">{% for m in monate %}<option value="{{ m }}"{% if m == monat %} selected{% endif %}>{{ m }}</option>{% endfor %}</select>
+        <select name="jahr">{% for j in jahre %}<option value="{{ j }}"{% if j == jahr %} selected{% endif %}>{{ j }}</option>{% endfor %}</select>
+        <button class="btn" type="submit">Anzeigen</button>
+      </form>
+    </div>
+  </div>
+
+  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:9px 14px;border-radius:9px;margin:12px 0">{{ msg }}</div>{% endfor %}
+
+  <h2 style="font-size:16px;margin:20px 0 4px">Bereit zur Abrechnung <span class="muted" style="font-weight:400;font-size:14px">· {{ offen_summe|floatformat:2 }} €</span></h2>
+  {% for g in gruppen %}
+  <div class="kt-card">
+    <div class="kt-head">
+      <h3>{{ g.kostentraeger }}</h3>
+      <span class="sum">{{ g.zeilen|length }} Nachweis(e) · {{ g.summe|floatformat:2 }} €</span>
+    </div>
+    <table class="abr" style="border:0;border-radius:0">
+      <thead><tr><th>Klient*in</th><th>Aktenzeichen</th><th>Bezugsbetreuer*in</th><th class="num">Σ FLS</th><th class="num">Betrag</th></tr></thead>
+      <tbody>
+        {% for z in g.zeilen %}
+        <tr><td>{{ z.name }}</td><td>{{ z.az|default:"—" }}</td><td>{{ z.betreuer|default:"—" }}</td>
+          <td class="num">{{ z.fls|floatformat:2 }}</td><td class="num">{{ z.betrag|floatformat:2 }} €</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <form class="kt-form" method="post" action="{% url 'nachweis:rechnung_neu' %}">{% csrf_token %}
+      <input type="hidden" name="ids" value="{{ g.ids }}">
+      <label>Empfänger<input name="empfaenger" value="{{ g.kostentraeger }}" style="width:220px"></label>
+      <label>Rechnungsdatum<input type="date" name="datum" value="{{ heute }}"></label>
+      <label>Notiz (optional)<input name="notiz" style="width:220px" placeholder="z. B. Leistungszeitraum"></label>
+      <button class="btn" type="submit">Rechnung erstellen</button>
+    </form>
+  </div>
+  {% empty %}
+  <p class="note">Für diesen Monat sind keine freigegebenen Nachweise offen. Sobald die Leitung Nachweise freigibt, erscheinen sie hier.</p>
+  {% endfor %}
+
+  <h2 style="font-size:16px;margin:26px 0 4px">Rechnungen</h2>
+  <table class="abr">
+    <thead><tr><th>Nummer</th><th>Datum</th><th>Empfänger</th><th>Zeitraum</th><th class="num">Betrag</th><th>Status</th><th style="width:1%">—</th></tr></thead>
+    <tbody>
+      {% for r in rechnungen %}
+      <tr>
+        <td><a href="{% url 'nachweis:rechnung_detail' r.id %}">{{ r.nummer }}</a></td>
+        <td>{{ r.datum|date:"d.m.Y" }}</td>
+        <td>{{ r.empfaenger }}</td>
+        <td>{{ r.monat_text }}</td>
+        <td class="num">{{ r.betrag|floatformat:2 }} €</td>
+        <td><span class="st st-{{ r.status }}">{{ r.get_status_display }}</span></td>
+        <td style="white-space:nowrap"><a class="btn ghost xs" href="{% url 'nachweis:rechnung_detail' r.id %}">Öffnen</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Noch keine Rechnungen.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

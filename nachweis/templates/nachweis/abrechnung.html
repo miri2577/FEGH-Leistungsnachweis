@@ -1,0 +1,101 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Abrechnung / Freigabe · FEGH{% endblock %}
+
+{% block extrastyle %}
+  table.abr{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--card);
+    border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  table.abr th,table.abr td{border-bottom:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:middle}
+  table.abr thead th{background:var(--bg-2);font-size:12.5px;color:var(--muted)}
+  table.abr td.num{text-align:right;font-variant-numeric:tabular-nums}
+  table.abr tr:last-child td{border-bottom:0}
+  .st{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+  .st-offen{background:#eef2f5;color:#51606e}
+  .st-eingereicht{background:#fff3d6;color:#8a5a00}
+  .st-freigegeben{background:var(--brand-soft);color:var(--brand-d)}
+  .st-abgerechnet{background:#dcfce7;color:#166534}
+  .abr-act{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .abr-act form{display:inline-flex;gap:5px;align-items:center;margin:0}
+  .abr-act input.hinweis{width:130px;padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px}
+  .btn.xs{padding:5px 10px;font-size:12.5px}
+  .abr-sum{display:flex;gap:10px 22px;flex-wrap:wrap;margin:14px 2px 0;font-size:13.5px}
+  .abr-sum b{color:var(--brand-d)}
+  .hint-back{color:#8a5a00;font-size:12px;margin-top:3px}
+{% endblock %}
+
+{% block content %}
+  <h1 class="page">Abrechnung / Freigabe</h1>
+  <p class="sub">Monatsnachweise fertig melden, prüfen und freigeben. {% if kann_freigeben %}Als Leitung gibst du die Nachweise deines Teams frei.{% else %}Melde deine fertigen Nachweise – die Leitung gibt sie frei.{% endif %}</p>
+
+  <div class="panel">
+    <div class="head">
+      <h2>{{ monatsname }} {{ jahr }}</h2>
+      <form class="filter" method="get">
+        <select name="monat">{% for m in monate %}<option value="{{ m }}"{% if m == monat %} selected{% endif %}>{{ m }}</option>{% endfor %}</select>
+        <select name="jahr">{% for j in jahre %}<option value="{{ j }}"{% if j == jahr %} selected{% endif %}>{{ j }}</option>{% endfor %}</select>
+        <button class="btn" type="submit">Anzeigen</button>
+      </form>
+    </div>
+  </div>
+
+  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:9px 14px;border-radius:9px;margin:12px 0">{{ msg }}</div>{% endfor %}
+
+  <table class="abr" style="margin-top:14px">
+    <thead><tr>
+      <th>Klient*in</th><th>Bezugsbetreuer*in</th>
+      <th class="num">Σ FLS</th><th class="num">Betrag</th><th>Status</th><th style="width:1%">Aktion</th>
+    </tr></thead>
+    <tbody>
+      {% for z in zeilen %}
+      <tr>
+        <td>
+          <a href="{% url 'nachweis:druck' %}?klient={{ z.klient.id }}&monat={{ monat }}&jahr={{ jahr }}" title="Einzelnachweis ansehen">{{ z.klient.name }}</a>
+          {% if z.status == 'offen' and z.hinweis %}<div class="hint-back">↩ zurückgewiesen: {{ z.hinweis }}</div>{% endif %}
+        </td>
+        <td>{{ z.betreuer.name|default:"—" }}</td>
+        <td class="num">{{ z.fls|floatformat:2 }}</td>
+        <td class="num">{{ z.betrag|floatformat:2 }} €</td>
+        <td>
+          {% if z.status == 'offen' %}<span class="st st-offen">offen</span>
+          {% elif z.status == 'eingereicht' %}<span class="st st-eingereicht">fertig gemeldet</span>
+          {% elif z.status == 'freigegeben' %}<span class="st st-freigegeben">freigegeben</span>
+          {% else %}<span class="st st-abgerechnet">abgerechnet</span>{% endif %}
+        </td>
+        <td>
+          <div class="abr-act">
+          {% if z.status == 'offen' %}
+            <form method="post" action="{% url 'nachweis:freigabe_aktion' %}">{% csrf_token %}
+              <input type="hidden" name="klient" value="{{ z.klient.id }}"><input type="hidden" name="jahr" value="{{ jahr }}"><input type="hidden" name="monat" value="{{ monat }}">
+              <button class="btn xs" name="aktion" value="fertig" type="submit">Fertig melden</button></form>
+          {% elif z.status == 'eingereicht' %}
+            <form method="post" action="{% url 'nachweis:freigabe_aktion' %}">{% csrf_token %}
+              <input type="hidden" name="klient" value="{{ z.klient.id }}"><input type="hidden" name="jahr" value="{{ jahr }}"><input type="hidden" name="monat" value="{{ monat }}">
+              <button class="btn xs ghost" name="aktion" value="zurueckholen" type="submit" title="zurück in Bearbeitung">Zurückholen</button></form>
+            {% if kann_freigeben %}
+            <form method="post" action="{% url 'nachweis:freigabe_aktion' %}">{% csrf_token %}
+              <input type="hidden" name="klient" value="{{ z.klient.id }}"><input type="hidden" name="jahr" value="{{ jahr }}"><input type="hidden" name="monat" value="{{ monat }}">
+              <button class="btn xs" name="aktion" value="freigeben" type="submit">Freigeben</button></form>
+            <form method="post" action="{% url 'nachweis:freigabe_aktion' %}">{% csrf_token %}
+              <input type="hidden" name="klient" value="{{ z.klient.id }}"><input type="hidden" name="jahr" value="{{ jahr }}"><input type="hidden" name="monat" value="{{ monat }}">
+              <input class="hinweis" name="hinweis" placeholder="Grund (optional)">
+              <button class="btn xs ghost" name="aktion" value="zurueckweisen" type="submit" style="color:var(--bad)">Zurückweisen</button></form>
+            {% endif %}
+          {% elif z.status == 'freigegeben' %}
+            {% if kann_freigeben %}
+            <form method="post" action="{% url 'nachweis:freigabe_aktion' %}">{% csrf_token %}
+              <input type="hidden" name="klient" value="{{ z.klient.id }}"><input type="hidden" name="jahr" value="{{ jahr }}"><input type="hidden" name="monat" value="{{ monat }}">
+              <button class="btn xs ghost" name="aktion" value="freigabe_zuruecknehmen" type="submit">Freigabe zurücknehmen</button></form>
+            {% else %}<span class="muted" style="font-size:12px">wartet auf Verwaltung</span>{% endif %}
+          {% else %}<span class="muted" style="font-size:12px">abgeschlossen</span>{% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:22px">Keine Klient*innen in deinem Zugriff.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if zeilen %}
+  <div class="abr-sum"><span class="muted">Monatssumme (alle sichtbaren):</span> <b>{{ summe|floatformat:2 }} €</b></div>
+  {% endif %}
+{% endblock %}

@@ -117,6 +117,7 @@ def klient_speichern(request):
     k.status = status if status in Status.values else Status.BETREUUNG
     k.person_id = (request.POST.get("person_id") or "").strip()
     k.thfd = (request.POST.get("thfd") or "").strip()
+    k.kostentraeger = (request.POST.get("kostentraeger") or "").strip()
     k.kommentar = (request.POST.get("kommentar") or "").strip()
     k.save()
     messages.success(request, f"{k.name} gespeichert.")
