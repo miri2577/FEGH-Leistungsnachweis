@@ -82,6 +82,20 @@ class TeamIsolationTests(TestCase):
         self.cl(self.uA).post("/kalender/delete/", {"id": t.id, "jahr": 2026, "kw": 27})
         self.assertTrue(Termin.objects.filter(id=t.id).exists())     # nicht gelöscht
 
+    def test_termin_move_eigenes(self):
+        t = Termin.objects.create(mitarbeiter=self.mA, datum=date(2026, 7, 1), beginn=time(10, 0))
+        r = self.cl(self.uA).post("/kalender/move/", {"id": t.id, "datum": "2026-07-03"})
+        self.assertEqual(r.status_code, 200)
+        t.refresh_from_db()
+        self.assertEqual(t.datum, date(2026, 7, 3))
+
+    def test_termin_move_fremd_verboten(self):
+        t = Termin.objects.create(mitarbeiter=self.mB, datum=date(2026, 7, 1), beginn=time(10, 0))
+        r = self.cl(self.uA).post("/kalender/move/", {"id": t.id, "datum": "2026-07-03"})
+        self.assertEqual(r.status_code, 403)
+        t.refresh_from_db()
+        self.assertEqual(t.datum, date(2026, 7, 1))    # unverändert (nur eigene verschiebbar)
+
     def test_kalender_nur_eigenes_team(self):
         r = self.cl(self.uA).get("/kalender/")
         self.assertContains(r, "Anna")        # eigenes Team

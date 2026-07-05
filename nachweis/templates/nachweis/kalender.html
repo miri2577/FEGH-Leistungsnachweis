@@ -61,6 +61,14 @@
   .tform label.full{grid-column:1 / -1} .tform label.w2{grid-column:span 2} .tform label.w3{grid-column:span 3}
   .tform input,.tform select{padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13.5px}
   @media(max-width:820px){.tform{grid-template-columns:repeat(2,1fr)}.tform label.w2,.tform label.w3{grid-column:span 1}}
+  /* Serien-Chips + Drag & Drop */
+  .ev.serie{border:1px dashed rgba(0,0,0,.28);font-style:italic}
+  .serienrow td.maz{font-size:12px;color:var(--muted);font-weight:600}
+  .serienrow td.day{background:var(--bg-2)}
+  .ev[draggable="true"]{cursor:grab}
+  .ev.dragging{opacity:.4}
+  td.day.drop-hi{outline:2px dashed var(--brand);outline-offset:-2px;background:var(--brand-soft)}
+  .drag-hint{font-size:11.5px;color:var(--muted);margin:8px 2px 0}
 {% endblock %}
 
 {% block content %}
@@ -114,12 +122,22 @@
         {% for t in tage %}<th class="{% if t.we %}we{% endif %}{% if t.datum|date:'Y-m-d' == today %} today{% endif %}">{{ t.wd }}<br><span class="dnum">{{ t.datum|date:"d.m." }}</span></th>{% endfor %}
       </tr></thead>
       <tbody>
+        {% if woche_hat_serien %}
+        <tr class="serienrow">
+          <td class="maz">Serien</td>
+          {% for t in tage %}
+          <td class="day {% if t.we %}we{% endif %}">
+            {% for s in t.serien %}<span class="ev serie" style="background:{{ s.farbe }}" title="{{ s.bezeichnung }} · {{ s.art }}">{{ s.bezeichnung }}</span>{% endfor %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endif %}
         {% for row in rows %}
         <tr class="{% if row.ich %}ich{% endif %}">
           <td class="maz">{{ row.m.name }}{% if row.m.vorname %}, {{ row.m.vorname }}{% endif %}{% if row.ich %} <span class="muted" style="font-weight:400">(ich)</span>{% endif %}</td>
           {% for z in row.zellen %}
-          <td class="day {% if z.we %}we{% endif %}">
-            {% for t in z.termine %}{% if row.ich %}<a class="ev" style="background:{{ t.farbe }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form" title="{{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}{% if t.ort %} · {{ t.ort }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</a>{% else %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.zeit }}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endif %}{% endfor %}
+          <td class="day {% if z.we %}we{% endif %}"{% if row.ich %} data-datum="{{ z.datum|date:'Y-m-d' }}" data-drop="1"{% endif %}>
+            {% for t in z.termine %}{% if row.ich %}<a class="ev" draggable="true" data-termin="{{ t.id }}" style="background:{{ t.farbe }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form" title="{{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}{% if t.ort %} · {{ t.ort }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</a>{% else %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.zeit }}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endif %}{% endfor %}
             {% if row.ich %}<a class="addcell" href="?{{ nav_self }}{{ filter_qs }}&tag={{ z.datum|date:'Y-m-d' }}#form" title="Termin eintragen">＋</a>{% endif %}
           </td>
           {% endfor %}
@@ -128,9 +146,16 @@
       </tbody>
     </table>
   </div>
+  <p class="drag-hint">Tipp: eigene Termine per Ziehen auf einen anderen Tag verschieben.</p>
 
   {# ---------------- TAG ---------------- #}
   {% elif ansicht == 'tag' %}
+  {% if tag_serien %}
+  <div class="tagcard serie-card" style="margin-bottom:12px;max-width:100%">
+    <div class="h"><span>Serientermine</span></div>
+    <div class="b" style="flex-direction:row;flex-wrap:wrap">{% for s in tag_serien %}<span class="ev serie" style="background:{{ s.farbe }}">{{ s.bezeichnung }} <span class="muted">· {{ s.art }}</span></span>{% endfor %}</div>
+  </div>
+  {% endif %}
   <div class="tagcards">
     {% for s in tag_spalten %}
     <div class="tagcard {% if s.ich %}ich{% endif %}">
@@ -162,6 +187,7 @@
           <td class="{% if not tag.im_monat %}out{% endif %}{% if tag.heute %} today{% endif %}">
             <span class="mn">{{ tag.datum|date:"j" }}</span>
             {% for t in tag.termine %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.mitarbeiter.name }} · {{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endfor %}
+            {% for s in tag.serien %}<span class="ev serie" style="background:{{ s.farbe }}" title="{{ s.bezeichnung }}">{{ s.bezeichnung }}</span>{% endfor %}
           </td>
           {% endfor %}
         </tr>
@@ -221,5 +247,36 @@
 <script>
   document.getElementById('fs-toggle').addEventListener('click', () => document.body.classList.toggle('kal-fs'));
   document.addEventListener('keydown', (e) => { if(e.key === 'Escape') document.body.classList.remove('kal-fs'); });
+
+  // Drag & Drop: eigene Termine im Wochen-Kalender auf einen anderen Tag ziehen
+  (function(){
+    var dragged = null;
+    var MOVE = "{% url 'nachweis:termin_move' %}";
+    var CSRF = "{{ csrf_token }}";
+    document.querySelectorAll('.ev[draggable="true"]').forEach(function(ev){
+      ev.addEventListener('dragstart', function(e){
+        dragged = ev; ev.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', ev.getAttribute('data-termin'));
+      });
+      ev.addEventListener('dragend', function(){ ev.classList.remove('dragging'); dragged = null; });
+    });
+    document.querySelectorAll('td.day[data-drop="1"]').forEach(function(cell){
+      cell.addEventListener('dragover', function(e){ if(dragged){ e.preventDefault(); cell.classList.add('drop-hi'); } });
+      cell.addEventListener('dragleave', function(){ cell.classList.remove('drop-hi'); });
+      cell.addEventListener('drop', function(e){
+        e.preventDefault(); cell.classList.remove('drop-hi');
+        if(!dragged) return;
+        var id = dragged.getAttribute('data-termin'), datum = cell.getAttribute('data-datum'), chip = dragged;
+        var add = cell.querySelector('.addcell');
+        if(add){ cell.insertBefore(chip, add); } else { cell.appendChild(chip); }   // optimistisch
+        var body = new URLSearchParams({id: id, datum: datum});
+        fetch(MOVE, {method:'POST', headers:{'X-CSRFToken':CSRF,'Content-Type':'application/x-www-form-urlencoded'}, body:body})
+          .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+          .then(function(j){ if(!j.ok) throw 0; })
+          .catch(function(){ alert('Verschieben fehlgeschlagen – die Seite wird neu geladen.'); location.reload(); });
+      });
+    });
+  })();
 </script>
 {% endblock %}

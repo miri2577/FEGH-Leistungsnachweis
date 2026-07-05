@@ -15,7 +15,7 @@ from django.views.decorators.http import require_POST
 from . import services
 from .models import (Mitarbeiter, Team, Leistung, Gruppe, Klient, Leistungsart,
                      Arbeitszeit, Abwesenheit, AbwesenheitArt, AbwesenheitStatus,
-                     Genehmigungsstatus, Termin)
+                     Genehmigungsstatus, Termin, WiederkehrendeLeistung)
 
 MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
                "August", "September", "Oktober", "November", "Dezember"]
@@ -607,6 +607,16 @@ def _kalender_kontext(request):
     klienten_used = {t.klient_id: t.klient for t in termine if t.klient_id}
     legende = sorted(klienten_used.values(), key=lambda k: k.nachname.lower())
 
+    # Wiederkehrende Serien (im Kalender sichtbar) im Zeitraum -> je Datum
+    team_ids = set(team_qs.values_list("id", flat=True))
+    serien_by_date = defaultdict(list)
+    for wl in WiederkehrendeLeistung.objects.filter(aktiv=True, im_kalender=True):
+        if wl.team_id and wl.team_id not in team_ids:
+            continue
+        for d in services.serientermine(wl, von, bis):
+            serien_by_date[d].append({"bezeichnung": wl.bezeichnung, "farbe": wl.farbe,
+                                      "art": wl.get_leistungsart_display()})
+
     # Filter-Querystring für view-erhaltende Navigations-Links
     fq = "".join(f"&{k}={v}" for k, v in (("team", team_id), ("mitarbeiter", ma_id), ("klient", kl_id)) if v)
 
@@ -623,7 +633,8 @@ def _kalender_kontext(request):
         matrix = defaultdict(lambda: defaultdict(list))
         for t in termine:
             matrix[t.mitarbeiter_id][(t.datum - von).days].append(t)
-        tage = [{"datum": von + timedelta(days=i), "wd": WOCHENTAGE[i], "we": i >= 5} for i in range(7)]
+        tage = [{"datum": von + timedelta(days=i), "wd": WOCHENTAGE[i], "we": i >= 5,
+                 "serien": serien_by_date.get(von + timedelta(days=i), [])} for i in range(7)]
         rows = [{"m": m, "ich": bool(me and m.id == me.id),
                  "zellen": [{"datum": tage[i]["datum"], "we": tage[i]["we"],
                              "termine": matrix[m.id].get(i, [])} for i in range(7)]}
@@ -633,6 +644,7 @@ def _kalender_kontext(request):
         p = (jahr, kw - 1) if kw > 1 else (jahr - 1, date(jahr - 1, 12, 28).isocalendar()[1])
         n = (jahr, kw + 1) if kw < n_weeks else (jahr + 1, 1)
         ctx.update(tage=tage, rows=rows, kw=kw, mo=von, so=bis,
+                   woche_hat_serien=any(t["serien"] for t in tage),
                    nav_prev=f"ansicht=woche&jahr={p[0]}&kw={p[1]}",
                    nav_next=f"ansicht=woche&jahr={n[0]}&kw={n[1]}",
                    nav_heute="ansicht=woche")
@@ -640,7 +652,7 @@ def _kalender_kontext(request):
         tag_spalten = [{"m": m, "ich": bool(me and m.id == me.id),
                         "termine": [t for t in termine if t.mitarbeiter_id == m.id]}
                        for m in mitarbeiter]
-        ctx.update(tag_spalten=tag_spalten, tag=von,
+        ctx.update(tag_spalten=tag_spalten, tag=von, tag_serien=serien_by_date.get(von, []),
                    nav_prev=f"ansicht=tag&tag={(von - timedelta(days=1)).isoformat()}",
                    nav_next=f"ansicht=tag&tag={(von + timedelta(days=1)).isoformat()}",
                    nav_heute="ansicht=tag")
@@ -652,7 +664,8 @@ def _kalender_kontext(request):
         wochen, d = [], von
         while d <= bis:
             wochen.append([{"datum": d, "im_monat": d.month == monat, "heute": d == heute,
-                            "termine": by_day.get(d, [])} for d in (d + timedelta(days=i) for i in range(7))])
+                            "termine": by_day.get(d, []), "serien": serien_by_date.get(d, [])}
+                           for d in (d + timedelta(days=i) for i in range(7))])
             d += timedelta(days=7)
         pm = (jahr, monat - 1) if monat > 1 else (jahr - 1, 12)
         nm = (jahr, monat + 1) if monat < 12 else (jahr + 1, 1)
@@ -725,6 +738,22 @@ def termin_delete(request):
             t.delete()
             messages.success(request, "Termin gelöscht.")
     return redirect(_kalender_ziel(request))
+
+
+@require_POST
+@login_required
+def termin_move(request):
+    """Termin per Drag & Drop auf ein anderes Datum verschieben (nur eigene)."""
+    me = services.mitarbeiter_fuer(request.user)
+    t = Termin.objects.filter(pk=request.POST.get("id"), mitarbeiter=me).first() if me else None
+    if not t:
+        return HttpResponseForbidden()
+    try:
+        t.datum = date.fromisoformat(request.POST.get("datum"))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False}, status=400)
+    t.save(update_fields=["datum"])
+    return JsonResponse({"ok": True})
 
 
 @login_required
