@@ -32,7 +32,8 @@ Betroffene Dateien im Repo:
 |---|---|---|
 | `deploy/backup.sh` | Nächtliches Backup + Rotation | ja |
 | `deploy/restore-test.sh` | Vierteljährlicher Restore-Test | ja |
-| `deploy/age-recipient.txt` | Öffentlicher age-Key (Recipient) | **nein** (gitignored) |
+| `deploy/age-recipient.txt` | Öffentlicher age-Key (Einzel-Recipient) | **nein** (gitignored) |
+| `deploy/age-recipients.txt` | Öffentliche age-Keys (mehrere, Bus-Faktor) | **nein** (gitignored) |
 | `deploy/backups/*.sql.age` | Verschlüsselte Backups | **nein** (gitignored) |
 | `~/age-key.txt` | Privater Schlüssel (nur temporär beim Restore) | **niemals** |
 
@@ -101,14 +102,28 @@ echo 'age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p' \
 export AGE_RECIPIENT='age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p'
 ```
 
-Das Script liest den Recipient in dieser Reihenfolge (siehe `deploy/backup.sh`):
-
-```bash
-AGE_RECIPIENT="${AGE_RECIPIENT:-$(cat "$(dirname "$0")/age-recipient.txt" 2>/dev/null || true)}"
-```
+Das Script liest die Empfänger in dieser Reihenfolge (siehe `deploy/backup.sh`): `AGE_RECIPIENTS` (Env, mehrere durch Leerzeichen/Zeilenumbruch) → `deploy/age-recipients.txt` (eine Zeile je Key) → `AGE_RECIPIENT` bzw. `deploy/age-recipient.txt` (Einzelschlüssel, abwärtskompatibel).
 
 !!! warning "Platzhalter zählt nicht"
-    Das Script bricht bewusst ab, wenn kein Recipient gesetzt ist **oder** noch der Platzhalter `age1DEIN_PUBLIC_KEY` drinsteht. So kann kein „Backup" entstehen, das in Wahrheit gar nicht sinnvoll verschlüsselt wurde.
+    Das Script bricht bewusst ab, wenn kein gültiger Recipient gesetzt ist **oder** nur der Platzhalter `age1DEIN_PUBLIC_KEY` drinsteht. So kann kein „Backup" entstehen, das in Wahrheit gar nicht sinnvoll verschlüsselt wurde.
+
+### 4. Bus-Faktor: zweiter Empfänger (empfohlen vor Echtbetrieb)
+
+Hängen Betrieb und der einzige private Schlüssel an einer Person, sind bei deren Ausfall **plus** Serververlust alle Backups unwiederbringlich. `age` kann eine Datei an **mehrere Empfänger** gleichzeitig verschlüsseln – jede\*r mit einem der zugehörigen privaten Schlüssel kann sie entschlüsseln. Lege dafür einen zweiten Schlüssel an (z. B. für die Trägerleitung) und trage **beide öffentlichen** Keys ein, einen je Zeile:
+
+```bash
+cat > /srv/fegh/deploy/age-recipients.txt <<'EOF'
+# Betrieb – privater Key im Passwort-Manager
+age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+# Träger-Notfallschlüssel – privater Key versiegelt im Safe
+age1TRAEGER_PUBLIC_KEY
+EOF
+```
+
+Den **privaten** Träger-Schlüssel auf einem sicheren Rechner mit `age-keygen` erzeugen, ausdrucken bzw. auf einen verschlüsselten Datenträger legen und **versiegelt beim Träger** hinterlegen – er kommt nie auf den Server und nie in ein digitales Postfach. Damit ist der Bus-Faktor 1 aufgelöst: Fällt die betreibende Person dauerhaft aus, kann der Träger mit dem Notfallschlüssel jedes Backup wiederherstellen.
+
+!!! tip "Bestehende Backups bleiben lesbar"
+    Ein zusätzlicher Empfänger wirkt nur für **neue** Sicherungen. Ältere `.age`-Dateien bleiben mit dem ursprünglichen Schlüssel lesbar – unkritisch, da der Bestand nach der 7-Tage-Rotation ohnehin durch neue, an beide Schlüssel verschlüsselte Backups ersetzt wird.
 
 ---
 
@@ -295,6 +310,7 @@ Für den Alltag – versehentlich gelöschte oder falsch bearbeitete **einzelne*
 - [ ] `age` installiert, Schlüsselpaar erzeugt
 - [ ] Privater Schlüssel offline im Passwort-Manager (2 Orte), **nicht** auf dem Server
 - [ ] Öffentlicher Key in `deploy/age-recipient.txt` oder `AGE_RECIPIENT`
+- [ ] **Bus-Faktor**: zweiter age-Empfänger (`deploy/age-recipients.txt`) hinterlegt, Träger-Notfallschlüssel versiegelt & offline
 - [ ] Testlauf `./backup.sh` liefert nicht-leere `.age`-Datei
 - [ ] Cron-Job `30 2 * * *` aktiv, Log wächst
 - [ ] Restore-Test vierteljährlich, danach `rm ~/age-key.txt`, Ergebnis dokumentiert

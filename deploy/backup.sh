@@ -7,16 +7,36 @@ cd "$(dirname "$0")"
 
 STAMP=$(date +%F_%H%M)
 OUT="$(pwd)/backups"
-# age-Recipient (ÖFFENTLICHER Schlüssel) aus Env ODER deploy/age-recipient.txt (nicht im Git).
-AGE_RECIPIENT="${AGE_RECIPIENT:-$(cat "$(dirname "$0")/age-recipient.txt" 2>/dev/null || true)}"
-if [ -z "${AGE_RECIPIENT:-}" ] || [ "$AGE_RECIPIENT" = "age1DEIN_PUBLIC_KEY" ]; then
-  echo "FEHLER: age-Recipient fehlt. Lege deploy/age-recipient.txt mit deinem age-PUBLIC-Key an (age1…)." >&2
+HERE="$(dirname "$0")"
+
+# age-Recipients (ÖFFENTLICHE Schlüssel) – MEHRERE möglich (Bus-Faktor: ein zweiter
+# Schlüssel z. B. beim Träger, damit Backups auch ohne die Einzelperson lesbar sind).
+# Quelle in dieser Reihenfolge:
+#   1) AGE_RECIPIENTS        (Env, mehrere durch Leerzeichen/Zeilenumbruch getrennt)
+#   2) deploy/age-recipients.txt  (eine Zeile je Key, '#'-Kommentare erlaubt)
+#   3) AGE_RECIPIENT / deploy/age-recipient.txt  (Einzelschlüssel, abwärtskompatibel)
+RECIP_RAW="${AGE_RECIPIENTS:-}"
+[ -z "$RECIP_RAW" ] && [ -f "$HERE/age-recipients.txt" ] && RECIP_RAW="$(cat "$HERE/age-recipients.txt")"
+[ -z "$RECIP_RAW" ] && RECIP_RAW="${AGE_RECIPIENT:-$(cat "$HERE/age-recipient.txt" 2>/dev/null || true)}"
+
+AGE_ARGS=()
+while IFS= read -r line; do
+  key="${line%%#*}"                       # Kommentar ab '#' abschneiden
+  key="$(printf '%s' "$key" | tr -d '[:space:]')"
+  [ -z "$key" ] && continue
+  [ "$key" = "age1DEIN_PUBLIC_KEY" ] && continue   # Platzhalter zählt nicht
+  AGE_ARGS+=(-r "$key")
+done <<< "$RECIP_RAW"
+
+if [ "${#AGE_ARGS[@]}" -eq 0 ]; then
+  echo "FEHLER: kein gültiger age-Recipient. Lege deploy/age-recipients.txt (age1…) an." >&2
   exit 1
 fi
+echo "Verschlüsselt an $(( ${#AGE_ARGS[@]} / 2 )) Empfänger."
 mkdir -p "$OUT"
 
 docker compose exec -T db pg_dump -U fegh fegh \
-  | age -r "$AGE_RECIPIENT" > "$OUT/fegh_$STAMP.sql.age"
+  | age "${AGE_ARGS[@]}" > "$OUT/fegh_$STAMP.sql.age"
 
 # Rotation: tägliche Backups 7 Tage behalten (wöchentlich/monatlich per separatem Cron/Copy)
 find "$OUT" -name 'fegh_*.sql.age' -mtime +7 -delete

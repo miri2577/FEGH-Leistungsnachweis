@@ -21,6 +21,7 @@ deploy/.env.prod
 deploy/backups/
 deploy/logs/
 deploy/age-recipient.txt
+deploy/age-recipients.txt
 *.age
 *.key
 
