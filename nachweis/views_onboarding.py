@@ -11,6 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import SetPasswordForm
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.db.models import ProtectedError
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.encoding import force_str
@@ -77,11 +78,14 @@ def team_aktion(request):
         t.save(update_fields=["aktiv"])
         messages.success(request, f"Team „{t.name}“ {'aktiviert' if t.aktiv else 'deaktiviert'}.")
     elif request.POST.get("aktion") == "loeschen":
-        if t.mitglieder.exists() or t.klienten.exists():
-            messages.error(request, "Team nicht löschbar – es sind noch Mitglieder oder Klient*innen zugeordnet.")
+        if t.mitglieder.exists() or t.klienten.exists() or hasattr(t, "kasse"):
+            messages.error(request, "Team nicht löschbar – es sind noch Mitglieder, Klient*innen oder eine Kasse zugeordnet.")
         else:
-            name = t.name; t.delete()
-            messages.success(request, f"Team „{name}“ gelöscht.")
+            try:
+                name = t.name; t.delete()
+                messages.success(request, f"Team „{name}“ gelöscht.")
+            except ProtectedError:
+                messages.error(request, "Team nicht löschbar – es hängen noch geschützte Datensätze daran.")
     return redirect("nachweis:teams_liste")
 
 

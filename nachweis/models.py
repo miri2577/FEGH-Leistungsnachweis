@@ -150,7 +150,7 @@ class Klient(models.Model):
     kuerzel = models.CharField("Kürzel", max_length=6, blank=True,
                                help_text="Kurzzeichen für den Wochenkalender (leer = automatisch aus dem Namen)")
     geburtsdatum = models.DateField("geb. am", null=True, blank=True)
-    team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True,
+    team = models.ForeignKey(Team, on_delete=models.PROTECT, null=True, blank=True,
                              related_name="klienten", verbose_name="Team")
     bezugsbetreuer = models.ForeignKey(
         Mitarbeiter, on_delete=models.PROTECT, related_name="klienten",
@@ -456,7 +456,7 @@ GELDSTUECKELUNG = [
 
 class Kasse(models.Model):
     """Kassenbuch eines Teams. Die Verwaltung ist Finanz-Hub (sieht/pflegt alle Kassen)."""
-    team = models.OneToOneField(Team, on_delete=models.CASCADE, related_name="kasse")
+    team = models.OneToOneField(Team, on_delete=models.PROTECT, related_name="kasse")
     bezeichnung = models.CharField(max_length=80, blank=True)
     kostenstelle = models.CharField("Kostenstellen-Code", max_length=20, blank=True)
     aktiv = models.BooleanField(default=True)
@@ -522,6 +522,8 @@ class Kassenbuchung(models.Model):
         verbose_name = "Kassenbuchung"
         verbose_name_plural = "Kassenbuchungen"
         ordering = ["bel_nr", "id"]
+        constraints = [models.UniqueConstraint(fields=["monat", "bel_nr"],
+                                               name="eine_belegnr_pro_kassenmonat")]
 
     def __str__(self):
         return f"{self.bel_nr} · {self.datum} · {self.text}"

@@ -7,12 +7,13 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError, transaction
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from . import services
-from .models import Kasse, Kassenbuchung, Zaehlprotokoll, Team, GELDSTUECKELUNG
+from .models import Kasse, Kassenbuchung, Kassenmonat, Zaehlprotokoll, Team, GELDSTUECKELUNG
 
 MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
                "August", "September", "Oktober", "November", "Dezember"]
@@ -95,7 +96,7 @@ def buchung_save(request):
     if pk:
         b = get_object_or_404(Kassenbuchung, pk=pk, monat=km)
     else:
-        b = Kassenbuchung(monat=km, bel_nr=_int(request.POST.get("bel_nr"), km.naechste_bel_nr()))
+        b = Kassenbuchung(monat=km)
 
     datum = _datum(request.POST.get("datum"))
     text = (request.POST.get("text") or "").strip()
@@ -106,14 +107,25 @@ def buchung_save(request):
     b.text = text
     b.einnahme = _dec(request.POST.get("einnahme"))
     b.ausgabe = _dec(request.POST.get("ausgabe"))
-    if pk:
-        b.bel_nr = _int(request.POST.get("bel_nr"), b.bel_nr)
     # BuHa-Felder nur durch Verwaltung
     if services.kann_buha(request.user):
         b.buchungsdatum = _datum(request.POST.get("buchungsdatum"))
         b.kontonr = (request.POST.get("kontonr") or "").strip()
         b.kostenstelle = (request.POST.get("kostenstelle") or "").strip()
-    b.save()
+
+    # Beleg-Nr race-sicher: den Kassenmonat sperren, dann max+1 ermitteln/vergeben.
+    # UniqueConstraint(monat, bel_nr) verhindert Doppelnummern auch bei Parallelzugriff.
+    try:
+        with transaction.atomic():
+            Kassenmonat.objects.select_for_update().filter(pk=km.pk).first()
+            if pk:
+                b.bel_nr = _int(request.POST.get("bel_nr"), b.bel_nr)
+            else:
+                b.bel_nr = _int(request.POST.get("bel_nr"), km.naechste_bel_nr())
+            b.save()
+    except IntegrityError:
+        messages.error(request, f"Beleg-Nr. {b.bel_nr} ist in diesem Monat bereits vergeben.")
+        return redirect(f"/kasse/?kasse={kasse.id}&jahr={jahr}&monat={monat}")
     messages.success(request, f"Beleg {b.bel_nr} gespeichert.")
     return redirect(f"/kasse/?kasse={kasse.id}&jahr={jahr}&monat={monat}")
 
