@@ -3,6 +3,12 @@
 {% block extrastyle %}
   .pform{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;padding:20px;max-width:560px}
   .pform input,.pform select{width:100%}
+  .sform{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 16px;padding:18px;align-items:end}
+  .sform .fld{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--muted);font-weight:600;margin:0}
+  .sform .fld input,.sform .fld select{width:100%}
+  .sform .chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);font-weight:500}
+  .sform .chk input{width:auto}
+  @media(max-width:820px){.sform{grid-template-columns:1fr 1fr}}
 {% endblock %}
 {% block content %}
   <h1 class="page">Team-Parameter {{ jahr }}</h1>
@@ -31,4 +37,94 @@
     </form>
   </div>
   <p class="note">Teamsitzung = Anzahl Sitzungstage × Dauer ÷ Klient*innen in Betreuung. Berliner Feiertage werden automatisch ausgenommen.</p>
+
+  <div class="panel" style="margin-top:22px">
+    <div class="head"><h2>Wiederkehrende Leistungen (Serien)</h2>
+      <span class="muted" style="font-size:12.5px">z. B. Supervision, Fortbildung – erscheinen automatisch in Nachweis &amp; Kalender</span></div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Bezeichnung</th><th>Rhythmus</th><th>Zeitpunkt</th><th>Leistung</th><th>Anrechnung</th><th class="num">Kalender</th><th></th></tr></thead>
+        <tbody>
+        {% for s in serien %}
+          <tr>
+            <td><b>{{ s.bezeichnung }}</b>{% if not s.aktiv %} <span class="badge b-warn">inaktiv</span>{% endif %}{% if s.team %} <span class="muted">· {{ s.team.name }}</span>{% endif %}</td>
+            <td>{{ s.get_rhythmus_display }}</td>
+            <td>{{ s.zeitpunkt_text }}</td>
+            <td>{{ s.get_leistungsart_display }}</td>
+            <td>{{ s.get_anrechnung_display }}{% if s.anrechnung == 'fest' %} ({{ s.wert_pro_klient|floatformat:'-3' }} h){% elif s.anrechnung == 'teiler' %} ({{ s.dauer_std|floatformat:'-2' }} h){% endif %}</td>
+            <td class="num">{% if s.im_kalender %}✓{% else %}–{% endif %}</td>
+            <td style="text-align:right;white-space:nowrap">
+              <a class="btn ghost" href="?jahr={{ jahr }}&serie={{ s.id }}">Bearbeiten</a>
+              <form method="post" action="{% url 'nachweis:serie_delete' %}" style="display:inline" onsubmit="return confirm('Diesen Eintrag wirklich löschen?')">{% csrf_token %}<input type="hidden" name="id" value="{{ s.id }}"><input type="hidden" name="jahr" value="{{ jahr }}"><button class="btn ghost" type="submit" style="color:var(--bad)" title="Löschen">×</button></form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="empty">Noch keine wiederkehrenden Leistungen – unten anlegen.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <div class="head"><h2>{% if edit_serie %}„{{ edit_serie.bezeichnung }}“ bearbeiten{% else %}Neue wiederkehrende Leistung{% endif %}</h2>
+      {% if edit_serie %}<a class="btn ghost" href="?jahr={{ jahr }}">+ Neu</a>{% endif %}</div>
+    <form method="post" action="{% url 'nachweis:serie_save' %}">
+      {% csrf_token %}
+      <input type="hidden" name="jahr" value="{{ jahr }}">
+      {% if edit_serie %}<input type="hidden" name="id" value="{{ edit_serie.id }}">{% endif %}
+      <div class="sform">
+        <label class="fld">Bezeichnung
+          <input type="text" name="bezeichnung" value="{{ edit_serie.bezeichnung|default:'' }}" placeholder="z. B. Fallsupervision" required></label>
+        <label class="fld">Leistungsart
+          <select name="leistungsart">{% for v,l in leistungsart_choices %}<option value="{{ v }}"{% if edit_serie.leistungsart == v or not edit_serie and v == 'KLE' %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+        <label class="fld">Team
+          <select name="team"><option value="">alle Teams</option>{% for t in teams %}<option value="{{ t.id }}"{% if edit_serie.team_id == t.id %} selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></label>
+        <label class="fld">Rhythmus
+          <select name="rhythmus" id="f-rhythmus">{% for v,l in rhythmus_choices %}<option value="{{ v }}"{% if edit_serie.rhythmus == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+        <label class="fld" data-when="wochentag">Wochentag
+          <select name="wochentag">{% for v,l in wochentage %}<option value="{{ v }}"{% if edit_serie.wochentag == v or not edit_serie and v == 3 %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+        <label class="fld" data-when="monat-woche">Position im Monat
+          <select name="woche_im_monat">{% for v,l in wochen_optionen %}<option value="{{ v }}"{% if edit_serie.woche_im_monat == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+        <label class="fld" data-when="monat-tag">… oder fester Tag (1–31)
+          <input type="number" name="tag_im_monat" min="1" max="31" value="{{ edit_serie.tag_im_monat|default:'' }}" placeholder="z. B. 15"></label>
+        <label class="fld" data-when="anker">Anker-Monat (1–12)
+          <input type="number" name="monat_im_jahr" min="1" max="12" value="{{ edit_serie.monat_im_jahr|default:'' }}" placeholder="z. B. 6"></label>
+        <label class="fld">Dauer je Termin (Std)
+          <input type="text" name="dauer_std" value="{{ edit_serie.dauer_std|default:'1' }}"></label>
+        <label class="fld">Anrechnung je Klient*in
+          <select name="anrechnung" id="f-anrechnung">{% for v,l in anrechnung_choices %}<option value="{{ v }}"{% if edit_serie.anrechnung == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+        <label class="fld" data-when="fest">fester Wert je Klient*in (Std)
+          <input type="text" name="wert_pro_klient" value="{{ edit_serie.wert_pro_klient|default:'0' }}"></label>
+        <label class="fld">gültig ab (optional)
+          <input type="date" name="gilt_ab" value="{{ edit_serie.gilt_ab|date:'Y-m-d' }}"></label>
+        <label class="fld">gültig bis (optional)
+          <input type="date" name="gilt_bis" value="{{ edit_serie.gilt_bis|date:'Y-m-d' }}"></label>
+        <label class="chk"><input type="checkbox" name="feiertage_aussparen"{% if edit_serie.feiertage_aussparen or not edit_serie %} checked{% endif %}> Berliner Feiertage aussparen</label>
+        <label class="chk"><input type="checkbox" name="im_kalender"{% if edit_serie.im_kalender or not edit_serie %} checked{% endif %}> im Kalender anzeigen</label>
+        <label class="chk"><input type="checkbox" name="aktiv"{% if edit_serie.aktiv or not edit_serie %} checked{% endif %}> aktiv</label>
+        <div style="grid-column:1 / -1"><button class="btn" type="submit">{% if edit_serie %}Speichern{% else %}Anlegen{% endif %}</button></div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+  (function(){
+    var r=document.getElementById('f-rhythmus'), a=document.getElementById('f-anrechnung');
+    if(!r) return;
+    function upd(){
+      var rv=r.value, av=a.value,
+          monat=(rv==='monat'||rv==='quartal'||rv==='jahr'), woche=(rv==='woche'||rv==='2woche');
+      document.querySelectorAll('[data-when]').forEach(function(el){
+        var w=el.getAttribute('data-when'), show=true;
+        if(w==='wochentag') show = woche || monat;
+        else if(w==='monat-woche'||w==='monat-tag') show = monat;
+        else if(w==='anker') show = (rv==='quartal'||rv==='jahr');
+        else if(w==='fest') show = (av==='fest');
+        el.style.display = show ? '' : 'none';
+      });
+    }
+    r.addEventListener('change',upd); a.addEventListener('change',upd); upd();
+  })();
+  </script>
 {% endblock %}

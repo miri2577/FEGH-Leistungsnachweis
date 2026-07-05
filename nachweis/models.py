@@ -582,3 +582,92 @@ class Parameter(models.Model):
 
     def __str__(self):
         return f"Parameter {self.jahr}"
+
+
+class Rhythmus(models.TextChoices):
+    WOECHENTLICH = "woche", "wöchentlich"
+    ZWEIWOECHENTLICH = "2woche", "14-täglich"
+    MONATLICH = "monat", "monatlich"
+    VIERTELJAEHRLICH = "quartal", "vierteljährlich"
+    JAEHRLICH = "jahr", "jährlich"
+
+
+class Anrechnung(models.TextChoices):
+    TEILER = "teiler", "÷ Klient*innen in Betreuung"
+    FEST = "fest", "fester Wert je Klient*in"
+    KALENDER = "kalender", "nur Kalender (kein Nachweis)"
+
+
+class WiederkehrendeLeistung(models.Model):
+    """Feste, sich wiederholende Leistung/Termin (z. B. Teamsitzung, Supervision).
+    Erscheint automatisch als Serie im Kalender und/oder fließt in die
+    Leistungsnachweise (FLS) ein. Rhythmus, Zeitpunkt und Anrechnung sind je
+    Eintrag frei einstellbar."""
+    bezeichnung = models.CharField(max_length=80)
+    leistungsart = models.CharField(max_length=4, choices=Leistungsart.choices,
+                                    default=Leistungsart.KLE)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, blank=True,
+                             related_name="serienleistungen",
+                             verbose_name="Team (leer = alle Teams)")
+    # Rhythmus + Zeitpunkt
+    rhythmus = models.CharField(max_length=8, choices=Rhythmus.choices, default=Rhythmus.WOECHENTLICH)
+    wochentag = models.PositiveSmallIntegerField("Wochentag", default=3,
+                                                 help_text="0=Mo … 3=Do … 6=So")
+    woche_im_monat = models.SmallIntegerField(
+        "Woche im Monat", default=0,
+        help_text="Für monatlich per Wochentag: 1.–4., -1 = letzte. 0 = (Wochen-Rhythmus).")
+    tag_im_monat = models.PositiveSmallIntegerField(
+        "fester Tag im Monat", null=True, blank=True,
+        help_text="1–31; wenn gesetzt, statt Wochentag-Regel (monatlich/…).")
+    monat_im_jahr = models.PositiveSmallIntegerField(
+        "Anker-Monat", null=True, blank=True,
+        help_text="1–12: für jährlich (welcher Monat) bzw. vierteljährlich (Startmonat).")
+    dauer_std = models.DecimalField("Dauer je Termin (Std)", max_digits=5, decimal_places=2,
+                                    default=Decimal("1"))
+    # Anrechnung je Klient*in
+    anrechnung = models.CharField(max_length=8, choices=Anrechnung.choices, default=Anrechnung.TEILER)
+    wert_pro_klient = models.DecimalField("fester Wert je Klient*in (Std)", max_digits=6,
+                                          decimal_places=3, default=0,
+                                          help_text="nur bei Anrechnung 'fester Wert'.")
+    # Gültigkeit / Anzeige
+    feiertage_aussparen = models.BooleanField("Berliner Feiertage aussparen", default=True)
+    im_kalender = models.BooleanField("im Kalender anzeigen", default=True)
+    gilt_ab = models.DateField("gültig ab", null=True, blank=True)
+    gilt_bis = models.DateField("gültig bis", null=True, blank=True)
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Wiederkehrende Leistung"
+        verbose_name_plural = "Wiederkehrende Leistungen"
+        ordering = ["bezeichnung"]
+
+    def __str__(self):
+        return f"{self.bezeichnung} ({self.get_rhythmus_display()})"
+
+    @property
+    def im_nachweis(self) -> bool:
+        """Fließt in Leistungsnachweise/FLS ein (alles außer 'nur Kalender')."""
+        return self.anrechnung != Anrechnung.KALENDER
+
+    @property
+    def farbe(self) -> str:
+        """Stabile Pastellfarbe (aus der ID) für die Serien-Darstellung im Kalender."""
+        return FARBPALETTE[(self.pk or 0) % len(FARBPALETTE)]
+
+    @property
+    def zeitpunkt_text(self) -> str:
+        """Menschenlesbare Beschreibung des Zeitpunkts (für Listen/Kalender)."""
+        wd = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag",
+              "Samstag", "Sonntag"][self.wochentag]
+        if self.rhythmus in (Rhythmus.WOECHENTLICH, Rhythmus.ZWEIWOECHENTLICH):
+            return f"{wd}s"
+        if self.tag_im_monat:
+            wann = f"am {self.tag_im_monat}."
+        else:
+            pos = {1: "1.", 2: "2.", 3: "3.", 4: "4.", -1: "letzter"}.get(self.woche_im_monat, "1.")
+            wann = f"{pos} {wd}"
+        if self.rhythmus == Rhythmus.JAEHRLICH and self.monat_im_jahr:
+            monat = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
+                     "August", "September", "Oktober", "November", "Dezember"][self.monat_im_jahr]
+            return f"{wann} im {monat}"
+        return wann

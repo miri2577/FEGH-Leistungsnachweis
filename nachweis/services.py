@@ -9,7 +9,8 @@ import holidays as _holidays
 from django.db.models import Q
 
 from .models import (Klient, Gruppe, Leistung, Parameter, Leistungsart,
-                     Mitarbeiter, Team, Rolle, FLS_ARTEN, Status)
+                     Mitarbeiter, Team, Rolle, FLS_ARTEN, Status,
+                     WiederkehrendeLeistung, Rhythmus, Anrechnung)
 
 Q3 = Decimal("0.001")
 
@@ -210,6 +211,110 @@ def teamsitzung_pro_klient_monat(jahr: int, monat: int) -> Decimal:
     return (p.teamsitzung_dauer_std * Decimal(len(tage)) / Decimal(n)).quantize(Q3, ROUND_HALF_UP)
 
 
+# --------------------------------------------------------------------------
+#  Wiederkehrende Leistungen (feste Serien: Supervision, Fortbildung, …)
+#  Additiv zur (weiterhin fest berechneten) Teamsitzung.
+# --------------------------------------------------------------------------
+def _monatstermin(y: int, m: int, wl):
+    """Konkretes Datum einer Serie im Monat (y,m): fester Tag ODER N-ter Wochentag."""
+    from calendar import monthrange
+    ndays = monthrange(y, m)[1]
+    if wl.tag_im_monat:
+        return date(y, m, min(wl.tag_im_monat, ndays))
+    tage = [date(y, m, d) for d in range(1, ndays + 1) if date(y, m, d).weekday() == wl.wochentag]
+    if not tage:
+        return None
+    if (wl.woche_im_monat or 0) == -1:
+        return tage[-1]
+    idx = (wl.woche_im_monat or 1) - 1
+    return tage[idx] if 0 <= idx < len(tage) else None
+
+
+def serientermine(wl, von, bis):
+    """Alle Termindaten einer wiederkehrenden Leistung im Zeitraum [von, bis]
+    (Gültigkeitsfenster beachtet, Berliner Feiertage optional ausgespart)."""
+    lo = max(von, wl.gilt_ab) if wl.gilt_ab else von
+    hi = min(bis, wl.gilt_bis) if wl.gilt_bis else bis
+    if hi < lo:
+        return []
+    dates = []
+    if wl.rhythmus in (Rhythmus.WOECHENTLICH, Rhythmus.ZWEIWOECHENTLICH):
+        first = None
+        if wl.rhythmus == Rhythmus.ZWEIWOECHENTLICH:
+            ref = wl.gilt_ab or date(2024, 1, 1)
+            first = ref + timedelta(days=(wl.wochentag - ref.weekday()) % 7)
+        d = lo
+        while d <= hi:
+            if d.weekday() == wl.wochentag and (
+                    wl.rhythmus == Rhythmus.WOECHENTLICH or (d - first).days % 14 == 0):
+                dates.append(d)
+            d += timedelta(days=1)
+    else:
+        y, m = lo.year, lo.month
+        while (y, m) <= (hi.year, hi.month):
+            take = True
+            if wl.rhythmus == Rhythmus.VIERTELJAEHRLICH:
+                take = (m - (wl.monat_im_jahr or 1)) % 3 == 0
+            elif wl.rhythmus == Rhythmus.JAEHRLICH:
+                take = m == (wl.monat_im_jahr or 1)
+            if take:
+                d = _monatstermin(y, m, wl)
+                if d and lo <= d <= hi:
+                    dates.append(d)
+            m, y = (1, y + 1) if m == 12 else (m + 1, y)
+    if wl.feiertage_aussparen and dates:
+        fs = _feiertage_set(*{d.year for d in dates})
+        dates = [d for d in dates if d not in fs]
+    return dates
+
+
+def _team_betreuung_counts() -> dict:
+    """{team_id: Anzahl Klient*innen in Betreuung} – Teiler für team-bezogene Serien."""
+    from collections import Counter
+    return dict(Counter(Klient.objects.filter(status=Status.BETREUUNG)
+                        .exclude(team__isnull=True).values_list("team_id", flat=True)))
+
+
+def aktive_serien(nur_nachweis: bool = True):
+    qs = WiederkehrendeLeistung.objects.filter(aktiv=True)
+    if nur_nachweis:
+        qs = qs.exclude(anrechnung=Anrechnung.KALENDER)
+    return list(qs.select_related("team"))
+
+
+def _serien_share(wl, team_counts, global_count) -> Decimal:
+    """Anteil je Termin und Klient*in."""
+    if wl.anrechnung == Anrechnung.FEST:
+        return (wl.wert_pro_klient or Decimal("0")).quantize(Q3, ROUND_HALF_UP)
+    n = team_counts.get(wl.team_id, 0) if wl.team_id else global_count
+    return (wl.dauer_std / Decimal(n)).quantize(Q3, ROUND_HALF_UP) if n else Decimal("0")
+
+
+def serien_beitraege(klient, von, bis, serien=None, team_counts=None, global_count=None):
+    """[{datum, bezeichnung, leistungsart, stunden}] für eine*n Klient*in aus den
+    wiederkehrenden Leistungen im Zeitraum. Nur Status Betreuung, nur im_nachweis.
+    serien/team_counts/global_count können vorberechnet übergeben werden (kein N+1)."""
+    if klient.status != Status.BETREUUNG:
+        return []
+    if serien is None:
+        serien = aktive_serien()
+    if global_count is None:
+        global_count = anzahl_klienten()
+    if team_counts is None:
+        team_counts = _team_betreuung_counts()
+    out = []
+    for wl in serien:
+        if wl.team_id and wl.team_id != klient.team_id:
+            continue
+        share = _serien_share(wl, team_counts, global_count)
+        if not share:
+            continue
+        for d in serientermine(wl, von, bis):
+            out.append({"datum": d, "bezeichnung": wl.bezeichnung,
+                        "leistungsart": wl.leistungsart, "stunden": share})
+    return out
+
+
 def gruppen_anteile(jahr: int):
     """Je Klient die Summe der Gruppen-Anteile (gesamt und davon KLE), Jahr.
     Rückgabe: dict[klient_id] = {"gesamt": Decimal, "kle": Decimal, "fls": Decimal}."""
@@ -233,6 +338,7 @@ def fachleistungsstunden(jahr: int, klienten=None):
     angezeigten Zeilen ein (z. B. auf die eigenen). Rückgabe: (zeilen, summe)."""
     ts_pro, n_do = teamsitzung_pro_klient(jahr)
     gruppen = gruppen_anteile(jahr)
+    _serien, _tc, _gc = aktive_serien(), _team_betreuung_counts(), anzahl_klienten()
     qs = (klienten if klienten is not None else Klient.objects.all()).select_related("bezugsbetreuer")
     kl_list = list(qs)
     # Manuelle Leistungen des Jahres in EINEM Query laden und nach Klient gruppieren (kein N+1)
@@ -250,8 +356,11 @@ def fachleistungsstunden(jahr: int, klienten=None):
 
         # Teamsitzung nur für Klient*innen in Betreuung (Beendete zählen nicht mit)
         ts_row = ts_pro if k.status == Status.BETREUUNG else Decimal("0")
-        ist = (ist_manual + g["gesamt"] + ts_row).quantize(Q3, ROUND_HALF_UP)
-        kle_ist = (kle_manual + g["kle"] + ts_row).quantize(Q3, ROUND_HALF_UP)   # Teamsitzung = KLE
+        sb = serien_beitraege(k, date(jahr, 1, 1), date(jahr, 12, 31), _serien, _tc, _gc)
+        serien_sum = sum((x["stunden"] for x in sb), Decimal("0"))
+        serien_kle = sum((x["stunden"] for x in sb if x["leistungsart"] == Leistungsart.KLE), Decimal("0"))
+        ist = (ist_manual + g["gesamt"] + ts_row + serien_sum).quantize(Q3, ROUND_HALF_UP)
+        kle_ist = (kle_manual + g["kle"] + ts_row + serien_kle).quantize(Q3, ROUND_HALF_UP)  # Teamsitzung/KLE-Serien
         kontingent_m = k.fls_gesamt
         kontingent_j = kontingent_m * 12
         rest = (kontingent_j - ist).quantize(Q3, ROUND_HALF_UP)
@@ -413,6 +522,15 @@ def wochenauslastung(klienten, jahr: int, kw: int = None):
             for k in kl_list:
                 if k.status == Status.BETREUUNG:
                     kle_ist[k.id] += share * n_ts
+
+    # 4) Wiederkehrende Leistungen dieser Woche (KLE -> KLE, sonst -> AL)
+    _serien, _tc, _gc = aktive_serien(), _team_betreuung_counts(), anzahl_klienten()
+    for k in kl_list:
+        for b in serien_beitraege(k, mo, so, _serien, _tc, _gc):
+            if b["leistungsart"] == Leistungsart.KLE:
+                kle_ist[k.id] += b["stunden"]
+            else:
+                al_ist[k.id] += b["stunden"]
 
     zeilen = {}
     for k in kl_list:
@@ -590,6 +708,13 @@ def druck_nachweis(klient, jahr: int, monat: int):
             eintraege.append({
                 "datum": d, "leistungsart": Leistungsart.KLE, "bezeichnung": "Teamsitzung",
                 "beginn": None, "ende": None, "stunden": ts_share, "auto": True})
+
+    from calendar import monthrange as _mr
+    _mvon, _mbis = date(jahr, monat, 1), date(jahr, monat, _mr(jahr, monat)[1])
+    for b in serien_beitraege(klient, _mvon, _mbis):
+        eintraege.append({
+            "datum": b["datum"], "leistungsart": b["leistungsart"], "bezeichnung": b["bezeichnung"],
+            "beginn": None, "ende": None, "stunden": b["stunden"], "auto": True})
 
     eintraege.sort(key=lambda e: (e["datum"], e["beginn"] or __import__("datetime").time(0, 0)))
 

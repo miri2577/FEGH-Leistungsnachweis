@@ -2,7 +2,15 @@ from django.contrib import admin
 
 from .models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
                      Arbeitszeit, Abwesenheit, Team, Stempelung,
-                     Kasse, Kassenmonat, Kassenbuchung, Zaehlprotokoll, Termin)
+                     Kasse, Kassenmonat, Kassenbuchung, Zaehlprotokoll, Termin,
+                     WiederkehrendeLeistung)
+
+
+@admin.register(WiederkehrendeLeistung)
+class WiederkehrendeLeistungAdmin(admin.ModelAdmin):
+    list_display = ("bezeichnung", "rhythmus", "leistungsart", "team", "anrechnung", "aktiv")
+    list_filter = ("rhythmus", "anrechnung", "aktiv", "team")
+    search_fields = ("bezeichnung",)
 
 
 @admin.register(Team)

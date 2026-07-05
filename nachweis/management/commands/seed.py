@@ -247,6 +247,14 @@ class Command(BaseCommand):
                                    anz_ma=1)
         g2.teilnehmer.set(RNG.sample(aktive, 5))
 
+        # Demo: wiederkehrende Leistung (monatliche Fallsupervision, 2. Dienstag)
+        from nachweis.models import WiederkehrendeLeistung, Rhythmus, Anrechnung
+        WiederkehrendeLeistung.objects.get_or_create(
+            bezeichnung="Fallsupervision",
+            defaults=dict(leistungsart=Leistungsart.KLE, rhythmus=Rhythmus.MONATLICH,
+                          wochentag=1, woche_im_monat=2, dauer_std=Decimal("1.5"),
+                          anrechnung=Anrechnung.TEILER, feiertage_aussparen=True))
+
         # Demo-Termine im Wochenkalender (aktuelle Woche, damit die Ansicht gefüllt ist)
         montag = date.today() - timedelta(days=date.today().weekday())
         slots = [time(9, 0), time(10, 30), time(13, 0), time(14, 30)]

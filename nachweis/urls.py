@@ -76,6 +76,8 @@ urlpatterns = [
     path("belegungsliste/<int:pk>/", views_stammdaten.klient_form, name="klient_bearbeiten"),
     path("belegungsliste/speichern/", views_stammdaten.klient_speichern, name="klient_speichern"),
     path("parameter/", views_stammdaten.parameter, name="parameter"),
+    path("parameter/serie/speichern/", views_stammdaten.serie_save, name="serie_save"),
+    path("parameter/serie/loeschen/", views_stammdaten.serie_delete, name="serie_delete"),
 
     # Teams (Admin)
     path("teams/", views_onboarding.teams_liste, name="teams_liste"),

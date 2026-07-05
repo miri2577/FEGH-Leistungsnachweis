@@ -14,7 +14,7 @@ from nachweis import services
 from nachweis.models import (
     Team, Teamtyp, Mitarbeiter, Klient, Status, Leistung, Leistungsart, Gruppe,
     Arbeitszeit, Kasse, Kassenmonat, Kassenbuchung, Zaehlprotokoll, Parameter,
-    _stunden,
+    WiederkehrendeLeistung, Rhythmus, Anrechnung, _stunden,
 )
 
 
@@ -232,3 +232,123 @@ class KasseTests(TestCase):
         self.assertEqual(z.neuer_bestand, Decimal("209.05"))
         self.assertEqual(z.bargeld_gesamt, Decimal("209.05"))
         self.assertEqual(z.differenz, Decimal("0"))
+
+
+class SerienterminTests(TestCase):
+    """Wiederkehrende Leistungen: Termin-Berechnung je Rhythmus."""
+
+    def _wl(self, **kw):
+        kw.setdefault("bezeichnung", "S")
+        kw.setdefault("feiertage_aussparen", False)
+        return WiederkehrendeLeistung(**kw)
+
+    def test_woechentlich_donnerstag(self):
+        wl = self._wl(rhythmus=Rhythmus.WOECHENTLICH, wochentag=3)
+        from nachweis import services
+        d = services.serientermine(wl, date(2026, 5, 1), date(2026, 5, 31))
+        self.assertEqual(d, [date(2026, 5, 7), date(2026, 5, 14), date(2026, 5, 21), date(2026, 5, 28)])
+
+    def test_feiertage_aussparen(self):
+        wl = self._wl(rhythmus=Rhythmus.WOECHENTLICH, wochentag=3, feiertage_aussparen=True)
+        from nachweis import services
+        d = services.serientermine(wl, date(2026, 5, 1), date(2026, 5, 31))
+        self.assertNotIn(date(2026, 5, 14), d)              # Christi Himmelfahrt
+        self.assertIn(date(2026, 5, 7), d)
+
+    def test_zweiwoechentlich(self):
+        wl = self._wl(rhythmus=Rhythmus.ZWEIWOECHENTLICH, wochentag=3, gilt_ab=date(2026, 5, 7))
+        from nachweis import services
+        d = services.serientermine(wl, date(2026, 5, 1), date(2026, 6, 30))
+        self.assertEqual(d, [date(2026, 5, 7), date(2026, 5, 21), date(2026, 6, 4), date(2026, 6, 18)])
+
+    def test_monatlich_nter_wochentag(self):
+        wl = self._wl(rhythmus=Rhythmus.MONATLICH, wochentag=3, woche_im_monat=1)   # 1. Donnerstag
+        from nachweis import services
+        d = services.serientermine(wl, date(2026, 5, 1), date(2026, 7, 31))
+        self.assertEqual(d, [date(2026, 5, 7), date(2026, 6, 4), date(2026, 7, 2)])
+
+    def test_monatlich_fester_tag(self):
+        wl = self._wl(rhythmus=Rhythmus.MONATLICH, tag_im_monat=15)
+        from nachweis import services
+        d = services.serientermine(wl, date(2026, 5, 1), date(2026, 7, 31))
+        self.assertEqual(d, [date(2026, 5, 15), date(2026, 6, 15), date(2026, 7, 15)])
+
+    def test_vierteljaehrlich(self):
+        wl = self._wl(rhythmus=Rhythmus.VIERTELJAEHRLICH, monat_im_jahr=1, tag_im_monat=1)
+        from nachweis import services
+        d = services.serientermine(wl, date(2026, 1, 1), date(2026, 12, 31))
+        self.assertEqual(d, [date(2026, 1, 1), date(2026, 4, 1), date(2026, 7, 1), date(2026, 10, 1)])
+
+    def test_jaehrlich(self):
+        wl = self._wl(rhythmus=Rhythmus.JAEHRLICH, monat_im_jahr=6, tag_im_monat=1)
+        from nachweis import services
+        d = services.serientermine(wl, date(2026, 1, 1), date(2026, 12, 31))
+        self.assertEqual(d, [date(2026, 6, 1)])
+
+
+class SerienBeitragTests(TestCase):
+    """Anrechnung je Klient*in + Integration in Druck-Nachweis."""
+
+    def setUp(self):
+        Parameter.objects.create(jahr=2026, teamsitzung_dauer_std=Decimal("0"))  # Teamsitzung neutral
+        self.team = Team.objects.create(name="TBEW")
+        self.ma = Mitarbeiter.objects.create(name="B", team=self.team)
+        self.k1 = Klient.objects.create(nachname="A", bezugsbetreuer=self.ma, team=self.team,
+                                        al=Decimal("10"), status=Status.BETREUUNG)
+        self.k2 = Klient.objects.create(nachname="B", bezugsbetreuer=self.ma, team=self.team,
+                                        status=Status.BETREUUNG)
+
+    def test_teiler_geteilt_durch_klienten(self):
+        from nachweis import services
+        WiederkehrendeLeistung.objects.create(
+            bezeichnung="Teamsitzung 2", rhythmus=Rhythmus.WOECHENTLICH, wochentag=3,
+            dauer_std=Decimal("4"), anrechnung=Anrechnung.TEILER, feiertage_aussparen=False)
+        sb = services.serien_beitraege(self.k1, date(2026, 5, 4), date(2026, 5, 10))  # 1 Do (07.05.)
+        self.assertEqual(len(sb), 1)
+        self.assertEqual(sb[0]["stunden"], Decimal("2"))       # 4 h ÷ 2 Klient*innen
+        self.assertEqual(sb[0]["leistungsart"], Leistungsart.KLE)
+
+    def test_fester_wert_je_klient(self):
+        from nachweis import services
+        WiederkehrendeLeistung.objects.create(
+            bezeichnung="Supervision", rhythmus=Rhythmus.MONATLICH, tag_im_monat=10,
+            anrechnung=Anrechnung.FEST, wert_pro_klient=Decimal("0.5"), feiertage_aussparen=False)
+        sb = services.serien_beitraege(self.k1, date(2026, 5, 1), date(2026, 5, 31))
+        self.assertEqual(len(sb), 1)
+        self.assertEqual(sb[0]["stunden"], Decimal("0.5"))     # fest, unabhängig von Anzahl
+
+    def test_nur_kalender_faellt_aus_nachweis(self):
+        from nachweis import services
+        WiederkehrendeLeistung.objects.create(
+            bezeichnung="Info", rhythmus=Rhythmus.WOECHENTLICH, wochentag=3,
+            anrechnung=Anrechnung.KALENDER, feiertage_aussparen=False)
+        self.assertEqual(services.serien_beitraege(self.k1, date(2026, 5, 1), date(2026, 5, 31)), [])
+
+    def test_beendete_erhalten_keinen_anteil(self):
+        from nachweis import services
+        self.k1.status = Status.BEENDIGUNG
+        self.k1.save(update_fields=["status"])
+        WiederkehrendeLeistung.objects.create(
+            bezeichnung="X", rhythmus=Rhythmus.WOECHENTLICH, wochentag=3,
+            dauer_std=Decimal("2"), feiertage_aussparen=False)
+        self.assertEqual(services.serien_beitraege(self.k1, date(2026, 5, 1), date(2026, 5, 31)), [])
+
+    def test_team_scoping(self):
+        from nachweis import services
+        anderes = Team.objects.create(name="WG")
+        WiederkehrendeLeistung.objects.create(
+            bezeichnung="Nur WG", team=anderes, rhythmus=Rhythmus.WOECHENTLICH, wochentag=3,
+            dauer_std=Decimal("2"), feiertage_aussparen=False)
+        self.assertEqual(services.serien_beitraege(self.k1, date(2026, 5, 1), date(2026, 5, 31)), [])
+
+    def test_druck_nachweis_enthaelt_serie(self):
+        from nachweis import services
+        WiederkehrendeLeistung.objects.create(
+            bezeichnung="Supervision", leistungsart=Leistungsart.KLE, rhythmus=Rhythmus.MONATLICH,
+            tag_im_monat=10, anrechnung=Anrechnung.FEST, wert_pro_klient=Decimal("0.5"),
+            feiertage_aussparen=False)
+        d = services.druck_nachweis(self.k1, 2026, 5)
+        treffer = [e for e in d["eintraege"] if e["bezeichnung"] == "Supervision"]
+        self.assertEqual(len(treffer), 1)
+        self.assertEqual(treffer[0]["datum"], date(2026, 5, 10))
+        self.assertEqual(treffer[0]["stunden"], Decimal("0.5"))

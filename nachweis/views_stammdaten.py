@@ -6,12 +6,15 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from . import services
-from .models import Klient, Mitarbeiter, Parameter, Status
+from .models import (Klient, Mitarbeiter, Parameter, Status, Team, Leistungsart,
+                     WiederkehrendeLeistung, Rhythmus, Anrechnung)
 
 
 def _nur_leitung(request):
@@ -135,9 +138,76 @@ def parameter(request):
         messages.success(request, "Parameter gespeichert.")
         return redirect(f"{request.path}?jahr={jahr}")
     wochentage = [(0, "Montag"), (1, "Dienstag"), (2, "Mittwoch"), (3, "Donnerstag"),
-                  (4, "Freitag")]
+                  (4, "Freitag"), (5, "Samstag"), (6, "Sonntag")]
     ts_pro, n_do = services.teamsitzung_pro_klient(jahr)
+    teams = services.teams_fuer(request.user)
+    serien = list(WiederkehrendeLeistung.objects
+                  .filter(Q(team__isnull=True) | Q(team__in=teams)).select_related("team"))
+    edit_serie = next((s for s in serien if str(s.id) == request.GET.get("serie", "")), None)
     return render(request, "nachweis/parameter.html", {
         "aktiv": "parameter", "p": p, "jahr": jahr, "wochentage": wochentage,
         "n_donnerstage": n_do, "ts_pro_klient": ts_pro,
+        "serien": serien, "edit_serie": edit_serie, "teams": teams,
+        "rhythmus_choices": Rhythmus.choices, "anrechnung_choices": Anrechnung.choices,
+        "leistungsart_choices": Leistungsart.choices,
+        "wochen_optionen": [(0, "— (Wochen-Rhythmus)"), (1, "1."), (2, "2."),
+                            (3, "3."), (4, "4."), (-1, "letzte")],
     })
+
+
+def _meine_team_ids(request):
+    return set(services.teams_fuer(request.user).values_list("id", flat=True))
+
+
+@require_POST
+@login_required
+def serie_save(request):
+    """Wiederkehrende Leistung anlegen/bearbeiten (Leitung, für eigene Teams oder global)."""
+    if not _nur_leitung(request):
+        return HttpResponseForbidden()
+    jahr = request.POST.get("jahr") or date.today().year
+    meine = _meine_team_ids(request)
+    sid = request.POST.get("id")
+    if sid:
+        wl = get_object_or_404(WiederkehrendeLeistung, pk=sid)
+        if wl.team_id and wl.team_id not in meine:
+            return HttpResponseForbidden()
+    else:
+        wl = WiederkehrendeLeistung()
+    team_id = _int_or_none(request.POST.get("team"))
+    if team_id and team_id not in meine:
+        return HttpResponseForbidden()
+    wl.bezeichnung = (request.POST.get("bezeichnung") or "").strip() or "Termin"
+    wl.leistungsart = request.POST.get("leistungsart") or Leistungsart.KLE
+    wl.team_id = team_id
+    wl.rhythmus = request.POST.get("rhythmus") or Rhythmus.WOECHENTLICH
+    wl.wochentag = _int_or_none(request.POST.get("wochentag")) or 0
+    wl.woche_im_monat = _int_or_none(request.POST.get("woche_im_monat")) or 0
+    wl.tag_im_monat = _int_or_none(request.POST.get("tag_im_monat"))
+    wl.monat_im_jahr = _int_or_none(request.POST.get("monat_im_jahr"))
+    wl.dauer_std = _dec(request.POST.get("dauer_std"))
+    wl.anrechnung = request.POST.get("anrechnung") or Anrechnung.TEILER
+    wl.wert_pro_klient = _dec(request.POST.get("wert_pro_klient"))
+    wl.feiertage_aussparen = bool(request.POST.get("feiertage_aussparen"))
+    wl.im_kalender = bool(request.POST.get("im_kalender"))
+    wl.gilt_ab = _datum(request.POST.get("gilt_ab"))
+    wl.gilt_bis = _datum(request.POST.get("gilt_bis"))
+    wl.aktiv = bool(request.POST.get("aktiv"))
+    wl.save()
+    messages.success(request, f"„{wl.bezeichnung}“ gespeichert.")
+    return redirect(f"{reverse('nachweis:parameter')}?jahr={jahr}")
+
+
+@require_POST
+@login_required
+def serie_delete(request):
+    if not _nur_leitung(request):
+        return HttpResponseForbidden()
+    jahr = request.POST.get("jahr") or date.today().year
+    wl = get_object_or_404(WiederkehrendeLeistung, pk=request.POST.get("id"))
+    if wl.team_id and wl.team_id not in _meine_team_ids(request):
+        return HttpResponseForbidden()
+    name = wl.bezeichnung
+    wl.delete()
+    messages.success(request, f"„{name}“ gelöscht.")
+    return redirect(f"{reverse('nachweis:parameter')}?jahr={jahr}")
