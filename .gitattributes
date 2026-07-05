@@ -1,0 +1,2 @@
+# Shell-/Deploy-Skripte laufen auf Linux -> immer LF (auch wenn unter Windows editiert).
+*.sh text eol=lf
