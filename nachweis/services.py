@@ -158,6 +158,22 @@ def berichte_faellig(klienten, stichtag=None):
     return [k for k in klienten.exclude(kue_bis__isnull=True) if k.bericht_offen(stichtag)]
 
 
+def undokumentierte_termine(me, tage: int = 30):
+    """Vergangene Klienten-Termine der/des MA, die noch NICHT dokumentiert sind
+    (kein verknüpfter Leistungseintrag). Erinnerung im Überblick. Feste
+    Wiederholungstermine laufen über Serien (WiederkehrendeLeistung) und sind
+    hier bewusst nicht enthalten."""
+    if not me:
+        return []
+    from .models import Termin
+    heute = date.today()
+    return list(Termin.objects.filter(
+        mitarbeiter=me, klient__isnull=False,
+        datum__lte=heute, datum__gte=heute - timedelta(days=tage),
+        dokumentationen__isnull=True)
+        .select_related("klient").order_by("-datum", "beginn").distinct())
+
+
 def berliner_feiertage(jahr: int):
     """Gesetzliche Feiertage in Berlin (inkl. Internationaler Frauentag 8.3.)."""
     return _holidays.Germany(subdiv="BE", years=jahr)

@@ -10,6 +10,8 @@
     padding:13px 15px;border:1px solid var(--border);border-radius:12px;background:var(--card);
     cursor:pointer;font-size:15px;text-align:left;width:100%}
   .tchip:active{background:var(--brand-soft)}
+  .tchip.done{opacity:.55;cursor:default}
+  .tchip.done .go{color:var(--ok)}
   .tchip .z{font-variant-numeric:tabular-nums;font-weight:700;color:var(--brand-d);white-space:nowrap}
   .tchip .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tchip .go{color:var(--muted);font-size:13px}
@@ -44,8 +46,21 @@
   <div class="grp-title">Meine Termine heute <span class="hint" style="font-weight:400">— antippen zum Übernehmen</span></div>
   <div class="termine">
     {% for t in termine %}
-    <button type="button" class="tchip" data-klient="{{ t.klient.id }}" data-von="{{ t.beginn|time:'H:i' }}" data-bis="{{ t.ende|time:'H:i' }}" data-datum="{{ heute|date:'Y-m-d' }}">
+    <button type="button" class="tchip{% if t.dok %} done{% endif %}"{% if not t.dok %} data-klient="{{ t.klient.id }}" data-termin="{{ t.id }}" data-von="{{ t.beginn|time:'H:i' }}" data-bis="{{ t.ende|time:'H:i' }}" data-datum="{{ heute|date:'Y-m-d' }}"{% endif %}>
       <span class="z">{{ t.beginn|time:"H:i" }}{% if t.ende %}–{{ t.ende|time:"H:i" }}{% endif %}</span>
+      <span class="n">{{ t.klient.name }}</span>
+      <span class="go">{% if t.dok %}✓ dokumentiert{% else %}übernehmen ›{% endif %}</span>
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if nachhol %}
+  <div class="grp-title" style="color:var(--leave)">Nachzuholen <span class="hint" style="font-weight:400">— noch nicht dokumentiert</span></div>
+  <div class="termine">
+    {% for t in nachhol %}
+    <button type="button" class="tchip" style="border-color:var(--leave)" data-klient="{{ t.klient.id }}" data-termin="{{ t.id }}" data-von="{{ t.beginn|time:'H:i' }}" data-bis="{{ t.ende|time:'H:i' }}" data-datum="{{ t.datum|date:'Y-m-d' }}">
+      <span class="z">{{ t.datum|date:"d.m." }} {{ t.beginn|time:"H:i" }}</span>
       <span class="n">{{ t.klient.name }}</span>
       <span class="go">übernehmen ›</span>
     </button>
@@ -55,6 +70,7 @@
 
   <form class="feldform" id="feldform" method="post" action="{% url 'nachweis:feld_speichern' %}">
     {% csrf_token %}
+    <input type="hidden" name="termin" id="fld-termin">
     <label>Klient*in
       <select name="klient" required>
         <option value="">— wählen —</option>
@@ -99,8 +115,10 @@
   // Termin antippen -> Formular vorausfüllen (Klient, Datum, Von/Bis) und dorthin scrollen.
   document.querySelectorAll('.tchip').forEach(function(c){
     c.addEventListener('click', function(){
+      if(!c.dataset.termin) return;          // schon dokumentierte Termine sind inert
       var f = document.getElementById('feldform');
       f.klient.value = c.dataset.klient || '';
+      f.termin.value = c.dataset.termin || '';
       if(c.dataset.datum) f.datum.value = c.dataset.datum;
       if(c.dataset.von) f.beginn.value = c.dataset.von;
       if(c.dataset.bis) f.ende.value = c.dataset.bis;
@@ -108,5 +126,8 @@
       f.taetigkeit.focus({preventScroll:true});
     });
   });
+  // Klient*in von Hand geändert -> Termin-Bezug passt nicht mehr, leeren.
+  var ksel = document.querySelector('#feldform [name=klient]');
+  if(ksel) ksel.addEventListener('change', function(){ document.getElementById('fld-termin').value = ''; });
 </script>
 {% endblock %}

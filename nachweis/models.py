@@ -243,6 +243,10 @@ class Leistung(models.Model):
     notiz = models.CharField(max_length=255, blank=True)
     dokumentation = models.TextField("Dokumentation", blank=True,
                                      help_text="ausführlicher Verlaufstext bei Bedarf")
+    # Ursprungs-Termin (nur bei Doku über den Unterwegs-Modus) – macht sichtbar,
+    # welche Kalender-Termine bereits dokumentiert sind (Erinnerung an offene).
+    termin = models.ForeignKey("Termin", on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name="dokumentationen")
     # Herkunft: manuell erfasst oder automatisch aus Gruppe/Teamsitzung erzeugt
     auto = models.BooleanField("automatisch", default=False)
     erstellt = models.DateTimeField(auto_now_add=True)

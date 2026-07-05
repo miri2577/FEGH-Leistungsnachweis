@@ -47,14 +47,18 @@ def feld_heute(request):
     if not me:
         return redirect("nachweis:start")
     heute = timezone.localdate()
-    termine = (Termin.objects.filter(mitarbeiter=me, datum=heute, klient__isnull=False)
-               .select_related("klient").order_by("beginn"))
+    termine = list(Termin.objects.filter(mitarbeiter=me, datum=heute, klient__isnull=False)
+                   .select_related("klient").order_by("beginn"))
+    for t in termine:                       # schon dokumentiert? (verknüpfte Leistung)
+        t.dok = t.dokumentationen.exists()
+    # Nachzuholen: vergangene, noch nicht dokumentierte Klienten-Termine.
+    nachhol = [t for t in services.undokumentierte_termine(me) if t.datum < heute]
     erfasst = (Leistung.objects.filter(betreuer=me, datum=heute).exclude(auto=True)
                .select_related("klient").order_by("-beginn", "-id"))
     klienten = services.klienten_fuer(request.user).order_by("nachname", "vorname")
     return render(request, "nachweis/feld.html", {
-        "aktiv": "feld", "heute": heute, "termine": termine, "erfasst": erfasst,
-        "klienten": klienten,
+        "aktiv": "feld", "heute": heute, "termine": termine, "nachhol": nachhol,
+        "erfasst": erfasst, "klienten": klienten,
         "arten": [{"v": a.value, "l": a.label} for a in Leistungsart],
     })
 
@@ -77,10 +81,14 @@ def feld_speichern(request):
     if not (klient and beginn and ende):
         messages.error(request, "Bitte Klient*in, Von- und Bis-Zeit angeben.")
         return redirect("nachweis:feld_heute")
+    # Bezug zum Kalender-Termin (falls aus einem Termin heraus dokumentiert) –
+    # nur eigener Termin desselben/derselben Klient*in; markiert ihn als dokumentiert.
+    termin = Termin.objects.filter(pk=request.POST.get("termin"),
+                                   mitarbeiter=me, klient=klient).first()
     # 1) Der Besuch selbst (Standard FS), mit der Verlaufs-Doku.
     leistung = Leistung.objects.create(
         datum=datum, klient=klient, leistungsart=art, betreuer=me,
-        beginn=beginn, ende=ende,
+        beginn=beginn, ende=ende, termin=termin,
         taetigkeit=(request.POST.get("taetigkeit") or "").strip()[:120],
         dokumentation=(request.POST.get("dokumentation") or "").strip())
     # 2) Die Doku-Zeit als SEPARATER WFS-Eintrag, direkt im Anschluss (Default 15 Min).

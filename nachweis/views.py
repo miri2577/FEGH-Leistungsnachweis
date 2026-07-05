@@ -105,6 +105,7 @@ def mein_ueberblick(request):
         "az": services.arbeitszeit_monat(me, jahr, monat) if me else None,
         "urlaub": services.urlaub_uebersicht(me, jahr) if me else None,
         "berichte": berichte,
+        "undok_termine": services.undokumentierte_termine(me) if me else [],
         "wochentage": _wochentage(feier),
         "ist_leitung": services.ist_leitung(request.user),
         "ist_verwaltung": bool(me and me.ist_verwaltung),

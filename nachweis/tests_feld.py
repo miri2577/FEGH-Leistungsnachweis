@@ -1,14 +1,15 @@
 """Tests für den Unterwegs-Modus (mobile Vor-Ort-Doku): Besuch + separate WFS-Doku,
 Team-Scoping, Verwaltung ausgeschlossen."""
-from datetime import date, time
+from datetime import date, time, timedelta
 from decimal import Decimal
 
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
+from . import services
 from .models import (Team, Teamtyp, Mitarbeiter, Klient, Rolle, Status,
-                     Leistung, Termin)
+                     Leistung, Leistungsart, Termin)
 
 User = get_user_model()
 
@@ -71,3 +72,23 @@ class FeldTests(TestCase):
     def test_verwaltung_umgeleitet(self):
         r = self.cl(self.uV).get("/unterwegs/")
         self.assertEqual(r.status_code, 302)          # Verwaltung -> keine Klientenarbeit
+
+    def test_termin_wird_verknuepft_und_dokumentiert(self):
+        t = Termin.objects.create(mitarbeiter=self.mA, klient=self.kA, datum=date(2026, 6, 10),
+                                  beginn=time(10, 0), ende=time(10, 45))
+        self.cl(self.uA).post("/unterwegs/speichern/", {
+            "klient": self.kA.id, "termin": t.id, "datum": "2026-06-10",
+            "beginn": "10:00", "ende": "10:45", "leistungsart": "FS", "doku_minuten": "0"})
+        besuch = Leistung.objects.get(klient=self.kA, leistungsart="FS", datum=date(2026, 6, 10))
+        self.assertEqual(besuch.termin_id, t.id)
+        self.assertTrue(t.dokumentationen.exists())
+
+    def test_undokumentierte_termine_erinnerung(self):
+        vor3 = timezone.localdate() - timedelta(days=3)
+        t = Termin.objects.create(mitarbeiter=self.mA, klient=self.kA, datum=vor3,
+                                  beginn=time(9, 0), ende=time(10, 0))
+        self.assertIn(t, services.undokumentierte_termine(self.mA))
+        # nach Dokumentation (verknüpfte Leistung) verschwindet die Erinnerung
+        Leistung.objects.create(datum=vor3, klient=self.kA, leistungsart=Leistungsart.FS,
+                                betreuer=self.mA, beginn=time(9, 0), ende=time(10, 0), termin=t)
+        self.assertNotIn(t, services.undokumentierte_termine(self.mA))

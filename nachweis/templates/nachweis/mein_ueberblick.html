@@ -176,9 +176,9 @@
   <div class="freeflow">
     <div class="panel faellig card-faellig tint-amber" id="faellig">
       <div class="head"><h2>Fälligkeiten &amp; Hinweise</h2>
-        <span class="muted">{% with n=berichte|length %}{% if az.fehlende_tage %}{{ n|add:1 }}{% else %}{{ n }}{% endif %}{% endwith %} offen</span></div>
+        <span class="muted">{% with b=berichte|length u=undok_termine|length %}{% if az.fehlende_tage %}{{ b|add:u|add:1 }}{% else %}{{ b|add:u }}{% endif %}{% endwith %} offen</span></div>
       <div class="body" style="padding:0">
-        {% if not az.fehlende_tage and not berichte %}
+        {% if not az.fehlende_tage and not berichte and not undok_termine %}
           <div class="empty">✓ Aktuell nichts zu erledigen.</div>
         {% endif %}
         {% if az.fehlende_tage %}
@@ -193,6 +193,13 @@
           <span class="fi"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></span>
           <span class="ftxt">Entwicklungsbericht <b>{{ k.name }}</b> – KÜ endet am {{ k.kue_bis|date:"d.m.Y" }}</span>
           <a href="{% url 'nachweis:druck' %}?klient={{ k.id }}">Zum Klienten →</a>
+        </div>
+        {% endfor %}
+        {% for t in undok_termine %}
+        <div class="frow">
+          <span class="fi"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg></span>
+          <span class="ftxt">Termin am <b>{{ t.datum|date:"d.m." }}</b> mit <b>{{ t.klient.name }}</b> noch nicht dokumentiert</span>
+          <a href="{% url 'nachweis:feld_heute' %}">Dokumentieren →</a>
         </div>
         {% endfor %}
         {% with sichtbar=1 %}{% endwith %}
