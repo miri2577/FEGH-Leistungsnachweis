@@ -137,8 +137,8 @@
         <tr class="{% if row.ich %}ich{% endif %}">
           <td class="maz">{{ row.m.name }}{% if row.m.vorname %}, {{ row.m.vorname }}{% endif %}{% if row.ich %} <span class="muted" style="font-weight:400">(ich)</span>{% endif %}</td>
           {% for z in row.zellen %}
-          <td class="day {% if z.we %}we{% endif %}"{% if row.ich %} data-datum="{{ z.datum|date:'Y-m-d' }}" data-drop="1"{% endif %}>
-            {% for t in z.termine %}{% if row.ich %}<a class="ev" draggable="true" data-termin="{{ t.id }}" style="background:{{ t.farbe }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form" title="{{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}{% if t.ort %} · {{ t.ort }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</a>{% else %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.zeit }}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endif %}{% endfor %}
+          <td class="day {% if z.we %}we{% endif %}"{% if row.ich or kann_alle %} data-datum="{{ z.datum|date:'Y-m-d' }}" data-drop="1" data-ma="{{ row.m.id }}"{% endif %}>
+            {% for t in z.termine %}{% if row.ich or kann_alle %}<a class="ev" draggable="true" data-termin="{{ t.id }}" data-ma="{{ row.m.id }}" style="background:{{ t.farbe }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form" title="{{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}{% if t.ort %} · {{ t.ort }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</a>{% else %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.zeit }}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endif %}{% endfor %}
             {% if row.ich %}<a class="addcell" href="?{{ nav_self }}{{ filter_qs }}&tag={{ z.datum|date:'Y-m-d' }}#form" title="Termin eintragen">＋</a>{% endif %}
           </td>
           {% endfor %}
@@ -147,7 +147,7 @@
       </tbody>
     </table>
   </div>
-  <p class="drag-hint">Tipp: eigene Termine per Ziehen auf einen anderen Tag verschieben.</p>
+  <p class="drag-hint">Tipp: Termin <b>ziehen</b> = auf einen anderen Tag verschieben · <b>Doppelklick</b> = bearbeiten.{% if kann_alle %} Als Leitung kannst du alle Termine deines Teams bearbeiten.{% endif %}</p>
 
   {# ---------------- TAG ---------------- #}
   {% elif ansicht == 'tag' %}
@@ -187,7 +187,7 @@
           {% for tag in woche %}
           <td class="{% if not tag.im_monat %}out{% endif %}{% if tag.heute %} today{% endif %}" data-datum="{{ tag.datum|date:'Y-m-d' }}" data-drop="1">
             <span class="mn">{{ tag.datum|date:"j" }}</span>
-            {% for t in tag.termine %}<span class="ev"{% if me and t.mitarbeiter_id == me.id %} draggable="true" data-termin="{{ t.id }}"{% endif %} style="background:{{ t.farbe }}" title="{{ t.mitarbeiter.name }} · {{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endfor %}
+            {% for t in tag.termine %}{% if kann_alle or me and t.mitarbeiter_id == me.id %}<a class="ev" draggable="true" data-termin="{{ t.id }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form" style="background:{{ t.farbe }}" title="{{ t.mitarbeiter.name }} · {{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</a>{% else %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.mitarbeiter.name }} · {{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endif %}{% endfor %}
             {% for s in tag.serien %}<span class="ev serie" style="background:{{ s.farbe }}" title="{{ s.bezeichnung }}">{{ s.bezeichnung }}</span>{% endfor %}
           </td>
           {% endfor %}
@@ -249,30 +249,33 @@
   document.getElementById('fs-toggle').addEventListener('click', () => document.body.classList.toggle('kal-fs'));
   document.addEventListener('keydown', (e) => { if(e.key === 'Escape') document.body.classList.remove('kal-fs'); });
 
-  // Drag & Drop: eigene Termine im Wochen-Kalender auf einen anderen Tag ziehen
+  // Drag & Drop (verschieben) + Doppelklick (bearbeiten). Eigene Termine;
+  // Leitung: alle Team-Termine. In der Woche bleibt ein Termin in seiner Zeile.
   (function(){
     var dragged = null;
     var MOVE = "{% url 'nachweis:termin_move' %}";
     var CSRF = "{{ csrf_token }}";
+    function sameMa(cell){ return !cell.dataset.ma || !dragged || !dragged.dataset.ma || cell.dataset.ma === dragged.dataset.ma; }
     document.querySelectorAll('.ev[draggable="true"]').forEach(function(ev){
       ev.addEventListener('dragstart', function(e){
         dragged = ev; ev.classList.add('dragging');
         e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', ev.getAttribute('data-termin'));
+        e.dataTransfer.setData('text/plain', ev.getAttribute('data-termin') || '');
       });
       ev.addEventListener('dragend', function(){ ev.classList.remove('dragging'); dragged = null; });
+      ev.addEventListener('dblclick', function(e){ if(ev.href){ e.preventDefault(); location.href = ev.href; } });
     });
     document.querySelectorAll('[data-drop="1"]').forEach(function(cell){
-      cell.addEventListener('dragover', function(e){ if(dragged){ e.preventDefault(); cell.classList.add('drop-hi'); } });
+      cell.addEventListener('dragover', function(e){ if(dragged && sameMa(cell)){ e.preventDefault(); cell.classList.add('drop-hi'); } });
       cell.addEventListener('dragleave', function(){ cell.classList.remove('drop-hi'); });
       cell.addEventListener('drop', function(e){
         e.preventDefault(); cell.classList.remove('drop-hi');
-        if(!dragged) return;
+        if(!dragged || !sameMa(cell)) return;
         var id = dragged.getAttribute('data-termin'), datum = cell.getAttribute('data-datum'), chip = dragged;
         var add = cell.querySelector('.addcell');
-        if(add){ cell.insertBefore(chip, add); } else { cell.appendChild(chip); }   // optimistisch
-        var body = new URLSearchParams({id: id, datum: datum});
-        fetch(MOVE, {method:'POST', headers:{'X-CSRFToken':CSRF,'Content-Type':'application/x-www-form-urlencoded'}, body:body})
+        if(add){ cell.insertBefore(chip, add); } else { cell.appendChild(chip); }
+        fetch(MOVE, {method:'POST', headers:{'X-CSRFToken':CSRF,'Content-Type':'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams({id: id, datum: datum})})
           .then(function(r){ if(!r.ok) throw 0; return r.json(); })
           .then(function(j){ if(!j.ok) throw 0; })
           .catch(function(){ alert('Verschieben fehlgeschlagen – die Seite wird neu geladen.'); location.reload(); });

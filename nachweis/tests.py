@@ -94,7 +94,19 @@ class TeamIsolationTests(TestCase):
         r = self.cl(self.uA).post("/kalender/move/", {"id": t.id, "datum": "2026-07-03"})
         self.assertEqual(r.status_code, 403)
         t.refresh_from_db()
-        self.assertEqual(t.datum, date(2026, 7, 1))    # unverändert (nur eigene verschiebbar)
+        self.assertEqual(t.datum, date(2026, 7, 1))    # unverändert (User: nur eigene)
+
+    def test_leitung_kann_teamtermin_verschieben(self):
+        t = Termin.objects.create(mitarbeiter=self.mA, datum=date(2026, 7, 1), beginn=time(10, 0))
+        r = self.cl(self.uLA).post("/kalender/move/", {"id": t.id, "datum": "2026-07-03"})
+        self.assertEqual(r.status_code, 200)              # Leitung darf Team-Termine
+        t.refresh_from_db()
+        self.assertEqual(t.datum, date(2026, 7, 3))
+
+    def test_leitung_nicht_fremdteam_termin(self):
+        t = Termin.objects.create(mitarbeiter=self.mB, datum=date(2026, 7, 1), beginn=time(10, 0))
+        r = self.cl(self.uLA).post("/kalender/move/", {"id": t.id, "datum": "2026-07-03"})
+        self.assertEqual(r.status_code, 403)              # nur geleitete Teams
 
     def test_kalender_nur_eigenes_team(self):
         r = self.cl(self.uA).get("/kalender/")

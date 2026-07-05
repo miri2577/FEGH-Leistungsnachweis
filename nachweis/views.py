@@ -622,6 +622,7 @@ def _kalender_kontext(request):
 
     ctx = {
         "aktiv": "kalender", "ansicht": ansicht, "titel": titel, "me": me, "jahr": jahr,
+        "kann_alle": services.ist_leitung(request.user),
         "teams": teams, "team_id": team_id, "team_name": team_name,
         "alle_ma": alle_ma, "ma_id": ma_id, "kl_id": kl_id, "filter_qs": fq,
         "legende": legende,
@@ -690,10 +691,21 @@ def kalender(request):
         return redirect("nachweis:start")
     ctx = _kalender_kontext(request)
     me = ctx["me"]
-    ctx["bearbeiten"] = (Termin.objects.filter(pk=request.GET.get("edit"), mitarbeiter=me).first()
-                         if (request.GET.get("edit") and me) else None)
+    _et = Termin.objects.filter(pk=request.GET.get("edit")).first() if request.GET.get("edit") else None
+    ctx["bearbeiten"] = _et if (_et and _termin_bearbeitbar(request, _et)) else None
     ctx["tag_prefill"] = request.GET.get("tag") or ""
     return render(request, "nachweis/kalender.html", ctx)
+
+
+def _termin_bearbeitbar(request, termin):
+    """Eigener Termin ODER Leitung/Break-Glass für Termine der geleiteten Team(s)."""
+    me = services.mitarbeiter_fuer(request.user)
+    if me and termin.mitarbeiter_id == me.id:
+        return True
+    if services.ist_leitung(request.user):
+        team_ids = set(services.teams_fuer(request.user).values_list("id", flat=True))
+        return bool(termin.mitarbeiter and termin.mitarbeiter.team_id in team_ids)
+    return False
 
 
 @require_POST
@@ -704,7 +716,12 @@ def termin_save(request):
         return HttpResponseForbidden()
     ziel = _kalender_ziel(request)
     pk = request.POST.get("id")
-    t = get_object_or_404(Termin, pk=pk, mitarbeiter=me) if pk else Termin(mitarbeiter=me)
+    if pk:
+        t = get_object_or_404(Termin, pk=pk)
+        if not _termin_bearbeitbar(request, t):
+            return HttpResponseForbidden()
+    else:
+        t = Termin(mitarbeiter=me)
     try:
         t.datum = date.fromisoformat(request.POST.get("datum"))
     except (TypeError, ValueError):
@@ -731,12 +748,10 @@ def termin_save(request):
 @require_POST
 @login_required
 def termin_delete(request):
-    me = services.mitarbeiter_fuer(request.user)
-    if me:
-        t = Termin.objects.filter(pk=request.POST.get("id"), mitarbeiter=me).first()
-        if t:
-            t.delete()
-            messages.success(request, "Termin gelöscht.")
+    t = Termin.objects.filter(pk=request.POST.get("id")).first()
+    if t and _termin_bearbeitbar(request, t):
+        t.delete()
+        messages.success(request, "Termin gelöscht.")
     return redirect(_kalender_ziel(request))
 
 
@@ -744,9 +759,8 @@ def termin_delete(request):
 @login_required
 def termin_move(request):
     """Termin per Drag & Drop auf ein anderes Datum verschieben (nur eigene)."""
-    me = services.mitarbeiter_fuer(request.user)
-    t = Termin.objects.filter(pk=request.POST.get("id"), mitarbeiter=me).first() if me else None
-    if not t:
+    t = Termin.objects.filter(pk=request.POST.get("id")).first()
+    if not t or not _termin_bearbeitbar(request, t):
         return HttpResponseForbidden()
     try:
         t.datum = date.fromisoformat(request.POST.get("datum"))
