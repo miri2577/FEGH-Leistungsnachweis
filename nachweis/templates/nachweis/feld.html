@@ -1,0 +1,112 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Unterwegs · FEGH{% endblock %}
+
+{% block extrastyle %}
+  .feld{max-width:640px;margin:0 auto}
+  .feld h1{margin:0 0 2px}
+  .feld .sub{margin:0 0 14px}
+  .termine{display:flex;flex-direction:column;gap:8px;margin:6px 0 18px}
+  .tchip{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:13px 15px;border:1px solid var(--border);border-radius:12px;background:var(--card);
+    cursor:pointer;font-size:15px;text-align:left;width:100%}
+  .tchip:active{background:var(--brand-soft)}
+  .tchip .z{font-variant-numeric:tabular-nums;font-weight:700;color:var(--brand-d);white-space:nowrap}
+  .tchip .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tchip .go{color:var(--muted);font-size:13px}
+  .feldform{background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:16px;display:flex;flex-direction:column;gap:13px}
+  .feldform label{display:flex;flex-direction:column;gap:5px;font-size:13.5px;color:var(--muted);font-weight:600}
+  /* 16px Schrift verhindert Auto-Zoom auf iOS */
+  .feldform input,.feldform select,.feldform textarea{font-size:16px;padding:12px 12px;
+    border:1px solid var(--border);border-radius:10px;font-family:inherit;background:var(--card);color:var(--ink)}
+  .feldform textarea{min-height:88px;resize:vertical}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn-big{padding:15px;font-size:17px;border:0;border-radius:12px;background:var(--brand);color:#fff;
+    font-weight:700;width:100%;cursor:pointer}
+  .btn-big:active{background:var(--brand-d)}
+  .hint{font-size:12.5px;color:var(--muted)}
+  .grp-title{font-weight:700;font-size:14px;margin:4px 2px 2px;color:var(--ink-2)}
+  .erf-list{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+  .erf-item{display:flex;justify-content:space-between;gap:10px;padding:10px 13px;
+    border:1px solid var(--line);border-radius:10px;background:var(--bg-2);font-size:14px}
+  .erf-item .z{font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+  @media(min-width:560px){ nav.side{ } }
+{% endblock %}
+
+{% block content %}
+<div class="feld">
+  <h1 class="page">Unterwegs</h1>
+  <p class="sub">Besuch vor Ort dokumentieren · {{ heute|date:"l, d.m.Y" }}</p>
+
+  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:11px 14px;border-radius:11px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  {% if termine %}
+  <div class="grp-title">Meine Termine heute <span class="hint" style="font-weight:400">— antippen zum Übernehmen</span></div>
+  <div class="termine">
+    {% for t in termine %}
+    <button type="button" class="tchip" data-klient="{{ t.klient.id }}" data-von="{{ t.beginn|time:'H:i' }}" data-bis="{{ t.ende|time:'H:i' }}" data-datum="{{ heute|date:'Y-m-d' }}">
+      <span class="z">{{ t.beginn|time:"H:i" }}{% if t.ende %}–{{ t.ende|time:"H:i" }}{% endif %}</span>
+      <span class="n">{{ t.klient.name }}</span>
+      <span class="go">übernehmen ›</span>
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form class="feldform" id="feldform" method="post" action="{% url 'nachweis:feld_speichern' %}">
+    {% csrf_token %}
+    <label>Klient*in
+      <select name="klient" required>
+        <option value="">— wählen —</option>
+        {% for k in klienten %}<option value="{{ k.id }}">{{ k.name }}</option>{% endfor %}
+      </select></label>
+    <label>Datum
+      <input type="date" name="datum" value="{{ heute|date:'Y-m-d' }}" required></label>
+    <div class="row2">
+      <label>Von <input type="time" name="beginn" required></label>
+      <label>Bis <input type="time" name="ende" required></label>
+    </div>
+    <label>Leistungsart
+      <select name="leistungsart">
+        {% for a in arten %}<option value="{{ a.v }}"{% if a.v == 'FS' %} selected{% endif %}>{{ a.l }}</option>{% endfor %}
+      </select></label>
+    <label>Tätigkeit <span class="hint" style="font-weight:400">(kurz, z. B. Hausbesuch)</span>
+      <input type="text" name="taetigkeit" maxlength="120" placeholder="Hausbesuch"></label>
+    <label>Dokumentation
+      <textarea name="dokumentation" placeholder="Verlauf des Besuchs …"></textarea></label>
+    <label>Doku-Zeit als separater WFS-Eintrag
+      <input type="number" name="doku_minuten" value="15" min="0" max="240" step="5"> <span class="hint" style="font-weight:400">Minuten · 0 = keine</span></label>
+    <button class="btn-big" type="submit">Besuch speichern</button>
+    <p class="hint">Wird sofort als Leistung(en) im Leistungsnachweis sichtbar. Es werden keine Daten auf dem Gerät gespeichert.</p>
+  </form>
+
+  {% if erfasst %}
+  <div class="grp-title" style="margin-top:20px">Heute erfasst</div>
+  <div class="erf-list">
+    {% for l in erfasst %}
+    <div class="erf-item">
+      <span>{{ l.beginn|time:"H:i" }}{% if l.ende %}–{{ l.ende|time:"H:i" }}{% endif %} · {{ l.klient.name }} <b>{{ l.leistungsart }}</b>{% if l.taetigkeit %} · {{ l.taetigkeit }}{% endif %}</span>
+      <span class="z">{{ l.dauer_stunden|floatformat:2 }} h</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extrajs %}
+<script>
+  // Termin antippen -> Formular vorausfüllen (Klient, Datum, Von/Bis) und dorthin scrollen.
+  document.querySelectorAll('.tchip').forEach(function(c){
+    c.addEventListener('click', function(){
+      var f = document.getElementById('feldform');
+      f.klient.value = c.dataset.klient || '';
+      if(c.dataset.datum) f.datum.value = c.dataset.datum;
+      if(c.dataset.von) f.beginn.value = c.dataset.von;
+      if(c.dataset.bis) f.ende.value = c.dataset.bis;
+      f.scrollIntoView({behavior:'smooth', block:'start'});
+      f.taetigkeit.focus({preventScroll:true});
+    });
+  });
+</script>
+{% endblock %}

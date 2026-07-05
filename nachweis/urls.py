@@ -2,7 +2,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import path
 
 from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse,
-               views_abrechnung)
+               views_abrechnung, views_feld)
 
 app_name = "nachweis"
 
@@ -15,6 +15,10 @@ urlpatterns = [
     path("gruppen/", views.gruppen, name="gruppen"),
     path("gruppen/save/", views.gruppe_save, name="gruppe_save"),
     path("gruppen/delete/", views.gruppe_delete, name="gruppe_delete"),
+
+    # Unterwegs-Modus (mobile Vor-Ort-Doku)
+    path("unterwegs/", views_feld.feld_heute, name="feld_heute"),
+    path("unterwegs/speichern/", views_feld.feld_speichern, name="feld_speichern"),
 
     # Wochenkalender (Team-Termine, Mo–So)
     path("kalender/", views.kalender, name="kalender"),

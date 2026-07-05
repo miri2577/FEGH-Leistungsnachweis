@@ -315,6 +315,8 @@
       {% endif %}
       {% if not nav_ist_admin and not nav_ist_verwaltung %}
       <div class="grp">Erfassung</div>
+      <a href="{% url 'nachweis:feld_heute' %}" class="{% if aktiv == 'feld' %}active{% endif %}">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg></span> Unterwegs</a>
       <a href="{% url 'nachweis:erfassung' %}" class="{% if aktiv == 'erfassung' %}active{% endif %}">
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></span> Leistungsnachweis</a>
       <a href="{% url 'nachweis:gruppen' %}" class="{% if aktiv == 'gruppen' %}active{% endif %}">
