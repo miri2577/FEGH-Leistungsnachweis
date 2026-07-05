@@ -34,7 +34,7 @@
       --fs-xs:.78rem; --fs-sm:.86rem; --fs-md:.9rem; --fs-lg:1.06rem; --fs-xl:1.4rem; --fs-2xl:1.7rem;
     }
     *{box-sizing:border-box}
-    html{font-size:15px}html,body{margin:0}
+    html{font-size:15px;color-scheme:light}html,body{margin:0}
     body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
       background:var(--bg);color:var(--ink);font-size:1rem;line-height:1.5}
     a{color:var(--brand);text-decoration:none}
@@ -221,6 +221,7 @@
     }
     /* #7 – Dark Mode: über den Schalter (Auto/Hell/Dunkel) via data-theme auf <html> */
     html[data-theme="dark"]{
+      color-scheme:dark;
       --bg:#0f151b; --bg-2:#151d25; --card:#1a232c; --border:#2b3a45; --line:#222e38;
       --ink:#e7eef4; --ink-2:#c6d2dc; --muted:#96a4b0; --muted-2:#72818d;
       --brand-soft:#0c2b31;
@@ -233,9 +234,13 @@
     html[data-theme="dark"] nav.side a:hover{background:#202b34}
     html[data-theme="dark"] nav.side a.active,html[data-theme="dark"] .kpi .n{color:#63c7d8}
     html[data-theme="dark"] .hello .ava{color:#8fdcea}
-    html[data-theme="dark"] select,html[data-theme="dark"] input[type=text],html[data-theme="dark"] input[type=number],
-    html[data-theme="dark"] input[type=date],html[data-theme="dark"] input[type=password]{
+    html[data-theme="dark"] select,html[data-theme="dark"] textarea,
+    html[data-theme="dark"] input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]){
       background:#121a21;color:var(--ink);border-color:var(--border)}
+    html[data-theme="dark"] header.top .searchbar:focus-within{background:#0f151b;border-color:var(--border)}
+    html[data-theme="dark"] header.top .searchbar:focus-within input{color:var(--ink)}
+    html[data-theme="dark"] header.top .searchbar:focus-within input::placeholder{color:var(--muted-2)}
+    html[data-theme="dark"] header.top .searchbar:focus-within .sb-ic{color:var(--muted)}
     html[data-theme="dark"] select:focus,html[data-theme="dark"] input:focus{outline:2px solid #16414a;border-color:#2596ad}
     html[data-theme="dark"] .btn.ghost{background:#1a232c;color:#63c7d8}
     html[data-theme="dark"] .btn.ghost:hover{background:#232f39}
