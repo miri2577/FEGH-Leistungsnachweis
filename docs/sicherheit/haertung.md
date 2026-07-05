@@ -204,6 +204,14 @@ if not DEBUG and not os.environ.get("DJANGO_SECRET_KEY"):
 !!! warning "Zusätzliche Produktions-Schalter (`if not DEBUG`)"
     Nur bei `DEBUG=False` greifen u. a. `SECURE_SSL_REDIRECT`, HSTS (`SECURE_HSTS_SECONDS`), `SESSION_COOKIE_SECURE` / `CSRF_COOKIE_SECURE`, `SESSION_COOKIE_HTTPONLY`, `X_FRAME_OPTIONS = "DENY"`, `SECURE_PROXY_SSL_HEADER` (Caddy terminiert TLS) sowie WhiteNoise für statische Dateien. Sessions sind an den Arbeitstag gekoppelt (`SESSION_COOKIE_AGE = 8h`, `SESSION_EXPIRE_AT_BROWSER_CLOSE = True`).
 
+### Content-Security-Policy (CSP)
+
+`nachweis.middleware.CSPMiddleware` setzt eine Content-Security-Policy als **zweite XSS-Verteidigungslinie**: `default-src 'self'`, `object-src 'none'` und `frame-ancestors 'none'` blocken externe Skripte, Datenabfluss an fremde Hosts und das Einbetten in fremde Seiten. `style-src`/`script-src` erlauben zusätzlich `'unsafe-inline'`, weil die Templates Inline-Style/-Script nutzen.
+
+- **Standard: Report-Only** (`Content-Security-Policy-Report-Only`) – meldet Verstöße, blockiert nichts. So lässt sich die Policy gefahrlos beobachten.
+- **Scharf schalten** mit `DJANGO_CSP_ENFORCE=1` (Header wird zu `Content-Security-Policy`).
+- Optional `DJANGO_CSP_REPORT_URI=…` für einen Melde-Endpunkt.
+
 ---
 
 ## (h) Passwort-Hashing mit Argon2
@@ -264,6 +272,8 @@ Der Test `TeamIsolationTests` baut zwei Fach-Teams (A, B), ein Verwaltungsteam s
 | `DJANGO_OTP_REQUIRED` | `0` | `1` = 2FA-Pflicht für **alle** (inkl. Break-Glass-Superuser). |
 | `DJANGO_SEED_ROOT_PASSWORD` | – | Passwort für Break-Glass `root` im Seed; ohne dies + `DEBUG=0` kein Seed-Superuser. |
 | `DJANGO_HSTS_SECONDS` | `31536000` | HSTS-Dauer (nur bei `DEBUG=0`). |
+| `DJANGO_CSP_ENFORCE` | `0` | `1` = CSP erzwingen statt Report-Only. |
+| `DJANGO_CSP_REPORT_URI` | – | optionaler Melde-Endpunkt für CSP-Verstöße. |
 | `DJANGO_LOG_FILE` | `logs/django.log` | Rotierendes Security-/Request-Log (nur bei `DEBUG=0`). |
 
 !!! note "Dateiüberblick"

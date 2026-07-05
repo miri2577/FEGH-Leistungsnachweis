@@ -62,6 +62,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'nachweis.middleware.CSPMiddleware',               # Content-Security-Policy (Report-Only default)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -188,6 +189,11 @@ WIKI_URL = os.environ.get("WIKI_URL", "https://miri2577.github.io/FEGH-Leistungs
 
 # Absender (Trägeranschrift) auf Rechnungen – mehrzeilig via Env (\n). Leer = Platzhalter.
 RECHNUNG_ABSENDER = os.environ.get("RECHNUNG_ABSENDER", "").replace("\\n", "\n")
+
+# Content-Security-Policy: Standard Report-Only (bricht nichts, meldet nur Verstöße).
+# Erst eine Weile beobachten, dann DJANGO_CSP_ENFORCE=1 zum scharf schalten.
+CSP_ENFORCE = os.environ.get("DJANGO_CSP_ENFORCE", "0") == "1"
+CSP_REPORT_URI = os.environ.get("DJANGO_CSP_REPORT_URI", "")
 
 # Zwei-Faktor (django-otp / TOTP)
 OTP_TOTP_ISSUER = "FEGH-Leistungsnachweis"     # Anzeigename in der Authenticator-App

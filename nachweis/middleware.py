@@ -102,3 +102,41 @@ class OTPErzwingenMiddleware:
                 ziel = "nachweis:2fa_verify" if hat_device else "nachweis:2fa_setup"
                 return redirect(f"{reverse(ziel)}?next={request.get_full_path()}")
         return self.get_response(request)
+
+
+# Content-Security-Policy: 'unsafe-inline' bleibt nötig (Templates nutzen Inline-
+# Style/Script); default-src/self + frame-ancestors 'none' + object-src 'none'
+# blocken aber externe Skripte/Datenabfluss und Framing – zweite XSS-Verteidigung.
+DEFAULT_CSP = (
+    "default-src 'self'; "
+    "img-src 'self' data:; "
+    "style-src 'self' 'unsafe-inline'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "font-src 'self'; "
+    "connect-src 'self'; "
+    "frame-ancestors 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "object-src 'none'"
+)
+
+
+class CSPMiddleware:
+    """Setzt eine Content-Security-Policy (Defense-in-Depth gegen XSS/Datenabfluss).
+    Standard: Report-Only (bricht nichts). settings.CSP_ENFORCE=True schaltet scharf;
+    optionales settings.CSP_REPORT_URI hängt eine report-uri an."""
+    def __init__(self, get_response):
+        self.get_response = get_response
+        policy = getattr(settings, "CSP_POLICY", DEFAULT_CSP)
+        report_uri = getattr(settings, "CSP_REPORT_URI", "")
+        self.policy = f"{policy}; report-uri {report_uri}" if report_uri else policy
+        self.enforce = getattr(settings, "CSP_ENFORCE", False)
+
+    def __call__(self, request):
+        resp = self.get_response(request)
+        header = "Content-Security-Policy" if self.enforce else "Content-Security-Policy-Report-Only"
+        # Nicht überschreiben, falls schon gesetzt (z. B. durch einen Reverse-Proxy).
+        if ("Content-Security-Policy" not in resp
+                and "Content-Security-Policy-Report-Only" not in resp):
+            resp[header] = self.policy
+        return resp

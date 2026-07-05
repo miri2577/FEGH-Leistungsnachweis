@@ -262,27 +262,40 @@ ALTER TABLE nachweis_klient DISABLE ROW LEVEL SECURITY;
 
 ---
 
-## Ausblick: weitere Tabellen
+## Abgedeckte Tabellen
 
-Aktuell schützt RLS nur `nachweis_klient` – die zentralen Art.-9-Stammdaten.
-Abgeleitete Tabellen wie `Leistung`, `Gruppe` oder `Kasse` besitzen keine eigene
-`team_id`, sondern hängen über einen Fremdschlüssel am Klienten. Sie ließen sich
-per **Subquery-Policy** ergänzen, z. B.:
+`rls_setup --enable` schützt nicht nur die Stammdaten, sondern alle Tabellen mit
+Team-Bezug. Tabellen ohne eigene `team_id` werden über eine **Subquery-Policy**
+an ihren Team-Bezug gekoppelt (Klient\*in, Mitarbeiter\*in oder Kasse):
+
+| Tabelle | Team-Bezug über |
+|---|---|
+| `nachweis_klient` | direkt `team_id` |
+| `nachweis_kasse` | direkt `team_id` |
+| `nachweis_leistung` | Klient\*in (`klient_id → nachweis_klient.team_id`) |
+| `nachweis_termin` | Mitarbeiter\*in (`mitarbeiter_id → nachweis_mitarbeiter.team_id`) |
+| `nachweis_gruppe` | Teilnehmer\*innen (m:n über `nachweis_gruppe_teilnehmer → nachweis_klient`) |
+| `nachweis_kassenmonat` | Kasse (`kasse_id → nachweis_kasse.team_id`) |
+| `nachweis_kassenbuchung` | Kassenmonat → Kasse |
+| `nachweis_zaehlprotokoll` | Kassenmonat → Kasse |
+
+Beispiel-Policy für `nachweis_leistung` (enthält die Art.-9-Freitexte):
 
 ```sql
 CREATE POLICY fegh_team_isolation ON nachweis_leistung
 USING (
     current_setting('app.bypass', true) = 'on'
     OR current_setting('app.team_ids', true) IS NULL
-    OR klient_id IN (
-        SELECT id FROM nachweis_klient
-        WHERE team_id::text = ANY(string_to_array(current_setting('app.team_ids', true), ','))
+    OR EXISTS (
+        SELECT 1 FROM nachweis_klient k
+        WHERE k.id = nachweis_leistung.klient_id
+          AND k.team_id::text = ANY(string_to_array(current_setting('app.team_ids', true), ','))
     )
 );
 ```
 
-!!! tip "Erweiterung vorbereitet"
-    Da die Middleware `app.team_ids` und `app.bypass` bereits pro Request setzt,
-    kostet die Ausweitung auf weitere Tabellen nur je eine zusätzliche Policy –
-    kein neuer Anwendungscode. Vor Produktivnutzung gilt auch hier: erst auf
-    Postgres-Staging testen.
+!!! warning "Vor Produktivnutzung auf Postgres-Staging testen"
+    RLS wirkt auch auf Aggregatabfragen. Nach dem Aktivieren prüfen: Ein normaler
+    User sieht in Kalender, Leistungsnachweis, Kasse **ausschließlich** Zeilen des
+    eigenen Teams; Leitung sieht die geleiteten Teams; der Break-Glass-Superuser
+    (Bypass) alles. `rls_setup --disable` nimmt sämtliche Policies wieder zurück.
