@@ -33,7 +33,10 @@
   a.ev:hover{filter:brightness(.96);text-decoration:none}
   .ev .t{font-variant-numeric:tabular-nums;font-weight:600;margin-right:3px}
   .addcell{display:block;height:100%;min-height:60px;border-radius:7px;color:transparent;text-decoration:none}
-  tr.ich td.day:hover .addcell{color:var(--muted);background:#f4f8fb;display:grid;place-items:center;font-size:20px}
+  td.day:hover .addcell{color:var(--muted);background:#f4f8fb;display:grid;place-items:center;font-size:20px}
+  table.month td[data-add]{cursor:pointer}
+  .dg-col[data-datum]{cursor:copy}
+  .dg-col[data-datum] .dg-ev{cursor:default}
 
   /* Tagesansicht: Karten je Mitarbeiter*in */
   .tagcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
@@ -88,7 +91,7 @@
   .dg-time-sp{width:56px;flex:0 0 auto}
   .dg-hcol{flex:1;min-width:78px;padding:8px 6px;text-align:center;font-size:12.5px;font-weight:600;border-left:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .dg-hcol.ich{box-shadow:inset 0 -3px 0 var(--brand);color:var(--brand-d)}
-  .dg-scroll{max-height:72vh;overflow:auto}
+  .dg-scroll{max-height:72vh;overflow:auto;padding:14px 0}
   .dg-body{display:flex;position:relative}
   .dg-times{width:56px;flex:0 0 auto;position:relative}
   .dg-hlabel{position:absolute;right:7px;transform:translateY(-50%);font-size:11px;color:var(--muted);background:var(--card);padding:0 2px}
@@ -173,7 +176,7 @@
           {% for z in row.zellen %}
           <td class="day {% if z.we %}we{% endif %}"{% if row.ich or kann_alle %} data-datum="{{ z.datum|date:'Y-m-d' }}" data-drop="1" data-ma="{{ row.m.id }}"{% endif %}>
             {% for t in z.termine %}{% if row.ich or kann_alle %}<a class="ev" draggable="true" data-termin="{{ t.id }}" data-ma="{{ row.m.id }}" style="background:{{ t.farbe }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form" title="{{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}{% if t.ort %} · {{ t.ort }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</a>{% else %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.zeit }}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endif %}{% endfor %}
-            {% if row.ich %}<a class="addcell" href="?{{ nav_self }}{{ filter_qs }}&tag={{ z.datum|date:'Y-m-d' }}#form" title="Termin eintragen">＋</a>{% endif %}
+            {% if row.ich or kann_alle %}<a class="addcell" href="?{{ nav_self }}{{ filter_qs }}&tag={{ z.datum|date:'Y-m-d' }}&ma={{ row.m.id }}#form" title="Termin eintragen">＋</a>{% endif %}
           </td>
           {% endfor %}
         </tr>
@@ -191,7 +194,7 @@
     <div class="b" style="flex-direction:row;flex-wrap:wrap">{% for s in tag_serien %}<span class="ev serie" style="background:{{ s.farbe }}">{{ s.bezeichnung }} <span class="muted">· {{ s.art }}</span></span>{% endfor %}</div>
   </div>
   {% endif %}
-  <div class="daygrid" data-pxh="{{ dg_pxh }}" data-hstart="{{ dg_hstart }}" data-hend="{{ dg_hend }}">
+  <div class="daygrid" data-pxh="{{ dg_pxh }}" data-hstart="{{ dg_hstart }}" data-hend="{{ dg_hend }}"{% if me %} data-addbase="?{{ nav_self }}{{ filter_qs }}"{% endif %}>
     <div class="dg-head">
       <div class="dg-time-sp"></div>
       {% for s in tag_spalten %}<div class="dg-hcol{% if s.ich %} ich{% endif %}" title="{{ s.m.name }}{% if s.m.vorname %}, {{ s.m.vorname }}{% endif %}">{{ s.m.name }}{% if s.m.vorname %}, {{ s.m.vorname|slice:':1' }}.{% endif %}</div>{% empty %}<div class="dg-hcol muted">Keine Mitarbeiter*innen</div>{% endfor %}
@@ -218,7 +221,7 @@
       </div>
     </div>
   </div>
-  {% if me %}<p class="drag-hint">Block <b>ziehen</b> = Uhrzeit (15-Min-Raster) · <b>untere Kante ziehen</b> = Dauer · <b>Doppelklick</b> = bearbeiten. Neuen Termin rechts anlegen.</p>{% endif %}
+  {% if me %}<p class="drag-hint">Block <b>ziehen</b> = Uhrzeit (15-Min-Raster) · <b>untere Kante ziehen</b> = Dauer · <b>Doppelklick</b> = bearbeiten · auf <b>freie Fläche klicken</b> = neuer Termin (Uhrzeit wird übernommen).</p>{% endif %}
 
   {# ---------------- MONAT ---------------- #}
   {% else %}
@@ -229,7 +232,7 @@
         {% for woche in monat_wochen %}
         <tr>
           {% for tag in woche %}
-          <td class="{% if not tag.im_monat %}out{% endif %}{% if tag.heute %} today{% endif %}" data-datum="{{ tag.datum|date:'Y-m-d' }}" data-drop="1">
+          <td class="{% if not tag.im_monat %}out{% endif %}{% if tag.heute %} today{% endif %}" data-datum="{{ tag.datum|date:'Y-m-d' }}" data-drop="1"{% if me %} data-add="?{{ nav_self }}{{ filter_qs }}&tag={{ tag.datum|date:'Y-m-d' }}#form"{% endif %}>
             <span class="mn">{{ tag.datum|date:"j" }}</span>
             {% for t in tag.termine %}{% if kann_alle or me and t.mitarbeiter_id == me.id %}<a class="ev" draggable="true" data-termin="{{ t.id }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form" style="background:{{ t.farbe }}" title="{{ t.mitarbeiter.name }} · {{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</a>{% else %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.mitarbeiter.name }} · {{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endif %}{% endfor %}
             {% for s in tag.serien %}<span class="ev serie" style="background:{{ s.farbe }}" title="{{ s.bezeichnung }}">{{ s.bezeichnung }}</span>{% endfor %}
@@ -260,9 +263,11 @@
       <input type="hidden" name="zurueck" value="{{ request.get_full_path }}">
       {% if bearbeiten %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">{% endif %}
       <div class="tform">
+        {% if kann_alle %}<label class="w2">Für Mitarbeiter*in
+          <select name="mitarbeiter">{% for m in alle_ma %}<option value="{{ m.id }}"{% if bearbeiten and bearbeiten.mitarbeiter_id == m.id or not bearbeiten and ma_prefill == m.id|stringformat:'s' or not bearbeiten and not ma_prefill and me.id == m.id %} selected{% endif %}>{{ m.name }}{% if m.vorname %}, {{ m.vorname }}{% endif %}</option>{% endfor %}</select></label>{% endif %}
         <label class="w2">Datum
           <input type="date" name="datum" required value="{% if bearbeiten %}{{ bearbeiten.datum|date:'Y-m-d' }}{% else %}{{ tag_prefill }}{% endif %}"></label>
-        <label>Beginn <input type="time" name="beginn" required value="{{ bearbeiten.beginn|time:'H:i' }}"></label>
+        <label>Beginn <input type="time" name="beginn" required value="{% if bearbeiten %}{{ bearbeiten.beginn|time:'H:i' }}{% else %}{{ beginn_prefill }}{% endif %}"></label>
         <label>Ende <input type="time" name="ende" value="{{ bearbeiten.ende|time:'H:i' }}"></label>
         <label class="w2">Klient*in
           <select name="klient">
@@ -276,7 +281,7 @@
       </div>
       <div style="padding:0 16px 16px;display:flex;gap:8px;align-items:center">
         <button class="btn" type="submit">{% if bearbeiten %}Speichern{% else %}Termin anlegen{% endif %}</button>
-        <span class="muted" style="font-size:12px">Du kannst nur eigene Termine bearbeiten.</span>
+        <span class="muted" style="font-size:12px">{% if kann_alle %}Als Leitung: Termine des Teams.{% else %}Du kannst nur eigene Termine bearbeiten.{% endif %}</span>
       </div>
     </form>
     {% if bearbeiten %}
@@ -339,6 +344,13 @@
           .catch(function(){ alert('Verschieben fehlgeschlagen – die Seite wird neu geladen.'); location.reload(); });
       });
     });
+    // Klick auf leere Zellenfläche (Woche/Monat) = neuen Termin an dem Tag anlegen
+    document.querySelectorAll('td[data-add]').forEach(function(cell){
+      cell.addEventListener('click', function(e){
+        if(e.target.closest('.ev') || e.target.closest('.addcell')) return;
+        location.href = cell.dataset.add;
+      });
+    });
   })();
 
   // Tag-Raster: Block ziehen = Startzeit, untere Kante = Dauer (15-Min-Raster)
@@ -376,6 +388,14 @@
       ev.addEventListener('mousedown', function(e){ if(handle && e.target===handle) return; startDrag(ev, e, 'move'); });
       if(handle) handle.addEventListener('mousedown', function(e){ startDrag(ev, e, 'resize'); });
       ev.addEventListener('dblclick', function(){ if(ev.dataset.edit) location.href = ev.dataset.edit; });
+    });
+    // Klick auf freie Fläche einer Spalte = neuer Termin an dieser Uhrzeit
+    var addbase = grid.dataset.addbase;
+    if(addbase) grid.querySelectorAll('.dg-col[data-datum]').forEach(function(col){
+      col.addEventListener('click', function(e){
+        if(e.target !== col) return;
+        location.href = addbase + '&tag=' + col.dataset.datum + '&beginn=' + toTime(snap(e.offsetY)) + '&ma=' + (col.dataset.ma||'') + '#form';
+      });
     });
   })();
 </script>

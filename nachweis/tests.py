@@ -127,3 +127,32 @@ class TeamIsolationTests(TestCase):
         r = self.cl(self.uA).get("/kalender/")
         self.assertContains(r, "Anna")        # eigenes Team
         self.assertNotContains(r, "Bea")      # Fremdteam nicht sichtbar
+
+    def test_kalender_tag_und_monat_rendern(self):
+        for ansicht in ("tag", "monat", "woche"):
+            r = self.cl(self.uA).get(f"/kalender/?ansicht={ansicht}")
+            self.assertEqual(r.status_code, 200, ansicht)
+
+    # --- Termin anlegen: Mitarbeiter-Zuweisung (Klick ins leere Feld) ---
+    def test_leitung_legt_termin_fuer_teammitglied_an(self):
+        r = self.cl(self.uLA).post("/kalender/save/", {
+            "datum": "2026-07-06", "beginn": "10:00", "titel": "Fallgespräch",
+            "mitarbeiter": self.mA.id})
+        self.assertEqual(r.status_code, 302)
+        t = Termin.objects.get(titel="Fallgespräch")
+        self.assertEqual(t.mitarbeiter_id, self.mA.id)    # dem Teammitglied zugeordnet
+
+    def test_user_kann_mitarbeiter_nicht_setzen(self):
+        r = self.cl(self.uA).post("/kalender/save/", {
+            "datum": "2026-07-06", "beginn": "10:00", "titel": "SelbstNur",
+            "mitarbeiter": self.mB.id})    # Fremd-MA angehängt -> muss ignoriert werden
+        self.assertEqual(r.status_code, 302)
+        t = Termin.objects.get(titel="SelbstNur")
+        self.assertEqual(t.mitarbeiter_id, self.mA.id)    # bleibt bei sich selbst
+
+    def test_leitung_nicht_fuer_fremdteam_anlegen(self):
+        r = self.cl(self.uLA).post("/kalender/save/", {
+            "datum": "2026-07-06", "beginn": "10:00", "titel": "FremdAnlage",
+            "mitarbeiter": self.mB.id})    # mB ist Team B, nicht geleitet
+        t = Termin.objects.get(titel="FremdAnlage")
+        self.assertEqual(t.mitarbeiter_id, self.mLA.id)   # Fallback auf Leitung selbst

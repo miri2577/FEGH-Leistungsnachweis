@@ -711,6 +711,8 @@ def kalender(request):
     _et = Termin.objects.filter(pk=request.GET.get("edit")).first() if request.GET.get("edit") else None
     ctx["bearbeiten"] = _et if (_et and _termin_bearbeitbar(request, _et)) else None
     ctx["tag_prefill"] = request.GET.get("tag") or ""
+    ctx["beginn_prefill"] = request.GET.get("beginn") or ""
+    ctx["ma_prefill"] = request.GET.get("ma") or ""
     return render(request, "nachweis/kalender.html", ctx)
 
 
@@ -739,6 +741,12 @@ def termin_save(request):
             return HttpResponseForbidden()
     else:
         t = Termin(mitarbeiter=me)
+    # Leitung darf den/die Mitarbeiter*in setzen (Termin für Teammitglied anlegen/umhängen)
+    mid = request.POST.get("mitarbeiter")
+    if mid and services.ist_leitung(request.user):
+        m2 = Mitarbeiter.objects.filter(pk=mid, team__in=services.teams_fuer(request.user)).first()
+        if m2:
+            t.mitarbeiter = m2
     try:
         t.datum = date.fromisoformat(request.POST.get("datum"))
     except (TypeError, ValueError):
