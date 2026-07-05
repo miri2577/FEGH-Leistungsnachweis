@@ -71,8 +71,11 @@ def feld_speichern(request):
     me = services.mitarbeiter_fuer(request.user)
     if not me:
         return HttpResponseForbidden()
-    # nur eigene/geleitete Team-Klient*innen zuweisbar
-    klient = services.klienten_fuer(request.user).filter(pk=request.POST.get("klient")).first()
+    # nur eigene/geleitete Team-Klient*innen zuweisbar. pk-Guard: leerer String
+    # wuerde auf PostgreSQL einen Integer-Cast-Fehler ausloesen (SQLite schluckt ihn).
+    kid = request.POST.get("klient")
+    klient = (services.klienten_fuer(request.user).filter(pk=kid).first()
+              if kid and kid.isdigit() else None)
     datum = _date(request.POST.get("datum")) or timezone.localdate()
     beginn = _time(request.POST.get("beginn"))
     ende = _time(request.POST.get("ende"))
@@ -83,8 +86,9 @@ def feld_speichern(request):
         return redirect("nachweis:feld_heute")
     # Bezug zum Kalender-Termin (falls aus einem Termin heraus dokumentiert) –
     # nur eigener Termin desselben/derselben Klient*in; markiert ihn als dokumentiert.
-    termin = Termin.objects.filter(pk=request.POST.get("termin"),
-                                   mitarbeiter=me, klient=klient).first()
+    tid = request.POST.get("termin")
+    termin = (Termin.objects.filter(pk=tid, mitarbeiter=me, klient=klient).first()
+              if tid and tid.isdigit() else None)
     # 1) Der Besuch selbst (Standard FS), mit der Verlaufs-Doku.
     leistung = Leistung.objects.create(
         datum=datum, klient=klient, leistungsart=art, betreuer=me,

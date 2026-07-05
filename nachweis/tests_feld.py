@@ -83,6 +83,21 @@ class FeldTests(TestCase):
         self.assertEqual(besuch.termin_id, t.id)
         self.assertTrue(t.dokumentationen.exists())
 
+    def test_freie_erfassung_ohne_termin_bezug(self):
+        # termin="" (freie Erfassung, leeres Hidden-Feld) darf nicht crashen
+        # (auf PostgreSQL sonst Integer-Cast-Fehler) und legt Leistung ohne Bezug an.
+        self.cl(self.uA).post("/unterwegs/speichern/", {
+            "klient": self.kA.id, "termin": "", "datum": "2026-06-12",
+            "beginn": "10:00", "ende": "11:00", "leistungsart": "FS", "doku_minuten": "0"})
+        leistung = Leistung.objects.get(klient=self.kA, datum=date(2026, 6, 12))
+        self.assertIsNone(leistung.termin_id)
+
+    def test_leerer_klient_kein_crash(self):
+        r = self.cl(self.uA).post("/unterwegs/speichern/", {
+            "klient": "", "termin": "", "beginn": "10:00", "ende": "11:00"})
+        self.assertEqual(r.status_code, 302)             # Fehlermeldung + redirect, kein 500
+        self.assertEqual(Leistung.objects.count(), 0)
+
     def test_undokumentierte_termine_erinnerung(self):
         vor3 = timezone.localdate() - timedelta(days=3)
         t = Termin.objects.create(mitarbeiter=self.mA, klient=self.kA, datum=vor3,
