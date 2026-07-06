@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Anmelden · FEGH-Leistungsnachweis</title>
   <link rel="icon" type="image/svg+xml" href="{% static 'nachweis/logo.svg' %}">
+  <link rel="apple-touch-icon" href="{% static 'nachweis/apple-touch-icon.png' %}">
+  <link rel="manifest" href="{% static 'nachweis/manifest.webmanifest' %}">
   <meta name="theme-color" content="#0e7490">
   <style>
     *{box-sizing:border-box}
@@ -40,7 +42,7 @@
     <div class="head">
       <img class="logo" src="{% static 'nachweis/logo.svg' %}" alt="FEGH-Leistungsnachweis">
       <h1>FEGH-Leistungsnachweis</h1>
-      <p>Team TBEW · Berliner Eingliederungshilfe</p>
+      <p>Dokumentation · Kalender · Abrechnung</p>
     </div>
     <form method="post">
       {% csrf_token %}
@@ -57,10 +59,10 @@
         <table class="demotab">
           <tr><td><b>sander</b></td><td>Admin</td><td>Teams &amp; Mitarbeiter verwalten</td></tr>
           <tr><td><b>berger</b></td><td>Leitung</td><td>Team-Auswertung, Belegungsliste</td></tr>
-          <tr><td><b>neumann</b></td><td>User (TBEW)</td><td>Betreuer*in</td></tr>
-          <tr><td><b>peters</b></td><td>User (Verwaltung)</td><td>mit Stempeluhr</td></tr>
+          <tr><td><b>neumann</b></td><td>User</td><td>Betreuer*in</td></tr>
+          <tr><td><b>peters</b></td><td>Verwaltung</td><td>mit Stempeluhr</td></tr>
         </table>
-        weitere User: schuster, kaiser, lorenz (TBEW) · hartmann, wolf (WG).
+        weitere User: schuster, kaiser, lorenz · hartmann, wolf.
       </div>
     </form>
   </div>

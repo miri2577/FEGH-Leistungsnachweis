@@ -1,7 +1,7 @@
 {
   "name": "FEGH-Leistungsnachweis",
   "short_name": "Leistungsnachweis",
-  "description": "Leistungsnachweise & Abrechnung – Team TBEW (Berliner Eingliederungshilfe)",
+  "description": "Leistungsnachweise – Dokumentation, Kalender & Abrechnung",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
