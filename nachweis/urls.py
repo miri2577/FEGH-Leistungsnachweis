@@ -65,6 +65,7 @@ urlpatterns = [
     path("kasse/buchung/delete/", views_kasse.buchung_delete, name="kasse_buchung_delete"),
     path("kasse/vortrag/", views_kasse.vortrag_save, name="kasse_vortrag_save"),
     path("kasse/anlegen/", views_kasse.kasse_anlegen, name="kasse_anlegen"),
+    path("kasse/zustaendigkeit/", views_kasse.kasse_zustaendigkeit, name="kasse_zustaendigkeit"),
     path("kasse/zaehlprotokoll/", views_kasse.zaehlprotokoll, name="zaehlprotokoll"),
 
     # Abwesenheiten (Urlaub / Freizeitausgleich)

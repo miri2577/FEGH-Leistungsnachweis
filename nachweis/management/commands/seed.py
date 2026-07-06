@@ -104,7 +104,12 @@ class Command(BaseCommand):
                 pass
             # Alt-Superuser 'admin/admin' aus früheren Seeds entfernen (wird nicht mehr angelegt).
             get_user_model().objects.filter(username="admin", is_superuser=True).delete()
-            self.stdout.write("Vorhandene Demodaten gelöscht.")
+            # Demo-LOGINS mit bekanntem Passwort entfernen (nur die Seed-Benutzernamen,
+            # niemals Superuser oder real angelegte Konten) – wichtig für den Leerstart!
+            demo_namen = [nn.lower() for nn, _v, _r, _t in MA_NAMEN]
+            geloescht, _ = (get_user_model().objects
+                            .filter(username__in=demo_namen, is_superuser=False).delete())
+            self.stdout.write(f"Vorhandene Demodaten gelöscht (inkl. {geloescht} Demo-Login(s)).")
 
         p, _ = Parameter.objects.get_or_create(
             jahr=JAHR,
@@ -351,7 +356,11 @@ class Command(BaseCommand):
                 Stempelung.objects.create(mitarbeiter=peters, beginn=b)
 
         # Demo-Kasse TBEW (Juni 2026) – aus der Excel-Vorlage Abrechnung0626.xlsx
-        kasse = Kasse.objects.create(team=team_tbew, bezeichnung="Kassenbuch TBEW", kostenstelle="8300")
+        # Zuständigkeit: nur Verantwortliche*r + Vertretung (+ Leitung/Verwaltung) sehen die Kasse
+        _neumann = next((m for m in mitarbeiter if m.name == "Neumann"), None)
+        _schuster = next((m for m in mitarbeiter if m.name == "Schuster"), None)
+        kasse = Kasse.objects.create(team=team_tbew, bezeichnung="Kassenbuch TBEW", kostenstelle="8300",
+                                     verantwortlich=_neumann, vertretung=_schuster)
         km = Kassenmonat.objects.create(kasse=kasse, jahr=JAHR, monat=6, vortrag=Decimal("266.80"))
         # FIKTIVE Buchungen (nur erfundene Namen – keine echten Personendaten!)
         buchungen = [

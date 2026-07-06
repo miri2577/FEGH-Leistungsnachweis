@@ -459,10 +459,18 @@ GELDSTUECKELUNG = [
 
 
 class Kasse(models.Model):
-    """Kassenbuch eines Teams. Die Verwaltung ist Finanz-Hub (sieht/pflegt alle Kassen)."""
+    """Kassenbuch eines Teams. Die Verwaltung ist Finanz-Hub (sieht/pflegt alle Kassen).
+    Im Team sehen nur Kassenverantwortliche*r und Vertretung die Kasse (plus Leitung,
+    die die Zuständigkeit festlegt)."""
     team = models.OneToOneField(Team, on_delete=models.PROTECT, related_name="kasse")
     bezeichnung = models.CharField(max_length=80, blank=True)
     kostenstelle = models.CharField("Kostenstellen-Code", max_length=20, blank=True)
+    verantwortlich = models.ForeignKey("Mitarbeiter", on_delete=models.SET_NULL,
+                                       null=True, blank=True, related_name="kassen_verantwortlich",
+                                       verbose_name="Kassenverantwortliche*r")
+    vertretung = models.ForeignKey("Mitarbeiter", on_delete=models.SET_NULL,
+                                   null=True, blank=True, related_name="kassen_vertretung",
+                                   verbose_name="Vertretung")
     aktiv = models.BooleanField(default=True)
 
     class Meta:

@@ -13,7 +13,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from . import services
-from .models import Kasse, Kassenbuchung, Kassenmonat, Zaehlprotokoll, Team, GELDSTUECKELUNG
+from .models import (Kasse, Kassenbuchung, Kassenmonat, Zaehlprotokoll, Team,
+                     Mitarbeiter, GELDSTUECKELUNG)
 
 MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
                "August", "September", "Oktober", "November", "Dezember"]
@@ -47,6 +48,31 @@ def _kasse_or_403(request, pk):
     return kasse
 
 
+@require_POST
+@login_required
+def kasse_zustaendigkeit(request):
+    """Kassenverantwortliche*n + Vertretung festlegen (nur Leitung des Teams
+    bzw. Verwaltung). Nur diese Personen sehen die Kasse im Team."""
+    kasse = Kasse.objects.filter(pk=request.POST.get("kasse")).first()
+    if not kasse:
+        return HttpResponseForbidden()
+    leitung_ok = (services.ist_leitung(request.user)
+                  and services.teams_fuer(request.user).filter(pk=kasse.team_id).exists())
+    if not (leitung_ok or services.kann_buha(request.user)):
+        return HttpResponseForbidden()
+
+    def _ma(feld):
+        v = request.POST.get(feld)
+        return (Mitarbeiter.objects.filter(pk=v, team=kasse.team).first()
+                if v and v.isdigit() else None)
+
+    kasse.verantwortlich = _ma("verantwortlich")
+    kasse.vertretung = _ma("vertretung")
+    kasse.save(update_fields=["verantwortlich", "vertretung"])
+    messages.success(request, "Kassen-Zuständigkeit gespeichert.")
+    return redirect(f"/kasse/?kasse={kasse.id}")
+
+
 # ---------------------------------------------------------------- Kassenblatt
 @login_required
 def kasse(request):
@@ -64,6 +90,9 @@ def kasse(request):
     km = services.kassenmonat(aktuelle, jahr, monat)
     bearbeiten = km.buchungen.filter(pk=request.GET.get("edit")).first() if request.GET.get("edit") else None
 
+    # Zuständigkeit (Verantwortliche*r + Vertretung) legt die Leitung fest
+    darf_zustaendigkeit = (services.ist_leitung(request.user)
+                           or services.kann_buha(request.user))
     return render(request, "nachweis/kasse.html", {
         "aktiv": "kasse",
         "kassen": kassen,
@@ -78,6 +107,9 @@ def kasse(request):
         "teams_ohne_kasse": Team.objects.filter(kasse__isnull=True)
         if services.kann_buha(request.user) else Team.objects.none(),
         "darf_anlegen": services.kann_buha(request.user),
+        "darf_zustaendigkeit": darf_zustaendigkeit,
+        "team_mitglieder": Mitarbeiter.objects.filter(
+            team=aktuelle.team, aktiv=True).order_by("name") if darf_zustaendigkeit else [],
     })
 
 

@@ -49,6 +49,40 @@ class IntegritaetTests(TestCase):
         self._cl(self.admin_u).post("/teams/aktion/", {"id": leer.id, "aktion": "loeschen"})
         self.assertFalse(Team.objects.filter(pk=leer.id).exists())
 
+    # --- Kasse: nur Verantwortliche/Vertretung/Leitung sehen sie -------
+    def test_kasse_nur_fuer_zustaendige(self):
+        from . import services
+        kasse = Kasse.objects.create(team=self.team, bezeichnung="K")
+        uV1 = User.objects.create_user("vera", password="pw")
+        mV1 = Mitarbeiter.objects.create(user=uV1, name="Vera", rolle=Rolle.USER, team=self.team)
+        uV2 = User.objects.create_user("veit", password="pw")
+        mV2 = Mitarbeiter.objects.create(user=uV2, name="Veit", rolle=Rolle.USER, team=self.team)
+        uX = User.objects.create_user("xavo", password="pw")
+        Mitarbeiter.objects.create(user=uX, name="Xavo", rolle=Rolle.USER, team=self.team)
+        uL = User.objects.create_user("lena", password="pw")
+        mL = Mitarbeiter.objects.create(user=uL, name="Lena", rolle=Rolle.LEITUNG, team=self.team)
+        mL.leitet.set([self.team])
+
+        # ohne Zuständigkeit: normale User sehen die Kasse NICHT, Leitung schon
+        self.assertFalse(services.kassen_fuer(uV1).exists())
+        self.assertFalse(services.kassen_fuer(uX).exists())
+        self.assertTrue(services.kassen_fuer(uL).exists())
+
+        # Leitung legt Zuständigkeit fest
+        r = self._cl(uL).post("/kasse/zustaendigkeit/",
+                              {"kasse": kasse.id, "verantwortlich": mV1.id, "vertretung": mV2.id})
+        self.assertEqual(r.status_code, 302)
+        kasse.refresh_from_db()
+        self.assertEqual(kasse.verantwortlich_id, mV1.id)
+        # jetzt sehen Verantwortliche*r + Vertretung die Kasse, andere weiterhin nicht
+        self.assertTrue(services.kassen_fuer(uV1).exists())
+        self.assertTrue(services.kassen_fuer(uV2).exists())
+        self.assertFalse(services.kassen_fuer(uX).exists())
+
+        # normaler User darf die Zuständigkeit NICHT ändern
+        r = self._cl(uX).post("/kasse/zustaendigkeit/", {"kasse": kasse.id, "verantwortlich": mV2.id})
+        self.assertEqual(r.status_code, 403)
+
     # --- Beleg-Nr eindeutig je Kassenmonat -----------------------------
     def test_belegnr_eindeutig_pro_kassenmonat(self):
         kasse = Kasse.objects.create(team=self.team, bezeichnung="K")

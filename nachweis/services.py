@@ -97,14 +97,22 @@ def eigene_klienten(user):
 #  Kasse (Kassenbuch) – Verwaltung = Finanz-Hub (sieht/pflegt alle Kassen)
 # --------------------------------------------------------------------------
 def kassen_fuer(user):
-    """Zugängliche Kassen: Verwaltung/Superuser -> alle; Team-Mitglied -> eigenes/geleitete
-    Team(s); Admin -> keine (verwaltet Konten, keine Finanzen)."""
+    """Zugängliche Kassen: Verwaltung/Superuser -> alle (Finanz-Hub); Leitung ->
+    Kassen der geleiteten/eigenen Teams (legt auch die Zuständigkeit fest);
+    User -> NUR wenn er/sie Kassenverantwortliche*r oder Vertretung der Kasse ist;
+    Admin -> keine (verwaltet Konten, keine Finanzen)."""
     from .models import Kasse
     if not user.is_authenticated or ist_admin(user):
         return Kasse.objects.none()
     if ist_verwaltung(user) or _superuser_ohne_profil(user):
         return Kasse.objects.all()
-    return Kasse.objects.filter(team__in=teams_fuer(user))
+    if ist_leitung(user):
+        return Kasse.objects.filter(team__in=teams_fuer(user))
+    me = mitarbeiter_fuer(user)
+    if me is None:
+        return Kasse.objects.none()
+    return Kasse.objects.filter(team__in=teams_fuer(user)).filter(
+        Q(verantwortlich=me) | Q(vertretung=me))
 
 
 def kann_buha(user) -> bool:
