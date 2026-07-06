@@ -50,11 +50,11 @@
       <span class="sum">{{ g.zeilen|length }} Nachweis(e) · {{ g.summe|floatformat:2 }} €</span>
     </div>
     <table class="abr" style="border:0;border-radius:0">
-      <thead><tr><th>Klient*in</th><th>Aktenzeichen</th><th>Bezugsbetreuer*in</th><th class="num">Σ FLS</th><th class="num">Betrag</th></tr></thead>
+      <thead><tr><th>Klient*in</th><th>Aktenzeichen</th><th>Bezugsbetreuer*in</th><th class="num">Σ FLS</th><th class="num">kLE</th><th class="num">Betrag</th></tr></thead>
       <tbody>
         {% for z in g.zeilen %}
         <tr><td>{{ z.name }}</td><td>{{ z.az|default:"—" }}</td><td>{{ z.betreuer|default:"—" }}</td>
-          <td class="num">{{ z.fls|floatformat:2 }}</td><td class="num">{{ z.betrag|floatformat:2 }} €</td></tr>
+          <td class="num">{{ z.fls|floatformat:2 }}</td><td class="num">{{ z.kle|floatformat:2 }}</td><td class="num">{{ z.betrag|floatformat:2 }} €</td></tr>
         {% endfor %}
       </tbody>
     </table>

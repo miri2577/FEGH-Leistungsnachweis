@@ -56,6 +56,36 @@ class AbrechnungTests(TestCase):
     def test_betrag_berechnung(self):
         self.assertEqual(services.betrag_fuer(Decimal("2"), 2026), Decimal("100.00"))
 
+    def test_betrag_mit_kle_pauschale(self):
+        # Senats-Systematik: Betrag = (FLS + kLE) × FLS-Satz
+        self.assertEqual(services.betrag_fuer(Decimal("2"), 2026, Decimal("15")),
+                         Decimal("850.00"))
+
+    def test_kle_monat_stunden(self):
+        p = Parameter.objects.get(jahr=2026)
+        p.kle_je_tag = Decimal("0.5")
+        p.save()
+        # Juni 2026 hat 30 Kalendertage -> 15,0 Std kLE-Pauschale
+        self.assertEqual(services.kle_monat_stunden(2026, 6), Decimal("15.000"))
+
+    def test_snapshot_enthaelt_kle_und_beendete_ohne(self):
+        p = Parameter.objects.get(jahr=2026)
+        p.kle_je_tag = Decimal("0.5")
+        p.save()
+        self._aktion(self.uA, self.kA, "fertig")          # 2h FS dokumentiert
+        mf = Monatsfreigabe.objects.get(klient=self.kA, jahr=2026, monat=6)
+        self.assertEqual(mf.fls_summe, Decimal("2.000"))
+        self.assertEqual(mf.kle_summe, Decimal("15.000")) # 0,5 × 30 Tage
+        self.assertEqual(mf.betrag, Decimal("850.00"))    # (2+15) × 50 €
+        # Beendete Klient*innen erhalten keine kLE-Pauschale
+        self.kA.status = Status.BEENDIGUNG
+        self.kA.save(update_fields=["status"])
+        mf.status = "offen"
+        mf.save()
+        self._aktion(self.uA, self.kA, "fertig")
+        mf.refresh_from_db()
+        self.assertEqual(mf.kle_summe, Decimal("0"))
+
     def test_rechnungsnummer_fortlaufend(self):
         self.assertEqual(services.naechste_rechnungsnummer(2026), "2026-0001")
 

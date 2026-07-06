@@ -34,16 +34,18 @@
   </div>
 
   <table>
-    <thead><tr><th>Klient*in</th><th style="width:150px">Aktenzeichen</th>
-      <th class="num" style="width:90px">Σ FLS</th><th class="num" style="width:110px">Betrag</th></tr></thead>
+    <thead><tr><th>Klient*in</th><th style="width:130px">Aktenzeichen</th>
+      <th class="num" style="width:80px">Σ FLS</th><th class="num" style="width:80px">kLE</th><th class="num" style="width:105px">Betrag</th></tr></thead>
     <tbody>
       {% for p in positionen %}
       <tr><td>{{ p.name }}</td><td>{{ p.az|default:"—" }}</td>
-        <td class="num">{{ p.fls|floatformat:2 }}</td><td class="num">{{ p.betrag|floatformat:2 }} €</td></tr>
-      {% empty %}<tr><td colspan="4" style="text-align:center">Keine Positionen.</td></tr>{% endfor %}
-      <tr class="sum"><td colspan="3">Gesamtbetrag</td><td class="num">{{ r.betrag|floatformat:2 }} €</td></tr>
+        <td class="num">{{ p.fls|floatformat:2 }}</td><td class="num">{{ p.kle|floatformat:2 }}</td><td class="num">{{ p.betrag|floatformat:2 }} €</td></tr>
+      {% empty %}<tr><td colspan="5" style="text-align:center">Keine Positionen.</td></tr>{% endfor %}
+      <tr class="sum"><td colspan="4">Gesamtbetrag</td><td class="num">{{ r.betrag|floatformat:2 }} €</td></tr>
     </tbody>
   </table>
+  <p style="font-size:8.5pt;color:#666">FLS = dokumentierte individuelle Fachleistungsstunden · kLE = kalkulatorische
+  Leistungseinheit (pauschal je Kalendertag, Beschluss 3/2026) · beide zum FLS-Satz vergütet.</p>
 
   {% if r.notiz %}<p style="font-size:9.5pt;color:#555">Notiz: {{ r.notiz }}</p>{% endif %}
   <p class="legal">Leistung nach SGB IX (Eingliederungshilfe), Abrechnung in Fachleistungsstunden.

@@ -135,7 +135,7 @@ def rechnungen(request):
         gruppen.setdefault(kt, []).append({
             "id": mf.id, "name": mf.klient.name, "az": mf.klient.person_id,
             "betreuer": mf.klient.bezugsbetreuer.name if mf.klient.bezugsbetreuer_id else "",
-            "fls": mf.fls_summe, "betrag": mf.betrag,
+            "fls": mf.fls_summe, "kle": mf.kle_summe, "betrag": mf.betrag,
         })
     gruppen_list = [{
         "kostentraeger": kt, "zeilen": z,
@@ -184,7 +184,7 @@ def rechnung_neu(request):
 def _positionen(r):
     """Reduzierte Positions-Projektion (nur Abrechnungsdaten)."""
     return [{"name": p.klient.name, "az": p.klient.person_id,
-             "fls": p.fls_summe, "betrag": p.betrag}
+             "fls": p.fls_summe, "kle": p.kle_summe, "betrag": p.betrag}
             for p in r.positionen.select_related("klient")]
 
 
@@ -227,11 +227,11 @@ def rechnung_csv(request, pk):
     resp["Content-Disposition"] = f'attachment; filename="Rechnung_{r.nummer}.csv"'
     w = csv.writer(resp, delimiter=";")
     w.writerow(["Rechnungsnummer", "Empfänger", "Zeitraum", "Klient*in",
-                "Aktenzeichen", "FLS", "Betrag_EUR"])
+                "Aktenzeichen", "FLS", "kLE", "Betrag_EUR"])
     for p in _positionen(r):
         w.writerow([r.nummer, r.empfaenger, r.monat_text, p["name"], p["az"],
-                    f'{p["fls"]}', f'{p["betrag"]}'])
-    w.writerow([r.nummer, r.empfaenger, r.monat_text, "SUMME", "", "", f"{r.betrag}"])
+                    f'{p["fls"]}', f'{p["kle"]}', f'{p["betrag"]}'])
+    w.writerow([r.nummer, r.empfaenger, r.monat_text, "SUMME", "", "", "", f"{r.betrag}"])
     return resp
 
 

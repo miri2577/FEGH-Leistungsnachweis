@@ -14,7 +14,7 @@ from django.views.decorators.http import require_POST
 
 from . import services
 from .models import (Klient, Mitarbeiter, Parameter, Status, Team, Leistungsart,
-                     WiederkehrendeLeistung, Rhythmus, Anrechnung)
+                     WiederkehrendeLeistung, Rhythmus, Anrechnung, HBGSatz)
 
 
 def _nur_leitung(request):
@@ -60,12 +60,16 @@ def belegungsliste(request):
 
 def _form_kontext(request, klient=None):
     teams = services.teams_fuer(request.user)
+    import json
+    vorschlag = {str(h): {"al": str(v["al"]), "kle": str(v["kle"]), "woche": str(v["fls_woche"])}
+                 for h, v in services.bewilligung_vorschlag(date.today().year).items()}
     return {
         "aktiv": "belegungsliste",
         "klient": klient,
         "teams": teams,
         "mitarbeiter": Mitarbeiter.objects.filter(aktiv=True, team__in=teams).order_by("name", "vorname"),
         "status_wahl": Status.choices,
+        "hbg_vorschlag_json": json.dumps(vorschlag),
     }
 
 
@@ -135,12 +139,26 @@ def parameter(request):
         p.teamsitzung_dauer_std = _dec(request.POST.get("teamsitzung_dauer_std"))
         p.teamsitzung_wochentag = _int_or_none(request.POST.get("teamsitzung_wochentag")) or 3
         p.fls_preis = _dec(request.POST.get("fls_preis"))
+        p.kle_je_tag = _dec(request.POST.get("kle_je_tag"))
         p.save()
+        # HBG-Tabelle (FLS/Woche je HBG 1–12, aus dem Senats-Tool Output 5.)
+        for hbg in range(1, 13):
+            wert = _dec(request.POST.get(f"hbg_{hbg}"))
+            if wert:
+                HBGSatz.objects.update_or_create(parameter=p, hbg=hbg,
+                                                 defaults={"fls_woche": wert})
+            else:
+                HBGSatz.objects.filter(parameter=p, hbg=hbg).delete()
         messages.success(request, "Parameter gespeichert.")
         return redirect(f"{request.path}?jahr={jahr}")
     wochentage = [(0, "Montag"), (1, "Dienstag"), (2, "Mittwoch"), (3, "Donnerstag"),
                   (4, "Freitag"), (5, "Samstag"), (6, "Sonntag")]
     ts_pro, n_do = services.teamsitzung_pro_klient(jahr)
+    hbg_map = services.hbg_tabelle(jahr)
+    hbg_zeilen = [{"hbg": h, "fls_woche": hbg_map.get(h, ""),
+                   "al_monat": (hbg_map[h] * services.WOCHEN_JE_MONAT).quantize(Decimal("0.001"))
+                   if h in hbg_map else ""} for h in range(1, 13)]
+    kle_monat = ((p.kle_je_tag or Decimal("0")) * (Decimal("365.25") / 12)).quantize(Decimal("0.001"))
     teams = services.teams_fuer(request.user)
     serien = list(WiederkehrendeLeistung.objects
                   .filter(Q(team__isnull=True) | Q(team__in=teams)).select_related("team"))
@@ -148,6 +166,7 @@ def parameter(request):
     return render(request, "nachweis/parameter.html", {
         "aktiv": "parameter", "p": p, "jahr": jahr, "wochentage": wochentage,
         "n_donnerstage": n_do, "ts_pro_klient": ts_pro,
+        "hbg_zeilen": hbg_zeilen, "kle_monat": kle_monat,
         "serien": serien, "edit_serie": edit_serie, "teams": teams,
         "rhythmus_choices": Rhythmus.choices, "anrechnung_choices": Anrechnung.choices,
         "leistungsart_choices": Leistungsart.choices,

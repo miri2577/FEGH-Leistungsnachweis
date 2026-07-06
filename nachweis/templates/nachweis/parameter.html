@@ -31,12 +31,33 @@
         <div><label class="fld">Teamsitzung Wochentag</label>
           <select name="teamsitzung_wochentag">{% for v,l in wochentage %}<option value="{{ v }}" {% if p.teamsitzung_wochentag == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
         <div><label class="fld">Dauer je Sitzung (Std)</label><input type="text" name="teamsitzung_dauer_std" value="{{ p.teamsitzung_dauer_std }}"></div>
-        <div><label class="fld">FLS-Preis € (aus Vereinbarung)</label><input type="text" name="fls_preis" value="{{ p.fls_preis }}"></div>
+        <div><label class="fld">FLS-Satz € <span class="muted" style="font-weight:400">(Senats-Tool, Output 3.)</span></label><input type="text" name="fls_preis" value="{{ p.fls_preis }}"></div>
+        <div><label class="fld">kLE je Tag (Std) <span class="muted" style="font-weight:400">(Output 3.)</span></label><input type="text" name="kle_je_tag" value="{{ p.kle_je_tag }}">
+          {% if kle_monat %}<span class="muted" style="font-size:12px">≈ {{ kle_monat }} Std/Monat je Klient*in</span>{% endif %}</div>
+
+        <div class="full" style="grid-column:1 / -1;margin-top:6px">
+          <label class="fld">Individuelle FLS pro Woche je HBG <span class="muted" style="font-weight:400">(Senats-Tool, Output 5. – Vorbelegung für die Belegungsliste)</span></label>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr style="color:var(--muted);font-size:12px;text-align:left">
+              <th style="padding:4px 6px">HBG</th><th style="padding:4px 6px">FLS/Woche</th><th style="padding:4px 6px">≈ AL/Monat</th>
+              <th style="padding:4px 6px">HBG</th><th style="padding:4px 6px">FLS/Woche</th><th style="padding:4px 6px">≈ AL/Monat</th></tr></thead>
+            <tbody>
+              {% for z in hbg_zeilen %}
+              {% if forloop.counter0|divisibleby:2 %}<tr>{% endif %}
+                <td style="padding:3px 6px;font-weight:600">HBG {{ z.hbg }}</td>
+                <td style="padding:3px 6px"><input type="text" name="hbg_{{ z.hbg }}" value="{{ z.fls_woche }}" style="width:90px"></td>
+                <td style="padding:3px 6px;color:var(--muted)">{{ z.al_monat|default:"—" }}</td>
+              {% if not forloop.counter0|divisibleby:2 %}</tr>{% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
         <div class="full" style="grid-column:1 / -1"><button class="btn" type="submit">Speichern</button></div>
       </div>
     </form>
   </div>
-  <p class="note">Teamsitzung = Anzahl Sitzungstage × Dauer ÷ Klient*innen in Betreuung. Berliner Feiertage werden automatisch ausgenommen.</p>
+  <p class="note">Teamsitzung = Anzahl Sitzungstage × Dauer ÷ Klient*innen in Betreuung. Berliner Feiertage werden automatisch ausgenommen.<br>
+  <b>Senats-Systematik (Beschluss 3/2026):</b> Abrechnung = dokumentierte individuelle FLS × FLS-Satz <b>+ kLE/Tag × Kalendertage × FLS-Satz</b>. Die kLE ist für alle Klient*innen gleich (deckt fallunspezifische Zeiten, Erreichbarkeit, Wegezeiten, Sonstiges) und braucht keine Einzeldokumentation. AL/Monat = FLS/Woche × 4,3482 (365,25 ÷ 7 ÷ 12).</p>
 
   <div class="panel" style="margin-top:22px">
     <div class="head"><h2>Wiederkehrende Leistungen (Serien)</h2>

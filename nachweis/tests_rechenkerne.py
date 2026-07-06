@@ -151,7 +151,7 @@ class WochenauslastungTests(TestCase):
         zeile = res["zeilen"][self.k.id]
         self.assertEqual(zeile["al"], Decimal("2"))             # 2h FS -> AL
         self.assertEqual(zeile["kle"], Decimal("0"))
-        self.assertEqual(zeile["soll_al"], Decimal("12"))       # 52 * 12/52
+        self.assertEqual(zeile["soll_al"], Decimal("11.959"))   # 52 × 12/52,1786 (365,25/7 Wochen/Jahr)
         self.assertEqual(zeile["soll_kle"], Decimal("0"))
 
     def test_kle_leistung_zaehlt_als_kle(self):

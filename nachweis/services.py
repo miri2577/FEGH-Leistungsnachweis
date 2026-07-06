@@ -12,6 +12,7 @@ from .models import (Klient, Gruppe, Leistung, Parameter, Leistungsart,
                      Mitarbeiter, Team, Rolle, FLS_ARTEN, Status,
                      WiederkehrendeLeistung, Rhythmus, Anrechnung,
                      Freigabestatus, Monatsfreigabe, Rechnung, Rechnungsstatus)
+from .services_senatstool import WOCHEN_JE_JAHR, WOCHEN_JE_MONAT
 
 Q3 = Decimal("0.001")
 
@@ -414,7 +415,7 @@ def auslastung_zeitreihe(jahr: int, klienten):
     kl_list = list(klienten)
     kont_monat = sum((k.fls_gesamt for k in kl_list), Decimal("0"))
     kont_jahr = kont_monat * 12
-    kont_woche = (kont_jahr / Decimal(52)) if kont_jahr else Decimal("0")
+    kont_woche = (kont_jahr / WOCHEN_JE_JAHR) if kont_jahr else Decimal("0")
 
     # Anzahl ISO-Wochen im Jahr (52 oder 53; der 28.12. liegt stets in der letzten ISO-Woche)
     n_weeks = date(jahr, 12, 28).isocalendar()[1]
@@ -471,8 +472,9 @@ def auslastung_zeitreihe(jahr: int, klienten):
 
 
 def _woche_faktor() -> Decimal:
-    """Umrechnung Monatswert -> Wochenwert (12 Monate / 52 Wochen)."""
-    return Decimal(12) / Decimal(52)
+    """Umrechnung Monatswert -> Wochenwert. Senats-Basis: 365,25 Tage / 7 =
+    52,18 Wochen pro Jahr (nicht 52) – konsistent zum Umrechnungstool."""
+    return Decimal(12) / WOCHEN_JE_JAHR
 
 
 def aktuelle_kw(jahr: int) -> int:
@@ -778,9 +780,38 @@ def fls_preis(jahr: int) -> Decimal:
     return get_parameter(jahr).fls_preis or Decimal("0")
 
 
-def betrag_fuer(fls_summe, jahr: int) -> Decimal:
-    """Abrechnungsbetrag = FLS × FLS-Preis (auf Cent gerundet)."""
-    return (Decimal(fls_summe) * fls_preis(jahr)).quantize(E2, ROUND_HALF_UP)
+def kle_monat_stunden(jahr: int, monat: int) -> Decimal:
+    """kLE-Pauschale eines Monats in Stunden: kLE je Tag × Kalendertage des Monats.
+    Senats-Systematik: die kLE fällt je Leistungsberechtigte*m und KALENDERTAG an
+    (einheitlich, HBG-unabhängig) – keine Einzeldokumentation erforderlich."""
+    from calendar import monthrange
+    p = get_parameter(jahr)
+    tage = monthrange(jahr, monat)[1]
+    return ((p.kle_je_tag or Decimal("0")) * tage).quantize(Q3, ROUND_HALF_UP)
+
+
+def betrag_fuer(fls_summe, jahr: int, kle_summe=Decimal("0")) -> Decimal:
+    """Abrechnungsbetrag = (dokumentierte FLS + kLE-Pauschale) × FLS-Satz.
+    Beide Komponenten werden laut Senats-Tool zum selben Satz vergütet
+    (Gegenprobe-Blatt: kLE × 365,25 × FLS-Satz)."""
+    return ((Decimal(fls_summe) + Decimal(kle_summe)) * fls_preis(jahr)).quantize(E2, ROUND_HALF_UP)
+
+
+def hbg_tabelle(jahr: int) -> dict:
+    """{hbg: individuelle FLS pro Woche} aus den Parametern (Senats-Tool, Output 5.)."""
+    from .models import HBGSatz
+    return {s.hbg: s.fls_woche for s in HBGSatz.objects.filter(parameter__jahr=jahr)}
+
+
+def bewilligung_vorschlag(jahr: int) -> dict:
+    """Vorbelegung für die Belegungsliste: je HBG die bewilligten Werte PRO MONAT.
+    AL/Monat = FLS/Woche × 4,3482 (= 365,25/7/12); kLE/Monat = kLE/Tag × 30,4375.
+    Der individuelle Bescheid kann abweichen – nur ein Vorschlag."""
+    p = get_parameter(jahr)
+    kle_monat = ((p.kle_je_tag or Decimal("0")) * (Decimal("365.25") / 12)).quantize(Q3, ROUND_HALF_UP)
+    return {hbg: {"al": (fw * WOCHEN_JE_MONAT).quantize(Q3, ROUND_HALF_UP),
+                  "kle": kle_monat, "fls_woche": fw}
+            for hbg, fw in hbg_tabelle(jahr).items()}
 
 
 def freigabe_holen(klient, jahr: int, monat: int, erzeugen: bool = False):
@@ -798,27 +829,34 @@ def freigaben_map(klienten, jahr: int, monat: int) -> dict:
 
 
 def freigabe_snapshot(mf) -> None:
-    """FLS/Betrag des Monats festschreiben (beim Einreichen/Freigeben)."""
+    """FLS/kLE/Betrag des Monats festschreiben (beim Einreichen/Freigeben).
+    kLE = Tagespauschale × Kalendertage (nur für Klient*innen in Betreuung)."""
     d = druck_nachweis(mf.klient, mf.jahr, mf.monat)
     mf.fls_summe = d["fls_summe"]
-    mf.betrag = betrag_fuer(mf.fls_summe, mf.jahr)
+    mf.kle_summe = (kle_monat_stunden(mf.jahr, mf.monat)
+                    if mf.klient.status == Status.BETREUUNG else Decimal("0"))
+    mf.betrag = betrag_fuer(mf.fls_summe, mf.jahr, mf.kle_summe)
 
 
 def abrechnungsuebersicht(klienten, jahr: int, monat: int):
-    """Zeilen für die Freigabe-Übersicht (MA/Leitung): je Klient*in FLS, Betrag, Status.
-    Für offene Monate live berechnet, ab 'eingereicht' die festgeschriebenen Werte."""
+    """Zeilen für die Freigabe-Übersicht (MA/Leitung): je Klient*in FLS, kLE, Betrag,
+    Status. Für offene Monate live berechnet, ab 'eingereicht' die festgeschriebenen
+    Werte. kLE = Tagespauschale × Kalendertage (Senats-Systematik)."""
     fmap = freigaben_map(klienten, jahr, monat)
     preis = fls_preis(jahr)
+    kle_pauschale = kle_monat_stunden(jahr, monat)
     zeilen = []
     for k in klienten.select_related("bezugsbetreuer"):
         mf = fmap.get(k.id)
         if mf and mf.status != Freigabestatus.OFFEN:
-            fls, betrag = mf.fls_summe, mf.betrag
+            fls, kle, betrag = mf.fls_summe, mf.kle_summe, mf.betrag
         else:
             fls = druck_nachweis(k, jahr, monat)["fls_summe"]
-            betrag = (fls * preis).quantize(E2, ROUND_HALF_UP)
+            kle = kle_pauschale if k.status == Status.BETREUUNG else Decimal("0")
+            betrag = ((fls + kle) * preis).quantize(E2, ROUND_HALF_UP)
         zeilen.append({
-            "klient": k, "betreuer": k.bezugsbetreuer, "fls": fls, "betrag": betrag,
+            "klient": k, "betreuer": k.bezugsbetreuer, "fls": fls, "kle": kle,
+            "betrag": betrag,
             "status": mf.status if mf else Freigabestatus.OFFEN,
             "mf": mf, "hinweis": mf.hinweis if mf else "",
         })

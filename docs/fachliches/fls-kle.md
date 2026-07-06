@@ -5,6 +5,35 @@ Diese Seite erklärt die zentrale Abrechnungslogik der App: Was zählt als **Fac
 !!! info "Fachliche Grundlage"
     Berlin, gültig ab **01.01.2026**, **Beschluss 3/2026** (Rahmenvertrag Eingliederungshilfe). Alle Zeit- und Betragsgrößen werden in der App als `Decimal` geführt (keine Fließkommazahlen), weil sie abrechnungsrelevant sind. Rundung erfolgt kaufmännisch (`ROUND_HALF_UP`) auf **3 Nachkommastellen** (`Q3 = 0.001`).
 
+## Senats-Systematik (Umrechnungstool „ab März 2026")
+
+Der Senat (SenASGIVA) stellt je Angebot ein **Umrechnungstool** bereit, das die alte
+Tagessatz-Vergütung (Maßnahmepauschale je HBG 1–12) **erlösneutral** in die neue
+FLS-Systematik überführt. Die App bildet diese Logik formelgetreu nach
+(`nachweis/services_senatstool.py`, verifiziert in `tests_senatstool.py` gegen die
+Original-Zellwerte des Tools). Drei Ausgabegrößen steuern die Abrechnung:
+
+| Größe | Bedeutung | Wo in der App |
+|---|---|---|
+| **FLS-Satz** (€/Std) | ein Satz für alles: Ø-Personalkosten ÷ (Netto-Jahresarbeitsstunden × Auslastung) | Parameter-Tab „FLS-Satz" |
+| **individuelle FLS je HBG, pro Woche** | fallspezifische Zeiten, über Personalschlüssel-Gewichtung (HBG 1 = 0,136 … HBG 12 = 0,755) auf die HBG verteilt | Parameter-Tab HBG-Tabelle → Vorbelegung Belegungsliste |
+| **kLE je Tag** | **einheitlich für alle Klient*innen**, je **Kalendertag**; deckt fallunspezifische Zeiten, Erreichbarkeit, Wegezeiten, Sonstiges | Parameter-Tab „kLE je Tag" |
+
+!!! abstract "Abrechnungsformel (Monat, je Klient*in)"
+    ```
+    Betrag = dokumentierte individuelle FLS × FLS-Satz
+           + kLE/Tag × Kalendertage des Monats × FLS-Satz
+    ```
+    Die kLE ist eine **Pauschale** – sie erfordert keine Einzeldokumentation und ist
+    HBG-unabhängig. Umrechnung Woche ↔ Monat: **× 4,3482** (= 365,25 ÷ 7 ÷ 12).
+
+!!! note "Was ist fallspezifisch, was fallunspezifisch? (Handreichung, Beschluss 3/2026 Anlage)"
+    **WFS** (weitere fallspezifische Leistungen, zählen als FLS): Vor-/Nachbereitung
+    individueller Termine (2.1), **Fallbesprechungen** (2.2), **Fallsupervision** (2.3),
+    **Dokumentation** inkl. Verlaufsdoku, Leistungsnachweis, THFD-Berichte (2.4).
+    **Fallunspezifisch** (durch die kLE-Pauschale abgedeckt, NICHT als FLS dokumentierbar):
+    **Teambesprechungen/Teamsitzung**, **Teamsupervision**, Erreichbarkeit, **Wegezeiten**.
+
 ## Leistungsarten im Überblick
 
 In der App ist jede erfasste Leistung genau einer Leistungsart zugeordnet (`Leistungsart` in `models.py`).

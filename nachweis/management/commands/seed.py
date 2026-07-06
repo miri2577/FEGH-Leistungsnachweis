@@ -46,13 +46,20 @@ VORNAMEN = ["Alex","Bianca","Carsten","Diana","Erik","Frauke","Georg","Hanna","I
             "Kai","Lena","Marco","Nina","Olaf","Petra","Rico","Sina","Timo","Ute","Vera",
             "Willi","Yvonne","Zoe","Ben","Clara","Dennis","Elke","Falko","Gina","Heiko","Ida","Jonas"]
 
-# HBG -> (AL/Monat, kLE/Monat) – nachempfundene Größenordnungen
-HBG_WERTE = {
-    1: (Decimal("8.815"), Decimal("8.5")),
-    2: (Decimal("10.965"), Decimal("10.5")),
-    3: (Decimal("15.05"), Decimal("14.5")),
-    4: (Decimal("18.92"), Decimal("18.5")),
+# Senats-Systematik (Beschluss 3/2026): bewilligte individuelle FLS PRO WOCHE je HBG
+# (Demo-Werte, gerundet); AL/Monat = FLS/Woche × 4,3482 (365,25/7/12).
+# kLE ist EINHEITLICH je Klient*in und Kalendertag (HBG-unabhängig).
+FLS_WOCHE_HBG = {
+    1: Decimal("2.089"), 2: Decimal("2.950"), 3: Decimal("3.810"), 4: Decimal("4.686"),
+    5: Decimal("5.546"), 6: Decimal("6.406"), 7: Decimal("7.267"), 8: Decimal("8.127"),
+    9: Decimal("9.003"), 10: Decimal("9.863"), 11: Decimal("10.738"), 12: Decimal("11.599"),
 }
+WOCHEN_JE_MONAT = Decimal("365.25") / 7 / 12          # 4.348214…
+KLE_JE_TAG = Decimal("0.722")                          # Demo (Senats-Tool Output 3.)
+KLE_MONAT = (KLE_JE_TAG * (Decimal("365.25") / 12)).quantize(Decimal("0.001"))
+# HBG -> (AL/Monat, kLE/Monat) für die Demo-Klient*innen
+HBG_WERTE = {h: ((w * WOCHEN_JE_MONAT).quantize(Decimal("0.001")), KLE_MONAT)
+             for h, w in FLS_WOCHE_HBG.items()}
 
 TAETIGKEITEN_FS = ["Hausbesuch", "direkte Betreuung", "Begleitung Amt", "Krisengespräch"]
 TAETIGKEITEN_WFS = ["Verlaufsdokumentation", "Fallbesprechung", "Bericht an THFD"]
@@ -99,10 +106,14 @@ class Command(BaseCommand):
             get_user_model().objects.filter(username="admin", is_superuser=True).delete()
             self.stdout.write("Vorhandene Demodaten gelöscht.")
 
-        Parameter.objects.get_or_create(
+        p, _ = Parameter.objects.get_or_create(
             jahr=JAHR,
             defaults=dict(teamsitzung_wochentag=3, teamsitzung_dauer_std=Decimal("3.0"),
-                          fls_preis=Decimal("64.80")))
+                          fls_preis=Decimal("45.46"), kle_je_tag=KLE_JE_TAG))
+        # HBG-Tabelle (individuelle FLS/Woche, Senats-Tool Output 5. – Demo-Werte)
+        from nachweis.models import HBGSatz
+        for h, w in FLS_WOCHE_HBG.items():
+            HBGSatz.objects.get_or_create(parameter=p, hbg=h, defaults={"fls_woche": w})
 
         # Rechte-Gruppen sicherstellen (auch für den Leerstart nötig)
         from nachweis.accounts import ensure_gruppen
@@ -255,11 +266,13 @@ class Command(BaseCommand):
                                    anz_ma=1)
         g2.teilnehmer.set(RNG.sample(aktive, 5))
 
-        # Demo: wiederkehrende Leistung (monatliche Fallsupervision, 2. Dienstag)
+        # Demo: wiederkehrende Leistung (monatliche Fallsupervision, 2. Dienstag).
+        # Handreichung Beschluss 3/2026, Nr. 2.3: FALLsupervision ist eine weitere
+        # fallspezifische Leistung (WFS) – Teamsupervision wäre fallunspezifisch (kLE).
         from nachweis.models import WiederkehrendeLeistung, Rhythmus, Anrechnung
         WiederkehrendeLeistung.objects.get_or_create(
             bezeichnung="Fallsupervision",
-            defaults=dict(leistungsart=Leistungsart.KLE, rhythmus=Rhythmus.MONATLICH,
+            defaults=dict(leistungsart=Leistungsart.WFS, rhythmus=Rhythmus.MONATLICH,
                           wochentag=1, woche_im_monat=2, dauer_std=Decimal("1.5"),
                           anrechnung=Anrechnung.TEILER, feiertage_aussparen=True))
 

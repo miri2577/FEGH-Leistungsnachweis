@@ -577,12 +577,19 @@ class Zaehlprotokoll(models.Model):
 
 
 class Parameter(models.Model):
-    """Team-Parameter (ein Datensatz je Jahr). Vergütungssätze NICHT hartkodieren."""
+    """Team-Parameter (ein Datensatz je Jahr). Vergütungssätze NICHT hartkodieren –
+    FLS-Satz und kLE/Tag stammen aus dem Senats-Umrechnungstool (Output-Blatt)."""
     jahr = models.PositiveIntegerField(default=2026, unique=True)
     teamsitzung_wochentag = models.PositiveSmallIntegerField(
         default=3, help_text="0=Mo … 3=Do … 6=So")
     teamsitzung_dauer_std = models.DecimalField(max_digits=4, decimal_places=2, default=Decimal("3.0"))
-    fls_preis = models.DecimalField("FLS-Preis €", max_digits=8, decimal_places=2, default=0)
+    fls_preis = models.DecimalField("FLS-Satz €", max_digits=8, decimal_places=4, default=0,
+                                    help_text="€ je Fachleistungsstunde (Senats-Tool, Output 3.)")
+    kle_je_tag = models.DecimalField(
+        "kLE je Leistungsberechtigte*m und Tag (Std)", max_digits=8, decimal_places=6, default=0,
+        help_text="kalkulatorische Leistungseinheit – einheitlich für alle Klient*innen, "
+                  "je Kalendertag (Senats-Tool, Output 3.). Deckt fallunspezifische Zeiten, "
+                  "Erreichbarkeit, Wegezeiten, Sonstiges. 0 = kLE nicht in der Abrechnung.")
 
     class Meta:
         verbose_name = "Team-Parameter"
@@ -590,6 +597,27 @@ class Parameter(models.Model):
 
     def __str__(self):
         return f"Parameter {self.jahr}"
+
+
+class HBGSatz(models.Model):
+    """Individuelle Fachleistungsstunden PRO WOCHE je Hilfebedarfsgruppe (HBG 1–12),
+    aus dem Senats-Umrechnungstool (Output 5., angebotsspezifisch). Dient als
+    Vorbelegung für die Bewilligung in der Belegungsliste; der Bescheid der/des
+    einzelnen Klient*in kann davon abweichen."""
+    parameter = models.ForeignKey(Parameter, on_delete=models.CASCADE, related_name="hbg_saetze")
+    hbg = models.PositiveSmallIntegerField("HBG")
+    fls_woche = models.DecimalField("individuelle FLS pro Woche (Std)",
+                                    max_digits=7, decimal_places=4, default=0)
+
+    class Meta:
+        verbose_name = "HBG-Satz (FLS/Woche)"
+        verbose_name_plural = "HBG-Sätze (FLS/Woche)"
+        ordering = ["hbg"]
+        constraints = [models.UniqueConstraint(fields=["parameter", "hbg"],
+                                               name="ein_satz_pro_hbg_und_jahr")]
+
+    def __str__(self):
+        return f"HBG {self.hbg} · {self.fls_woche} FLS/Woche ({self.parameter.jahr})"
 
 
 class Rhythmus(models.TextChoices):
@@ -740,6 +768,8 @@ class Monatsfreigabe(models.Model):
     status = models.CharField(max_length=12, choices=Freigabestatus.choices,
                               default=Freigabestatus.OFFEN)
     fls_summe = models.DecimalField("Σ FLS (festgeschrieben)", max_digits=8, decimal_places=3, default=0)
+    kle_summe = models.DecimalField("Σ kLE (festgeschrieben, Std)", max_digits=8, decimal_places=3, default=0,
+                                    help_text="kLE je Tag × Kalendertage des Monats (pauschal)")
     betrag = models.DecimalField("Betrag € (festgeschrieben)", max_digits=12, decimal_places=2, default=0)
     hinweis = models.CharField("Hinweis (Rückweisung)", max_length=255, blank=True)
     eingereicht_am = models.DateTimeField(null=True, blank=True)

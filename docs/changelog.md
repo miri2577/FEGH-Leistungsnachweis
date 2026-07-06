@@ -14,6 +14,17 @@ auf die jeweiligen Detailseiten.
 
 ---
 
+## 0 · Senats-Systematik (Umrechnungstool „ab März 2026")
+
+Die App bildet die **Umrechnungslogik des Senats-Tools** (Maßnahmepauschale → FLS/kLE,
+Beschluss 3/2026) formelgetreu nach: `services_senatstool.py` reproduziert FLS-Satz,
+individuelle FLS je HBG/Woche (Personalschlüssel-Gewichtung) und die **einheitliche
+kLE je Kalendertag** – verifiziert gegen die Original-Zellwerte des Tools
+(`tests_senatstool.py`, inkl. Erlösneutralitäts-Gegenprobe). Die **Abrechnung**
+rechnet seitdem `FLS × Satz + kLE/Tag × Kalendertage × Satz`; der Parameter-Tab
+führt FLS-Satz, kLE/Tag und die HBG-Tabelle (Vorbelegung für die Belegungsliste).
+Details: [FLS & kLE](fachliches/fls-kle.md).
+
 ## 1 · Sicherheit & DSGVO
 
 Der größte Block dieser Ausbaustufe. Ziel: Die App ist auch bei Fehlbedienung,
