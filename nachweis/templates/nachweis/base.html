@@ -312,7 +312,6 @@
     </div>
     {% endif %}
     <div class="user">
-      <span class="chip">Team TBEW · Berlin</span>
       <button type="button" id="themeBtn" class="theme-btn" aria-label="Design wechseln (Auto/Hell/Dunkel)"></button>
       {% if user.is_authenticated %}
         <span>{{ user.get_full_name|default:user.username }}{% if user.mitarbeiter_profil %} · {{ user.mitarbeiter_profil.get_rolle_display }}{% endif %}</span>

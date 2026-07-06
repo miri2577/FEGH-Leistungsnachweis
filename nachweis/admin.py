@@ -200,6 +200,6 @@ class MonatsfreigabeAdmin(admin.ModelAdmin):
     autocomplete_fields = ("klient", "rechnung")
 
 
-admin.site.site_header = "FEGH-Leistungsnachweis · Team TBEW"
+admin.site.site_header = "FEGH-Leistungsnachweis"
 admin.site.site_title = "FEGH-Leistungsnachweis"
 admin.site.index_title = "Verwaltung"
