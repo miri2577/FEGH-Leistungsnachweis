@@ -7,10 +7,12 @@ Wegezeit 6 h/VK/Woche, Auslastung 95,9 %, 38,5-h-Woche. Alle Erwartungswerte
 sind die von Excel berechneten Zellwerte (auf ≥6 Stellen)."""
 from decimal import Decimal
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase, Client
+from django.contrib.auth import get_user_model
 
+from .models import Team, Teamtyp, Mitarbeiter, Rolle, Parameter, HBGSatz
 from .services_senatstool import (umrechnung, gegenprobe, durchschnitts_personalkosten,
-                                  PERSONALSCHLUESSEL, WOCHEN_JE_MONAT)
+                                  erreichbarkeit_pa, PERSONALSCHLUESSEL, WOCHEN_JE_MONAT)
 
 PAUSCHALEN = {1: "41.45", 2: "52.60", 3: "63.75", 4: "75.00", 5: "86.15",
               6: "97.30", 7: "108.45", 8: "119.70", 9: "130.86", 10: "142.01",
@@ -67,3 +69,64 @@ class SenatstoolTests(SimpleTestCase):
 
     def test_wochen_je_monat(self):                        # 365,25 / 7 / 12
         self._fast(WOCHEN_JE_MONAT, 4.348214285714286)
+
+    def test_erreichbarkeit_pa(self):                      # Input 1 I80 (1 MA Mo–Fr 10–16)
+        self._fast(erreichbarkeit_pa(6, 0), 1515.6171428571424)
+
+
+class RechnerEinstellungenTests(TestCase):
+    """End-to-End: verhandelte Eingaben im Einstellungsbereich ändern → berechnen →
+    übernehmen → die Abrechnungsparameter tragen exakt die Senats-Tool-Werte."""
+
+    @classmethod
+    def setUpTestData(cls):
+        team = Team.objects.create(name="T", typ=Teamtyp.BEW)
+        cls.uL = get_user_model().objects.create_user("lea", password="pw")
+        m = Mitarbeiter.objects.create(user=cls.uL, name="Lea", rolle=Rolle.LEITUNG, team=team)
+        m.leitet.set([team])
+
+    def _cl(self):
+        c = Client()
+        c.force_login(self.uL)
+        return c
+
+    def test_eingaben_speichern_berechnen_uebernehmen(self):
+        jahr = 2026
+        daten = {"aktion": "rechner", "kapazitaet": "25", "wochenarbeitszeit": "38.5",
+                 "auslastung": "0.959", "fallunspez_anteil": "0.2",
+                 "erreichbarkeit_mo_fr_std": "6", "erreichbarkeit_we_ft_std": "0",
+                 "wegezeit_std_vk_woche": "6", "pk_alternativ": "0"}
+        for h, p in PAUSCHALEN.items():
+            daten[f"pausch_{h}"] = p
+        for h, b in BELEGUNG.items():
+            daten[f"beleg_{h}"] = str(b)
+        c = self._cl()
+        r = c.post(f"/parameter/?jahr={jahr}", daten)
+        self.assertEqual(r.status_code, 302)
+
+        # Ergebnis wird auf der Seite angezeigt (deutsche Lokalisierung: Komma)
+        r = c.get(f"/parameter/?jahr={jahr}")
+        self.assertContains(r, "45,4568")                 # FLS-Satz
+        self.assertContains(r, "0,722167")                # kLE je Tag
+        self.assertContains(r, "Gegenprobe")
+
+        # Übernehmen schreibt die Werte exakt in die Abrechnungsparameter
+        c.post(f"/parameter/?jahr={jahr}", {"aktion": "uebernehmen"})
+        p = Parameter.objects.get(jahr=jahr)
+        self.assertEqual(p.fls_preis, Decimal("45.4568"))
+        self.assertEqual(p.kle_je_tag, Decimal("0.722167"))
+        s = {x.hbg: x.fls_woche for x in HBGSatz.objects.filter(parameter=p)}
+        self.assertEqual(s[1], Decimal("2.0893"))
+        self.assertEqual(s[4], Decimal("4.6856"))
+        self.assertEqual(s[12], Decimal("11.5988"))
+
+    def test_andere_platzzahl_bleibt_konsistent(self):
+        """Kapazität ändern (verhandelt): FLS-Satz bleibt (unabhängig von Plätzen),
+        kLE bleibt konstant (skaliert mit Budget UND Plätzen), Gegenprobe weiter 0."""
+        erg25 = umrechnung(PAUSCHALEN, BELEGUNG, kapazitaet=25,
+                           erreichbarkeit_std_pa=erreichbarkeit_pa(6, 0))
+        erg30 = umrechnung(PAUSCHALEN, BELEGUNG, kapazitaet=30,
+                           erreichbarkeit_std_pa=erreichbarkeit_pa(6, 0))
+        self.assertAlmostEqual(float(erg25["fls_satz"]), float(erg30["fls_satz"]), places=9)
+        alt, neu = gegenprobe(erg30, PAUSCHALEN, BELEGUNG)
+        self.assertAlmostEqual(float(alt), float(neu), places=4)   # erlösneutral auch bei 30 Plätzen

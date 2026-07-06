@@ -599,13 +599,50 @@ class Parameter(models.Model):
         return f"Parameter {self.jahr}"
 
 
+class Umrechnung(models.Model):
+    """Eingabewerte des Senats-Umrechnungstools (Input 1) – je Jahr/Parameter.
+    Kostensätze und Platzzahl sind individuell mit dem Kostenträger verhandelt und
+    hier anpassbar; die App berechnet daraus FLS-Satz, kLE/Tag und FLS/Woche je HBG
+    formelgetreu (services_senatstool) und weist die Gegenprobe aus."""
+    parameter = models.OneToOneField(Parameter, on_delete=models.CASCADE, related_name="umrechnung")
+    kapazitaet = models.PositiveSmallIntegerField("vereinbarte Kapazität (Plätze)", default=0)
+    wochenarbeitszeit = models.DecimalField("Wochenarbeitszeit (Std)", max_digits=4,
+                                            decimal_places=2, default=Decimal("38.5"))
+    auslastung = models.DecimalField("Auslastung", max_digits=5, decimal_places=4,
+                                     default=Decimal("0.959"),
+                                     help_text="landesweit vereinbart 0,959 – abweichend anpassbar")
+    fallunspez_anteil = models.DecimalField("Anteil fallunspezifische Zeiten", max_digits=4,
+                                            decimal_places=3, default=Decimal("0.200"))
+    erreichbarkeit_mo_fr_std = models.DecimalField(
+        "Erreichbarkeit Mo–Fr (Std je Tag)", max_digits=6, decimal_places=2, default=0,
+        help_text="Anzahl Mitarb. × Stunden, z. B. 1 MA 10–16 Uhr = 6")
+    erreichbarkeit_we_ft_std = models.DecimalField(
+        "Erreichbarkeit Sa/So/Feiertag (Std je Tag)", max_digits=6, decimal_places=2, default=0)
+    wegezeit_std_vk_woche = models.DecimalField("Ø Wegezeit je VK/Woche (Std)", max_digits=5,
+                                                decimal_places=2, default=Decimal("6"))
+    pk_alternativ = models.DecimalField(
+        "Ø-Personalkosten alternativ €", max_digits=12, decimal_places=2, default=0,
+        help_text="0 = Differenzmethode aus den Maßnahmepauschalen (wie das Senats-Tool)")
+
+    class Meta:
+        verbose_name = "Umrechnung (Senats-Tool-Eingaben)"
+        verbose_name_plural = "Umrechnungen (Senats-Tool-Eingaben)"
+
+    def __str__(self):
+        return f"Umrechnung {self.parameter.jahr}"
+
+
 class HBGSatz(models.Model):
-    """Individuelle Fachleistungsstunden PRO WOCHE je Hilfebedarfsgruppe (HBG 1–12),
-    aus dem Senats-Umrechnungstool (Output 5., angebotsspezifisch). Dient als
-    Vorbelegung für die Bewilligung in der Belegungsliste; der Bescheid der/des
-    einzelnen Klient*in kann davon abweichen."""
+    """Je Hilfebedarfsgruppe (HBG 1–12): die verhandelte Maßnahmepauschale (alt,
+    €/Tag) und die Belegung am Stichtag als EINGABEN des Umrechnungsrechners sowie
+    die individuellen FLS PRO WOCHE als ERGEBNIS (Senats-Tool Output 5.). Die
+    FLS/Woche dienen als Vorbelegung für die Bewilligung in der Belegungsliste;
+    der Bescheid der/des einzelnen Klient*in kann davon abweichen."""
     parameter = models.ForeignKey(Parameter, on_delete=models.CASCADE, related_name="hbg_saetze")
     hbg = models.PositiveSmallIntegerField("HBG")
+    pauschale_alt = models.DecimalField("Maßnahmepauschale alt (€/Tag)", max_digits=8,
+                                        decimal_places=2, default=0)
+    belegung_stichtag = models.PositiveSmallIntegerField("Belegung am Stichtag", default=0)
     fls_woche = models.DecimalField("individuelle FLS pro Woche (Std)",
                                     max_digits=7, decimal_places=4, default=0)
 

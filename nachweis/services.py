@@ -803,6 +803,34 @@ def hbg_tabelle(jahr: int) -> dict:
     return {s.hbg: s.fls_woche for s in HBGSatz.objects.filter(parameter__jahr=jahr)}
 
 
+def umrechnung_fuer_jahr(jahr: int):
+    """Führt den Senats-Umrechnungsrechner mit den gespeicherten Eingaben des Jahres
+    aus. Rückgabe (ergebnis, gegenprobe_alt, gegenprobe_neu) oder (None, None, None),
+    wenn die Pflicht-Eingaben fehlen (Kapazität, Belegung, Pauschalen HBG 1+12)."""
+    from . import services_senatstool as st
+    from .models import Umrechnung
+    u = Umrechnung.objects.filter(parameter__jahr=jahr).select_related("parameter").first()
+    if not u or not u.kapazitaet:
+        return None, None, None
+    saetze = {s.hbg: s for s in u.parameter.hbg_saetze.all()}
+    pauschalen = {h: (saetze[h].pauschale_alt if h in saetze else Decimal("0"))
+                  for h in st.PERSONALSCHLUESSEL}
+    belegung = {h: (saetze[h].belegung_stichtag if h in saetze else 0)
+                for h in st.PERSONALSCHLUESSEL}
+    if not pauschalen[1] or not pauschalen[12] or not sum(belegung.values()):
+        return None, None, None
+    erg = st.umrechnung(
+        pauschalen, belegung, kapazitaet=u.kapazitaet,
+        erreichbarkeit_std_pa=st.erreichbarkeit_pa(u.erreichbarkeit_mo_fr_std,
+                                                   u.erreichbarkeit_we_ft_std),
+        wegezeit_std_vk_woche=u.wegezeit_std_vk_woche,
+        auslastung=u.auslastung, wochenarbeitszeit=u.wochenarbeitszeit,
+        fallunspez_anteil=u.fallunspez_anteil,
+        personalkosten=(u.pk_alternativ or None))
+    alt, neu = st.gegenprobe(erg, pauschalen, belegung)
+    return erg, alt, neu
+
+
 def bewilligung_vorschlag(jahr: int) -> dict:
     """Vorbelegung für die Belegungsliste: je HBG die bewilligten Werte PRO MONAT.
     AL/Monat = FLS/Woche × 4,3482 (= 365,25/7/12); kLE/Monat = kLE/Tag × 30,4375.

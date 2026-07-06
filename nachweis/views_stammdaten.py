@@ -14,7 +14,7 @@ from django.views.decorators.http import require_POST
 
 from . import services
 from .models import (Klient, Mitarbeiter, Parameter, Status, Team, Leistungsart,
-                     WiederkehrendeLeistung, Rhythmus, Anrechnung, HBGSatz)
+                     WiederkehrendeLeistung, Rhythmus, Anrechnung, HBGSatz, Umrechnung)
 
 
 def _nur_leitung(request):
@@ -136,20 +136,56 @@ def parameter(request):
     jahr = int(request.GET.get("jahr") or date.today().year)
     p = services.get_parameter(jahr)
     if request.method == "POST":
-        p.teamsitzung_dauer_std = _dec(request.POST.get("teamsitzung_dauer_std"))
-        p.teamsitzung_wochentag = _int_or_none(request.POST.get("teamsitzung_wochentag")) or 3
-        p.fls_preis = _dec(request.POST.get("fls_preis"))
-        p.kle_je_tag = _dec(request.POST.get("kle_je_tag"))
-        p.save()
-        # HBG-Tabelle (FLS/Woche je HBG 1–12, aus dem Senats-Tool Output 5.)
-        for hbg in range(1, 13):
-            wert = _dec(request.POST.get(f"hbg_{hbg}"))
-            if wert:
-                HBGSatz.objects.update_or_create(parameter=p, hbg=hbg,
-                                                 defaults={"fls_woche": wert})
+        aktion = request.POST.get("aktion") or "parameter"
+        if aktion == "parameter":
+            p.teamsitzung_dauer_std = _dec(request.POST.get("teamsitzung_dauer_std"))
+            p.teamsitzung_wochentag = _int_or_none(request.POST.get("teamsitzung_wochentag")) or 3
+            p.fls_preis = _dec(request.POST.get("fls_preis"))
+            p.kle_je_tag = _dec(request.POST.get("kle_je_tag"))
+            p.save()
+            # HBG-Tabelle (FLS/Woche je HBG 1–12, aus dem Senats-Tool Output 5.)
+            for hbg in range(1, 13):
+                wert = _dec(request.POST.get(f"hbg_{hbg}"))
+                if wert:
+                    HBGSatz.objects.update_or_create(parameter=p, hbg=hbg,
+                                                     defaults={"fls_woche": wert})
+                else:
+                    HBGSatz.objects.filter(parameter=p, hbg=hbg,
+                                           pauschale_alt=0, belegung_stichtag=0).delete()
+            messages.success(request, "Parameter gespeichert.")
+        elif aktion == "rechner":
+            # Eingaben des Umrechnungsrechners speichern (Kostensätze/Platzzahl
+            # sind individuell verhandelt und hier frei anpassbar).
+            u, _ = Umrechnung.objects.get_or_create(parameter=p)
+            u.kapazitaet = _int_or_none(request.POST.get("kapazitaet")) or 0
+            u.wochenarbeitszeit = _dec(request.POST.get("wochenarbeitszeit")) or Decimal("38.5")
+            u.auslastung = _dec(request.POST.get("auslastung")) or Decimal("0.959")
+            u.fallunspez_anteil = _dec(request.POST.get("fallunspez_anteil"))
+            u.erreichbarkeit_mo_fr_std = _dec(request.POST.get("erreichbarkeit_mo_fr_std"))
+            u.erreichbarkeit_we_ft_std = _dec(request.POST.get("erreichbarkeit_we_ft_std"))
+            u.wegezeit_std_vk_woche = _dec(request.POST.get("wegezeit_std_vk_woche"))
+            u.pk_alternativ = _dec(request.POST.get("pk_alternativ"))
+            u.save()
+            for hbg in range(1, 13):
+                HBGSatz.objects.update_or_create(
+                    parameter=p, hbg=hbg,
+                    defaults={"pauschale_alt": _dec(request.POST.get(f"pausch_{hbg}")),
+                              "belegung_stichtag": _int_or_none(request.POST.get(f"beleg_{hbg}")) or 0})
+            messages.success(request, "Umrechnungs-Eingaben gespeichert – Ergebnis unten geprüft (Gegenprobe).")
+        elif aktion == "uebernehmen":
+            # Rechner-Ergebnisse in die Abrechnungsparameter übernehmen.
+            erg, _alt, _neu = services.umrechnung_fuer_jahr(jahr)
+            if not erg:
+                messages.error(request, "Berechnung unvollständig – bitte Kapazität, Belegung und Pauschalen (mind. HBG 1 und 12) eintragen.")
             else:
-                HBGSatz.objects.filter(parameter=p, hbg=hbg).delete()
-        messages.success(request, "Parameter gespeichert.")
+                p.fls_preis = erg["fls_satz"].quantize(Decimal("0.0001"))
+                p.kle_je_tag = erg["kle_je_tag"].quantize(Decimal("0.000001"))
+                p.save()
+                for hbg, woche in erg["fls_woche"].items():
+                    HBGSatz.objects.update_or_create(
+                        parameter=p, hbg=hbg,
+                        defaults={"fls_woche": woche.quantize(Decimal("0.0001"))})
+                messages.success(request, f"Übernommen: FLS-Satz {p.fls_preis} € · kLE/Tag {p.kle_je_tag} · FLS/Woche je HBG aktualisiert.")
         return redirect(f"{request.path}?jahr={jahr}")
     wochentage = [(0, "Montag"), (1, "Dienstag"), (2, "Mittwoch"), (3, "Donnerstag"),
                   (4, "Freitag"), (5, "Samstag"), (6, "Sonntag")]
@@ -159,6 +195,28 @@ def parameter(request):
                    "al_monat": (hbg_map[h] * services.WOCHEN_JE_MONAT).quantize(Decimal("0.001"))
                    if h in hbg_map else ""} for h in range(1, 13)]
     kle_monat = ((p.kle_je_tag or Decimal("0")) * (Decimal("365.25") / 12)).quantize(Decimal("0.001"))
+    # Umrechnungsrechner: Eingaben + (falls vollständig) Ergebnis inkl. Gegenprobe
+    rechner = Umrechnung.objects.filter(parameter=p).first()
+    saetze = {s.hbg: s for s in p.hbg_saetze.all()}
+    rechner_zeilen = [{"hbg": h,
+                       "pauschale": saetze[h].pauschale_alt if h in saetze and saetze[h].pauschale_alt else "",
+                       "belegung": saetze[h].belegung_stichtag if h in saetze and saetze[h].belegung_stichtag else ""}
+                      for h in range(1, 13)]
+    erg, gp_alt, gp_neu = services.umrechnung_fuer_jahr(jahr)
+    ergebnis = None
+    if erg:
+        ergebnis = {
+            "fls_satz": erg["fls_satz"].quantize(Decimal("0.0001")),
+            "kle_je_tag": erg["kle_je_tag"].quantize(Decimal("0.000001")),
+            "fallspez_std": erg["fallspez_std"].quantize(Decimal("0.01")),
+            "vk": erg["vk_gesamt"].quantize(Decimal("0.001")),
+            "budget": erg["budget_gesamt"].quantize(Decimal("0.01")),
+            "fls_woche": [{"hbg": h, "woche": w.quantize(Decimal("0.0001"))}
+                          for h, w in erg["fls_woche"].items()],
+            "gp_alt": gp_alt.quantize(Decimal("0.01")),
+            "gp_neu": gp_neu.quantize(Decimal("0.01")),
+            "gp_diff": (gp_neu - gp_alt).quantize(Decimal("0.01")),
+        }
     teams = services.teams_fuer(request.user)
     serien = list(WiederkehrendeLeistung.objects
                   .filter(Q(team__isnull=True) | Q(team__in=teams)).select_related("team"))
@@ -167,6 +225,7 @@ def parameter(request):
         "aktiv": "parameter", "p": p, "jahr": jahr, "wochentage": wochentage,
         "n_donnerstage": n_do, "ts_pro_klient": ts_pro,
         "hbg_zeilen": hbg_zeilen, "kle_monat": kle_monat,
+        "rechner": rechner, "rechner_zeilen": rechner_zeilen, "ergebnis": ergebnis,
         "serien": serien, "edit_serie": edit_serie, "teams": teams,
         "rhythmus_choices": Rhythmus.choices, "anrechnung_choices": Anrechnung.choices,
         "leistungsart_choices": Leistungsart.choices,

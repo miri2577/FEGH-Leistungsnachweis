@@ -37,6 +37,18 @@ JAHR_TAGE = D("365.25")                    # Kalenderjahr inkl. Schaltjahre
 WOCHEN_JE_JAHR = JAHR_TAGE / D(7)          # 52.1785…
 WOCHEN_JE_MONAT = WOCHEN_JE_JAHR / D(12)   # 4.34821…  (Woche → Monat: ×)
 
+# Tage-Aufteilung für die Erreichbarkeit (Input 1, Zeilen 78/79):
+# Sa/So = 2/7 des Jahres, plus 8,29 Feiertage auf Werktagen (Berliner Schnitt).
+WE_FT_TAGE = JAHR_TAGE * 2 / 7 + D("8.29")  # 112.6471…
+WERKTAGE = JAHR_TAGE - WE_FT_TAGE           # 252.6028…
+
+
+def erreichbarkeit_pa(mo_fr_std_je_tag, we_ft_std_je_tag=0) -> Decimal:
+    """Erreichbarkeits-/Bereitschaftsstunden pro Jahr aus Stunden je Tag
+    (Anzahl Mitarbeitende × Dauer), getrennt nach Mo–Fr und Sa/So/Feiertag –
+    exakt wie das Tool (Input 1, I80)."""
+    return D(str(mo_fr_std_je_tag)) * WERKTAGE + D(str(we_ft_std_je_tag)) * WE_FT_TAGE
+
 
 def durchschnitts_personalkosten(pauschalen: dict, auslastung: Decimal) -> Decimal:
     """Ø-Personalkosten nach der Differenzmethode (Input 1 F98):

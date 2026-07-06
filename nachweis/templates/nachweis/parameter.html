@@ -27,6 +27,7 @@
     <div class="head"><h2>Parameter bearbeiten</h2></div>
     <form method="post">
       {% csrf_token %}
+      <input type="hidden" name="aktion" value="parameter">
       <div class="pform">
         <div><label class="fld">Teamsitzung Wochentag</label>
           <select name="teamsitzung_wochentag">{% for v,l in wochentage %}<option value="{{ v }}" {% if p.teamsitzung_wochentag == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
@@ -58,6 +59,76 @@
   </div>
   <p class="note">Teamsitzung = Anzahl Sitzungstage × Dauer ÷ Klient*innen in Betreuung. Berliner Feiertage werden automatisch ausgenommen.<br>
   <b>Senats-Systematik (Beschluss 3/2026):</b> Abrechnung = dokumentierte individuelle FLS × FLS-Satz <b>+ kLE/Tag × Kalendertage × FLS-Satz</b>. Die kLE ist für alle Klient*innen gleich (deckt fallunspezifische Zeiten, Erreichbarkeit, Wegezeiten, Sonstiges) und braucht keine Einzeldokumentation. AL/Monat = FLS/Woche × 4,3482 (365,25 ÷ 7 ÷ 12).</p>
+
+  <div class="panel" style="margin-top:22px;max-width:860px">
+    <div class="head"><h2>Umrechnungsrechner (Senats-Tool)</h2>
+      <span class="muted" style="font-size:12.5px">verhandelte Kostensätze &amp; Platzzahl eingeben → App berechnet FLS-Satz, kLE/Tag, FLS/Woche exakt wie das Senats-Tool</span></div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="aktion" value="rechner">
+      <div class="pform" style="max-width:none;grid-template-columns:repeat(4,1fr)">
+        <div><label class="fld">Kapazität (Plätze)</label><input type="number" name="kapazitaet" min="0" value="{{ rechner.kapazitaet|default:'' }}"></div>
+        <div><label class="fld">Wochenarbeitszeit (Std)</label><input type="text" name="wochenarbeitszeit" value="{{ rechner.wochenarbeitszeit|default:'38.5' }}"></div>
+        <div><label class="fld">Auslastung</label><input type="text" name="auslastung" value="{{ rechner.auslastung|default:'0.959' }}"></div>
+        <div><label class="fld">Anteil fallunspez. Zeiten</label><input type="text" name="fallunspez_anteil" value="{{ rechner.fallunspez_anteil|default:'0.200' }}"></div>
+        <div><label class="fld">Erreichbarkeit Mo–Fr (Std/Tag)</label><input type="text" name="erreichbarkeit_mo_fr_std" value="{{ rechner.erreichbarkeit_mo_fr_std|default:'0' }}"></div>
+        <div><label class="fld">Erreichbarkeit Sa/So/FT (Std/Tag)</label><input type="text" name="erreichbarkeit_we_ft_std" value="{{ rechner.erreichbarkeit_we_ft_std|default:'0' }}"></div>
+        <div><label class="fld">Ø Wegezeit je VK/Woche (Std)</label><input type="text" name="wegezeit_std_vk_woche" value="{{ rechner.wegezeit_std_vk_woche|default:'6' }}"></div>
+        <div><label class="fld">Ø-Personalkosten € <span class="muted" style="font-weight:400">(0 = Differenzmethode)</span></label><input type="text" name="pk_alternativ" value="{{ rechner.pk_alternativ|default:'0' }}"></div>
+
+        <div class="full" style="grid-column:1 / -1">
+          <label class="fld">Maßnahmepauschalen (alt, €/Tag – individuell verhandelt) &amp; Belegung am Stichtag</label>
+          <div style="overflow-x:auto">
+          <table style="border-collapse:collapse;font-size:12.5px;min-width:720px">
+            <thead><tr style="color:var(--muted);font-size:11.5px">
+              <th style="padding:3px 6px;text-align:left"></th>
+              {% for z in rechner_zeilen %}<th style="padding:3px 6px">HBG {{ z.hbg }}</th>{% endfor %}
+            </tr></thead>
+            <tbody>
+              <tr><td style="padding:3px 6px;font-weight:600;white-space:nowrap">€/Tag alt</td>
+                {% for z in rechner_zeilen %}<td style="padding:2px 3px"><input type="text" name="pausch_{{ z.hbg }}" value="{{ z.pauschale }}" style="width:62px"></td>{% endfor %}</tr>
+              <tr><td style="padding:3px 6px;font-weight:600;white-space:nowrap">Belegung</td>
+                {% for z in rechner_zeilen %}<td style="padding:2px 3px"><input type="number" name="beleg_{{ z.hbg }}" min="0" value="{{ z.belegung }}" style="width:62px"></td>{% endfor %}</tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+        <div class="full" style="grid-column:1 / -1"><button class="btn" type="submit">Eingaben speichern &amp; berechnen</button></div>
+      </div>
+    </form>
+
+    {% if ergebnis %}
+    <div style="padding:0 20px 18px">
+      <h3 style="font-size:14.5px;margin:4px 0 8px">Ergebnis (formelgetreu wie das Senats-Tool)</h3>
+      <div class="grid-dash" style="margin-bottom:10px">
+        <div class="kpi sm k-blue"><div class="l">FLS-Satz</div><div class="n">{{ ergebnis.fls_satz }} €</div></div>
+        <div class="kpi sm k-green"><div class="l">kLE je Tag</div><div class="n">{{ ergebnis.kle_je_tag }}</div>
+          <div class="sub2" style="font-size:12px;color:var(--muted)">Std je Klient*in/Kalendertag</div></div>
+        <div class="kpi sm k-purple"><div class="l">fallspezifische Std p.a.</div><div class="n">{{ ergebnis.fallspez_std }}</div>
+          <div class="sub2" style="font-size:12px;color:var(--muted)">{{ ergebnis.vk }} VK · Budget {{ ergebnis.budget }} €</div></div>
+      </div>
+      <div style="overflow-x:auto">
+      <table style="border-collapse:collapse;font-size:12.5px;min-width:720px;margin-bottom:10px">
+        <thead><tr style="color:var(--muted);font-size:11.5px"><th style="padding:3px 6px;text-align:left">FLS/Woche</th>
+          {% for z in ergebnis.fls_woche %}<th style="padding:3px 6px">HBG {{ z.hbg }}</th>{% endfor %}</tr></thead>
+        <tbody><tr><td style="padding:3px 6px;font-weight:600">individuell</td>
+          {% for z in ergebnis.fls_woche %}<td style="padding:3px 6px;text-align:right;font-variant-numeric:tabular-nums">{{ z.woche }}</td>{% endfor %}</tr></tbody>
+      </table>
+      </div>
+      <p style="font-size:13px;margin:6px 0 10px">
+        <b>Gegenprobe (Erlösneutralität):</b> Budget alt {{ ergebnis.gp_alt }} € · Budget neu {{ ergebnis.gp_neu }} € ·
+        Differenz <b style="color:{% if ergebnis.gp_diff == 0 %}var(--ok){% else %}var(--bad){% endif %}">{{ ergebnis.gp_diff }} €</b>
+      </p>
+      <form method="post" onsubmit="return confirm('FLS-Satz, kLE/Tag und FLS/Woche je HBG in die Abrechnungsparameter übernehmen?')">
+        {% csrf_token %}
+        <input type="hidden" name="aktion" value="uebernehmen">
+        <button class="btn" type="submit">Ergebnisse in die Abrechnungsparameter übernehmen</button>
+      </form>
+    </div>
+    {% elif rechner %}
+    <p class="note" style="margin:0 20px 16px">Für die Berechnung fehlen noch Eingaben: Kapazität, Belegung (mind. eine HBG) und Pauschalen für HBG 1 und HBG 12 (Differenzmethode).</p>
+    {% endif %}
+  </div>
 
   <div class="panel" style="margin-top:22px">
     <div class="head"><h2>Wiederkehrende Leistungen (Serien)</h2>
