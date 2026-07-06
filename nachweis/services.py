@@ -856,11 +856,39 @@ def freigaben_map(klienten, jahr: int, monat: int) -> dict:
         klient__in=klienten, jahr=jahr, monat=monat)}
 
 
+def fls_ist_split(klient, jahr: int, monat: int):
+    """Ist-FLS des Monats getrennt nach einzeln/in Gruppe erbracht
+    (§ 18 Abs. 3 Buchst. e Anlage 4 örV). einzeln = manuelle Leistungen +
+    Serien-Beiträge (FLS-Arten); Gruppe = Gruppen-Anteile (FLS-Arten)."""
+    from calendar import monthrange
+    einzeln = sum((l.dauer_stunden for l in klient.leistungen
+                   .filter(datum__year=jahr, datum__month=monat,
+                           leistungsart__in=FLS_ARTEN).exclude(auto=True)), Decimal("0"))
+    von, bis = date(jahr, monat, 1), date(jahr, monat, monthrange(jahr, monat)[1])
+    einzeln += sum((b["stunden"] for b in serien_beitraege(klient, von, bis)
+                    if b["leistungsart"] in FLS_ARTEN), Decimal("0"))
+    gruppe = sum((g.zeit_pro_klient for g in klient.gruppen
+                  .filter(datum__year=jahr, datum__month=monat,
+                          leistungsart__in=FLS_ARTEN)), Decimal("0"))
+    return einzeln.quantize(Q3, ROUND_HALF_UP), gruppe.quantize(Q3, ROUND_HALF_UP)
+
+
+def vorschuss_monat(klient, jahr: int) -> Decimal:
+    """Monatlicher Vorschuss nach § 18 Abs. 2 Anlage 4 örV:
+    (FLS-Kontingent/Monat + Ø-kLE/Monat) × FLS-Satz."""
+    p = get_parameter(jahr)
+    kle_avg = (p.kle_je_tag or Decimal("0")) * (Decimal("365.25") / 12)
+    return (((klient.al or Decimal("0")) + kle_avg) * fls_preis(jahr)).quantize(E2, ROUND_HALF_UP)
+
+
 def freigabe_snapshot(mf) -> None:
-    """FLS/kLE/Betrag des Monats festschreiben (beim Einreichen/Freigeben).
+    """Monatswerte festschreiben (beim Einreichen/Freigeben) – § 18-Struktur:
+    Ist-FLS (einzeln/Gruppe), Soll nach Bescheid, kLE-Pauschale, Vorschuss, Betrag.
     kLE = Tagespauschale × Kalendertage (nur für Klient*innen in Betreuung)."""
-    d = druck_nachweis(mf.klient, mf.jahr, mf.monat)
-    mf.fls_summe = d["fls_summe"]
+    mf.fls_einzeln, mf.fls_gruppe = fls_ist_split(mf.klient, mf.jahr, mf.monat)
+    mf.fls_summe = mf.fls_einzeln + mf.fls_gruppe
+    mf.soll_fls = mf.klient.al or Decimal("0")
+    mf.vorschuss = vorschuss_monat(mf.klient, mf.jahr)
     mf.kle_summe = (kle_monat_stunden(mf.jahr, mf.monat)
                     if mf.klient.status == Status.BETREUUNG else Decimal("0"))
     mf.betrag = betrag_fuer(mf.fls_summe, mf.jahr, mf.kle_summe)

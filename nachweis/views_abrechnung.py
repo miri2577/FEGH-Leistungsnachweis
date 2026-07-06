@@ -182,9 +182,11 @@ def rechnung_neu(request):
 
 
 def _positionen(r):
-    """Reduzierte Positions-Projektion (nur Abrechnungsdaten)."""
+    """Reduzierte Positions-Projektion (nur Abrechnungsdaten, § 18-Struktur)."""
     return [{"name": p.klient.name, "az": p.klient.person_id,
-             "fls": p.fls_summe, "kle": p.kle_summe, "betrag": p.betrag}
+             "soll": p.soll_fls, "einzeln": p.fls_einzeln, "gruppe": p.fls_gruppe,
+             "fls": p.fls_summe, "kle": p.kle_summe, "vorschuss": p.vorschuss,
+             "betrag": p.betrag}
             for p in r.positionen.select_related("klient")]
 
 
@@ -226,12 +228,42 @@ def rechnung_csv(request, pk):
     resp = HttpResponse(content_type="text/csv; charset=utf-8-sig")
     resp["Content-Disposition"] = f'attachment; filename="Rechnung_{r.nummer}.csv"'
     w = csv.writer(resp, delimiter=";")
-    w.writerow(["Rechnungsnummer", "Empfänger", "Zeitraum", "Klient*in",
-                "Aktenzeichen", "FLS", "kLE", "Betrag_EUR"])
+    w.writerow(["Rechnungsnummer", "Empfänger", "Zeitraum", "Klient*in", "Aktenzeichen",
+                "FLS_Soll", "FLS_Ist_einzeln", "FLS_Ist_Gruppe", "FLS_Ist", "kLE",
+                "Vorschuss_EUR", "Betrag_EUR"])
     for p in _positionen(r):
         w.writerow([r.nummer, r.empfaenger, r.monat_text, p["name"], p["az"],
-                    f'{p["fls"]}', f'{p["kle"]}', f'{p["betrag"]}'])
-    w.writerow([r.nummer, r.empfaenger, r.monat_text, "SUMME", "", "", "", f"{r.betrag}"])
+                    f'{p["soll"]}', f'{p["einzeln"]}', f'{p["gruppe"]}', f'{p["fls"]}',
+                    f'{p["kle"]}', f'{p["vorschuss"]}', f'{p["betrag"]}'])
+    w.writerow([r.nummer, r.empfaenger, r.monat_text, "SUMME", "", "", "", "", "", "", "",
+                f"{r.betrag}"])
+    return resp
+
+
+@login_required
+def rechnung_eabrechnung(request, pk):
+    """Strukturierter Export nach § 18 Abs. 3 Anlage 4 örV (Pflichtinhalte der
+    Monatsrechnung a–k) – vorbereitet für die eAbrechnung über OPEN/PROSOZ
+    (Abs. 6). Das finale Übergabeformat liefert der Kostenträger beim Opt-in;
+    dieser Export enthält bereits alle Felder für das Mapping."""
+    if not services.darf_abrechnen(request.user):
+        return redirect("nachweis:start")
+    r = get_object_or_404(Rechnung, pk=pk)
+    satz = services.fls_preis(r.jahr)
+    resp = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+    resp["Content-Disposition"] = f'attachment; filename="eAbrechnung_{r.nummer}.csv"'
+    w = csv.writer(resp, delimiter=";")
+    w.writerow(["a_Zeitraum", "Kennzeichen", "b_EUR_je_Std_kLE", "c_Vorschuss_EUR",
+                "d_FLS_Soll_Monat", "e_FLS_Ist", "e1_einzeln_erbracht", "e2_Gruppe_erbracht",
+                "f_Anzahl_kLE", "g_Zwischensumme_Std", "h_Zwischenbetrag_EUR",
+                "k_Rechnungsbetrag_EUR"])
+    for p in _positionen(r):
+        zwsumme = p["fls"] + p["kle"]
+        w.writerow([r.monat_text, p["az"] or p["name"], f"{satz}", f'{p["vorschuss"]}',
+                    f'{p["soll"]}', f'{p["fls"]}', f'{p["einzeln"]}', f'{p["gruppe"]}',
+                    f'{p["kle"]}', f"{zwsumme}", f'{p["betrag"]}', f'{p["betrag"]}'])
+    w.writerow([r.monat_text, "GESAMT", f"{satz}", "", "", "", "", "", "", "", "",
+                f"{r.betrag}"])
     return resp
 
 

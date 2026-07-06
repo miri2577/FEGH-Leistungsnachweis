@@ -804,9 +804,17 @@ class Monatsfreigabe(models.Model):
     monat = models.PositiveSmallIntegerField()
     status = models.CharField(max_length=12, choices=Freigabestatus.choices,
                               default=Freigabestatus.OFFEN)
-    fls_summe = models.DecimalField("Σ FLS (festgeschrieben)", max_digits=8, decimal_places=3, default=0)
+    fls_summe = models.DecimalField("Σ FLS Ist (festgeschrieben)", max_digits=8, decimal_places=3, default=0)
+    # § 18 Abs. 3 Anlage 4 örV: die Monatsrechnung weist Soll und Ist getrennt aus,
+    # das Ist unterteilt nach einzeln/in Gruppe erbracht (Buchst. d/e).
+    fls_einzeln = models.DecimalField("davon einzeln erbracht", max_digits=8, decimal_places=3, default=0)
+    fls_gruppe = models.DecimalField("davon in Gruppe erbracht", max_digits=8, decimal_places=3, default=0)
+    soll_fls = models.DecimalField("Σ FLS nach Bescheid (Monat)", max_digits=8, decimal_places=3, default=0,
+                                   help_text="bewilligte FLS/Monat (§ 18 Abs. 3 Buchst. d)")
+    vorschuss = models.DecimalField("bewilligter Vorschuss €", max_digits=12, decimal_places=2, default=0,
+                                    help_text="(Soll-FLS + Ø-kLE/Monat) × FLS-Satz (§ 18 Abs. 2)")
     kle_summe = models.DecimalField("Σ kLE (festgeschrieben, Std)", max_digits=8, decimal_places=3, default=0,
-                                    help_text="kLE je Tag × Kalendertage des Monats (pauschal)")
+                                    help_text="kLE je Tag × Kalendertage des Monats (pauschal, § 18 Abs. 1 b)")
     betrag = models.DecimalField("Betrag € (festgeschrieben)", max_digits=12, decimal_places=2, default=0)
     hinweis = models.CharField("Hinweis (Rückweisung)", max_length=255, blank=True)
     eingereicht_am = models.DateTimeField(null=True, blank=True)

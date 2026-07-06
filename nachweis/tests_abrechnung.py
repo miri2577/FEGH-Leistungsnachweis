@@ -11,7 +11,8 @@ from django.contrib.auth import get_user_model
 
 from . import services
 from .models import (Team, Teamtyp, Mitarbeiter, Klient, Rolle, Status, Leistung,
-                     Leistungsart, Parameter, Monatsfreigabe, Rechnung, Freigabestatus)
+                     Leistungsart, Parameter, Monatsfreigabe, Rechnung, Freigabestatus,
+                     Gruppe)
 
 User = get_user_model()
 
@@ -135,6 +136,51 @@ class AbrechnungTests(TestCase):
         r = self.cl(self.uA).get("/abrechnung/?monat=6&jahr=2026")
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "Alpha")
+
+    # --- § 18 Anlage 4 örV: Soll/Ist-Struktur der Monatsrechnung --------
+    def test_snapshot_paragraph18_struktur(self):
+        """Ist-Split einzeln/Gruppe, Soll nach Bescheid, Vorschuss (§ 18 Abs. 2/3)."""
+        p = Parameter.objects.get(jahr=2026)
+        p.kle_je_tag = Decimal("0.5")
+        p.save()
+        self.kA.al = Decimal("12.827")               # bewilligt/Monat (Bescheid)
+        self.kA.save(update_fields=["al"])
+        # Gruppe: 2 h, 2 Teilnehmer, 1 MA -> 1,0 h je Klient*in (FLS-Art FS)
+        g = Gruppe.objects.create(datum=date(2026, 6, 15), thema="Kochgruppe",
+                                  leistungsart=Leistungsart.FS,
+                                  beginn=time(10, 0), ende=time(12, 0), anz_ma=1)
+        kB2 = Klient.objects.create(nachname="Gamma", team=self.team_a,
+                                    bezugsbetreuer=self.mA, status=Status.BETREUUNG)
+        g.teilnehmer.set([self.kA, kB2])
+
+        self._aktion(self.uA, self.kA, "fertig")
+        mf = Monatsfreigabe.objects.get(klient=self.kA, jahr=2026, monat=6)
+        self.assertEqual(mf.fls_einzeln, Decimal("2.000"))    # 2 h FS manuell
+        self.assertEqual(mf.fls_gruppe, Decimal("1.000"))     # Gruppen-Anteil
+        self.assertEqual(mf.fls_summe, Decimal("3.000"))      # einzeln + Gruppe
+        self.assertEqual(mf.soll_fls, Decimal("12.827"))      # nach Bescheid
+        # Vorschuss = (Soll + Ø-kLE/Monat) × Satz = (12,827 + 0,5×30,4375) × 50
+        self.assertEqual(mf.vorschuss, Decimal("1402.29"))
+        # Konsistenz mit dem amtlichen Nachweis
+        d = services.druck_nachweis(self.kA, 2026, 6)
+        self.assertEqual(mf.fls_summe, d["fls_summe"])
+
+    def test_eabrechnung_export(self):
+        self._aktion(self.uA, self.kA, "fertig")
+        self._aktion(self.uL, self.kA, "freigeben")
+        mf = Monatsfreigabe.objects.get(klient=self.kA)
+        self.cl(self.uV).post("/rechnungen/neu/", {
+            "ids": str(mf.id), "empfaenger": "Bezirksamt X", "datum": "2026-07-01"})
+        r = Rechnung.objects.get()
+        resp = self.cl(self.uV).get(f"/rechnungen/{r.id}/eabrechnung/")
+        self.assertEqual(resp.status_code, 200)
+        inhalt = resp.content.decode("utf-8-sig")
+        self.assertIn("a_Zeitraum", inhalt)                   # § 18 Abs. 3 Buchst. a
+        self.assertIn("f_Anzahl_kLE", inhalt)                 # Buchst. f
+        self.assertIn("k_Rechnungsbetrag_EUR", inhalt)        # Buchst. k
+        self.assertIn("AZ-1", inhalt)                         # Kennzeichen statt Name
+        # User darf nicht exportieren
+        self.assertEqual(self.cl(self.uA).get(f"/rechnungen/{r.id}/eabrechnung/").status_code, 302)
 
     def test_rechnung_erstellen_markiert_abgerechnet_und_storno_gibt_frei(self):
         self._aktion(self.uA, self.kA, "fertig")

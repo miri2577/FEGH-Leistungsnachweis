@@ -34,18 +34,24 @@
   </div>
 
   <table>
-    <thead><tr><th>Klient*in</th><th style="width:130px">Aktenzeichen</th>
-      <th class="num" style="width:80px">Σ FLS</th><th class="num" style="width:80px">kLE</th><th class="num" style="width:105px">Betrag</th></tr></thead>
+    <thead><tr><th>Klient*in</th><th style="width:105px">Aktenzeichen</th>
+      <th class="num" style="width:58px">FLS Soll</th><th class="num" style="width:58px">Ist einzeln</th>
+      <th class="num" style="width:58px">Ist Gruppe</th><th class="num" style="width:55px">kLE</th>
+      <th class="num" style="width:78px">Vorschuss</th><th class="num" style="width:88px">Betrag</th></tr></thead>
     <tbody>
       {% for p in positionen %}
       <tr><td>{{ p.name }}</td><td>{{ p.az|default:"—" }}</td>
-        <td class="num">{{ p.fls|floatformat:2 }}</td><td class="num">{{ p.kle|floatformat:2 }}</td><td class="num">{{ p.betrag|floatformat:2 }} €</td></tr>
-      {% empty %}<tr><td colspan="5" style="text-align:center">Keine Positionen.</td></tr>{% endfor %}
-      <tr class="sum"><td colspan="4">Gesamtbetrag</td><td class="num">{{ r.betrag|floatformat:2 }} €</td></tr>
+        <td class="num">{{ p.soll|floatformat:2 }}</td><td class="num">{{ p.einzeln|floatformat:2 }}</td>
+        <td class="num">{{ p.gruppe|floatformat:2 }}</td><td class="num">{{ p.kle|floatformat:2 }}</td>
+        <td class="num">{{ p.vorschuss|floatformat:2 }} €</td><td class="num">{{ p.betrag|floatformat:2 }} €</td></tr>
+      {% empty %}<tr><td colspan="8" style="text-align:center">Keine Positionen.</td></tr>{% endfor %}
+      <tr class="sum"><td colspan="7">Gesamtbetrag</td><td class="num">{{ r.betrag|floatformat:2 }} €</td></tr>
     </tbody>
   </table>
-  <p style="font-size:8.5pt;color:#666">FLS = dokumentierte individuelle Fachleistungsstunden · kLE = kalkulatorische
-  Leistungseinheit (pauschal je Kalendertag, Beschluss 3/2026) · beide zum FLS-Satz vergütet.</p>
+  <p style="font-size:8.5pt;color:#666">Aufbau gemäß § 18 Abs. 3 Anlage 4 örV EGH: Soll = Σ FLS nach Bescheid ·
+  Ist = erbrachte FLS (einzeln / in Gruppe) · kLE = kalkulatorische Leistungseinheiten (Anzahl; je Leistungsberechtigten
+  in der vereinbarten Menge immer vollständig abrechenbar, § 18 Abs. 1 b) · Vorschuss gem. § 18 Abs. 2 ·
+  FLS und kLE zum selben FLS-Satz vergütet. Abrechenbar höchstens bis zur Kontingenthöhe (§ 18 Abs. 5).</p>
 
   {% if r.notiz %}<p style="font-size:9.5pt;color:#555">Notiz: {{ r.notiz }}</p>{% endif %}
   <p class="legal">Leistung nach SGB IX (Eingliederungshilfe), Abrechnung in Fachleistungsstunden.
