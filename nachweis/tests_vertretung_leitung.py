@@ -141,3 +141,48 @@ class TemplateSmokeTests(TestCase):
         self.client.force_login(self.chef_u)
         resp = self.client.get(reverse("nachweis:klient_neu"))
         self.assertEqual(resp.status_code, 200)
+
+
+class KlientHBGFallbackTests(TestCase):
+    """HBG gewählt + AL/kLE leer -> Werte aus der Parameter-Tabelle ableiten."""
+    def setUp(self):
+        from decimal import Decimal
+        from .models import Parameter, HBGSatz
+        self.team = Team.objects.create(name="TBEW", typ=Teamtyp.values[0])
+        self.chef_u, self.chef_m = _user("chef", Rolle.LEITUNG, leitet=[self.team])
+        self.betreuer_u, self.betreuer_m = _user("betr", Rolle.USER, team=self.team)
+        # Parameter für das laufende Jahr mit HBG-2-Satz + kLE/Tag befüllen
+        p = services.get_parameter(date.today().year)
+        p.kle_je_tag = Decimal("0.722167")
+        p.save()
+        HBGSatz.objects.update_or_create(parameter=p, hbg=2,
+                                         defaults={"fls_woche": Decimal("2.95")})
+
+    def _post(self, al="", kle="", hbg="2"):
+        self.client.force_login(self.chef_u)
+        return self.client.post(reverse("nachweis:klient_speichern"), {
+            "nachname": "Muster", "vorname": "Max", "team": str(self.team.id),
+            "bezugsbetreuer": str(self.betreuer_m.id), "status": "Betreuung",
+            "al": al, "kle": kle, "hbg": hbg})
+
+    def test_leere_al_kle_werden_aus_hbg_abgeleitet(self):
+        from decimal import Decimal
+        self._post(al="0", kle="0", hbg="2")
+        k = Klient.objects.get(nachname="Muster")
+        # AL/Monat = 2,95 × 4,3482 ≈ 12,827 ; kLE/Monat = 0,722167 × 30,4375 ≈ 21,981
+        self.assertGreater(k.al, Decimal("12"))
+        self.assertGreater(k.kle, Decimal("21"))
+
+    def test_getippte_werte_werden_nicht_ueberschrieben(self):
+        from decimal import Decimal
+        self._post(al="9,5", kle="18", hbg="2")
+        k = Klient.objects.get(nachname="Muster")
+        self.assertEqual(k.al, Decimal("9.5"))
+        self.assertEqual(k.kle, Decimal("18"))
+
+    def test_ohne_hbg_bleibt_null(self):
+        from decimal import Decimal
+        self._post(al="0", kle="0", hbg="")
+        k = Klient.objects.get(nachname="Muster")
+        self.assertEqual(k.al, Decimal("0"))
+        self.assertEqual(k.kle, Decimal("0"))

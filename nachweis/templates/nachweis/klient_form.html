@@ -73,23 +73,38 @@
 {% block extrajs %}
 <script>
   // Bewilligungs-Vorschlag aus der HBG-Tabelle (Team-Parameter, Senats-Tool Output 5.):
-  // AL/Monat = FLS/Woche × 4,3482 · kLE/Monat = kLE/Tag × 30,4375. Nur auf Klick –
-  // der individuelle Bescheid kann abweichen, nichts wird ungefragt überschrieben.
+  // AL/Monat = FLS/Woche × 4,3482 · kLE/Monat = kLE/Tag × 30,4375.
+  // Beim Wählen einer HBG werden leere AL/kLE-Felder automatisch befüllt; bereits
+  // getippte Werte bleiben unangetastet (der individuelle Bescheid kann abweichen).
   (function(){
     var V = {{ hbg_vorschlag_json|safe }};
     var hbg = document.getElementById('fld-hbg'), btn = document.getElementById('hbg-uebernehmen'),
-        hint = document.getElementById('hbg-hint');
+        hint = document.getElementById('hbg-hint'),
+        al = document.getElementById('fld-al'), kle = document.getElementById('fld-kle');
+    function leer(el){ return !el.value.trim() || parseFloat(el.value.replace(',', '.')) === 0; }
+    function fuellen(v){ al.value = v.al; kle.value = v.kle; }
     function info(){
       var v = V[hbg.value];
-      hint.textContent = v ? ('Vorschlag: AL ' + v.al + ' · kLE ' + v.kle + ' (aus ' + v.woche + ' FLS/Woche)')
-                           : (hbg.value ? 'kein Satz für HBG ' + hbg.value + ' hinterlegt (Parameter-Tab)' : '');
+      if(v){
+        hint.textContent = leer(al) && leer(kle)
+          ? ('wird übernommen: AL ' + v.al + ' · kLE ' + v.kle + ' (aus ' + v.woche + ' FLS/Woche)')
+          : ('Vorschlag HBG ' + hbg.value + ': AL ' + v.al + ' · kLE ' + v.kle + ' – „übernehmen" überschreibt getippte Werte');
+      } else {
+        hint.textContent = hbg.value ? ('kein Satz für HBG ' + hbg.value + ' hinterlegt (Parameter-Tab)') : '';
+      }
     }
-    if(hbg){ hbg.addEventListener('input', info); info(); }
-    if(btn) btn.addEventListener('click', function(){
+    if(hbg) hbg.addEventListener('input', function(){
+      var v = V[hbg.value];
+      if(v && leer(al) && leer(kle)) fuellen(v);   // nur leere Felder automatisch befüllen
+      info();
+    });
+    // Ändert man AL/kLE, den Hinweis aktualisieren
+    [al, kle].forEach(function(el){ if(el) el.addEventListener('input', info); });
+    if(hbg) info();
+    if(btn) btn.addEventListener('click', function(){   // manuelles Übernehmen erzwingt die HBG-Werte
       var v = V[hbg.value];
       if(!v){ info(); return; }
-      document.getElementById('fld-al').value = v.al;
-      document.getElementById('fld-kle').value = v.kle;
+      fuellen(v); info();
     });
   })();
 </script>

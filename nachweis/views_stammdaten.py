@@ -115,6 +115,12 @@ def klient_speichern(request):
     k.al = _dec(request.POST.get("al"))
     k.kle = _dec(request.POST.get("kle"))
     k.hbg = _int_or_none(request.POST.get("hbg"))
+    # Komfort/Sicherheitsnetz: HBG gewählt, aber AL und kLE leer (=0) -> aus der
+    # HBG-Tabelle der Parameter ableiten. Getippte Werte werden nie überschrieben.
+    if k.hbg and not k.al and not k.kle:
+        v = services.bewilligung_vorschlag(date.today().year).get(k.hbg)
+        if v:
+            k.al, k.kle = v["al"], v["kle"]
     k.kue_bis = _datum(request.POST.get("kue_bis"))
     k.brp_bis = _datum(request.POST.get("brp_bis"))
     k.versendet_am = _datum(request.POST.get("versendet_am"))
