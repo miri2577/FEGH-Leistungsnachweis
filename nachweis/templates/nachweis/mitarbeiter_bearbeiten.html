@@ -1,0 +1,68 @@
+{% extends "nachweis/base.html" %}
+{% block title %}{{ m }} bearbeiten · FEGH{% endblock %}
+{% block extrastyle %}
+  .mform{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;padding:20px}
+  .mform .full{grid-column:1 / -1}
+  .mform input,.mform select{width:100%}
+  .sec{grid-column:1 / -1;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--muted);margin:6px 0 -4px}
+  .leitet-box{border:1px solid var(--border);border-radius:9px;padding:10px 12px;background:var(--bg-2)}
+  .leitet-box label{display:flex;align-items:center;gap:9px;padding:4px 0;font-size:13.5px;cursor:pointer}
+  .leitet-box input{width:auto}
+  .hint{font-size:12px;color:var(--muted);margin-top:5px}
+  #leitet-wrap[hidden]{display:none}
+  @media(max-width:600px){.mform{grid-template-columns:1fr;padding:16px}}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Mitarbeiter*in bearbeiten</h1>
+  <p class="sub">Rolle, Team-Zugehörigkeit und – für die Leitung – die geleiteten Teams.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div class="panel" style="max-width:760px">
+    <form method="post" action="{% url 'nachweis:mitarbeiter_bearbeiten' m.id %}">
+      {% csrf_token %}
+      <div class="mform">
+        <div class="sec">Person</div>
+        <div><label class="fld">Nachname</label><input type="text" name="nachname" value="{{ m.name }}" required></div>
+        <div><label class="fld">Vorname</label><input type="text" name="vorname" value="{{ m.vorname }}"></div>
+
+        <div class="sec">Rolle &amp; Team</div>
+        <div><label class="fld">Rolle</label>
+          <select name="rolle" id="rolle">{% for v,l in rollen %}<option value="{{ v }}" {% if m.rolle == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+        <div><label class="fld">Team (Zugehörigkeit)</label>
+          <select name="team"><option value="">— keins —</option>{% for t in teams %}<option value="{{ t.id }}" {% if m.team_id == t.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div>
+
+        <div class="full" id="leitet-wrap">
+          <label class="fld">Leitet Team(s) <span class="muted" style="font-weight:400">– nur für Rolle „Leitung"</span></label>
+          <div class="leitet-box">
+            {% for t in teams %}
+            <label><input type="checkbox" name="leitet" value="{{ t.id }}" {% if t.id in geleitet_ids %}checked{% endif %}> {{ t.name }}</label>
+            {% empty %}<span class="muted">Noch keine Teams angelegt.</span>{% endfor %}
+          </div>
+          <div class="hint">Nur wer hier ein Team leitet (oder ihm angehört), sieht dessen Klient*innen
+            in Belegungsliste, Dashboard und beim Anlegen. <b>Ohne Zuordnung bleiben diese Listen leer.</b></div>
+        </div>
+
+        <div class="sec">Arbeitszeit</div>
+        <div><label class="fld">Wochenstunden</label><input type="text" name="wochenstunden" value="{{ m.wochenstunden }}"></div>
+        <div><label class="fld">Urlaubstage / Jahr</label><input type="number" name="urlaubstage" value="{{ m.urlaubstage }}" min="0" max="60"></div>
+
+        <div class="full" style="margin-top:6px">
+          <button class="btn" type="submit">Speichern</button>
+          <a class="btn ghost" href="{% url 'nachweis:mitarbeiter_liste' %}">Abbrechen</a>
+        </div>
+      </div>
+    </form>
+  </div>
+{% endblock %}
+{% block extrajs %}
+<script>
+  // „Leitet Team(s)" nur bei Rolle Leitung anzeigen.
+  (function(){
+    var r = document.getElementById('rolle'), box = document.getElementById('leitet-wrap');
+    function upd(){ box.hidden = (r.value !== 'leitung'); }
+    r.addEventListener('change', upd); upd();
+  })();
+</script>
+{% endblock %}

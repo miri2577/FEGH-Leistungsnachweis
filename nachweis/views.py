@@ -106,6 +106,7 @@ def mein_ueberblick(request):
         "urlaub": services.urlaub_uebersicht(me, jahr) if me else None,
         "berichte": berichte,
         "undok_termine": services.undokumentierte_termine(me) if me else [],
+        "vertretungen": services.vertretungen_fuer(request.user) if (me and not me.ist_verwaltung) else [],
         "wochentage": _wochentage(feier),
         "ist_leitung": services.ist_leitung(request.user),
         "ist_verwaltung": bool(me and me.ist_verwaltung),

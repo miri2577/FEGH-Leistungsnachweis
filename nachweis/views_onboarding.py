@@ -114,13 +114,17 @@ def mitarbeiter_liste(request):
     if not _nur_admin(request):
         return HttpResponseForbidden()
     leute = []
-    for m in Mitarbeiter.objects.select_related("user", "team").all():
+    for m in Mitarbeiter.objects.select_related("user", "team").prefetch_related("leitet").all():
         u = m.user
+        geleitet = list(m.leitet.all())
         leute.append({
             "m": m,
             "hat_passwort": bool(u and u.has_usable_password()),
             "hat_2fa": bool(u and u.totpdevice_set.filter(confirmed=True).exists()),
             "aktiv": bool(u and u.is_active),
+            "leitet": geleitet,
+            # Leitung ohne geleitetes Team UND ohne eigenes Team -> sieht keine Klient*innen
+            "leitung_ohne_team": m.rolle == Rolle.LEITUNG and not geleitet and not m.team_id,
         })
     return render(request, "nachweis/mitarbeiter_liste.html", {
         "aktiv": "mitarbeiter", "leute": leute,
@@ -158,6 +162,45 @@ def mitarbeiter_neu(request):
         "aktiv": "mitarbeiter",
         "teams": Team.objects.all(),
         "rollen": Rolle.choices,
+    })
+
+
+# ---------------------------------------------------------------- Admin: Bearbeiten
+@login_required
+def mitarbeiter_bearbeiten(request, pk):
+    """Rolle, Team-Zugehörigkeit, geleitete Teams (nur Leitung) und Stammwerte
+    pflegen – ersetzt den Django-Admin. Wichtig: Hier wird die Teamleitung gesetzt,
+    ohne die die Leitung keine Klient*innen ihres Teams sieht/anlegen kann."""
+    if not _nur_admin(request):
+        return HttpResponseForbidden()
+    m = get_object_or_404(Mitarbeiter, pk=pk)
+    if request.method == "POST":
+        m.name = (request.POST.get("nachname") or m.name).strip()
+        m.vorname = (request.POST.get("vorname") or "").strip()
+        rolle = request.POST.get("rolle")
+        if rolle in Rolle.values:
+            m.rolle = rolle
+        tid = request.POST.get("team")
+        m.team = Team.objects.filter(pk=tid).first() if (tid or "").isdigit() else None
+        try:
+            m.wochenstunden = request.POST.get("wochenstunden") or m.wochenstunden
+            m.urlaubstage = int(request.POST.get("urlaubstage") or m.urlaubstage)
+        except (TypeError, ValueError):
+            pass
+        m.save()
+        # Geleitete Teams nur für Rolle Leitung; sonst leeren.
+        if m.rolle == Rolle.LEITUNG:
+            ids = [int(i) for i in request.POST.getlist("leitet") if i.isdigit()]
+            m.leitet.set(Team.objects.filter(pk__in=ids))
+        else:
+            m.leitet.clear()
+        messages.success(request, f"{m} gespeichert.")
+        return redirect("nachweis:mitarbeiter_liste")
+    return render(request, "nachweis/mitarbeiter_bearbeiten.html", {
+        "aktiv": "mitarbeiter", "m": m,
+        "teams": Team.objects.all(),
+        "rollen": Rolle.choices,
+        "geleitet_ids": set(m.leitet.values_list("id", flat=True)),
     })
 
 

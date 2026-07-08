@@ -225,6 +225,9 @@
       body.nav-open nav.side{transform:translateX(0);box-shadow:0 0 30px rgba(0,0,0,.3)}
       body.nav-open .nav-overlay{display:block}
       main{width:100%;min-width:0;padding:18px 15px;overflow-x:hidden}
+      /* Breite Datentabellen am Handy horizontal scrollbar statt abgeschnitten */
+      .panel .body{overflow-x:auto;-webkit-overflow-scrolling:touch}
+      table.grid{min-width:560px}
     }
     @media (prefers-reduced-motion: reduce){nav.side{transition:none}}
     /* #3 – Karten weniger „eingekastelt": hellere Hairline statt kräftigem Rahmen */

@@ -10,7 +10,17 @@
 
   {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
-  <div style="margin-bottom:14px"><a class="btn" href="{% url 'nachweis:klient_neu' %}">+ Klient*in anlegen</a></div>
+  {% if kein_team %}
+  <div class="alert" style="background:var(--warnbg);color:var(--warn);padding:12px 16px;border-radius:9px;margin-bottom:14px;line-height:1.5">
+    <b>Sie sind noch keinem Team zugeordnet</b> – deshalb sind hier keine Klient*innen sichtbar und beim Anlegen
+    steht kein Team zur Auswahl. Die Administration ordnet Sie unter <b>Administration → Mitarbeiter-Verwaltung →
+    Bearbeiten</b> als <i>Leitung</i> einem Team zu („leitet Team(s)").
+  </div>
+  {% endif %}
+
+  <div style="margin-bottom:14px">
+    <a class="btn" href="{% url 'nachweis:klient_neu' %}" {% if kein_team %}style="opacity:.5;pointer-events:none" aria-disabled="true"{% endif %}>+ Klient*in anlegen</a>
+  </div>
 
   <div class="panel">
     <div class="body">

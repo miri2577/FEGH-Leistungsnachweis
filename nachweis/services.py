@@ -93,6 +93,45 @@ def eigene_klienten(user):
     return Klient.objects.filter(bezugsbetreuer=m) if m else Klient.objects.none()
 
 
+def abwesend_am(mitarbeiter, tag=None):
+    """Genehmigte Abwesenheit (Urlaub/Krank/…), die den Tag abdeckt – oder None."""
+    from .models import Abwesenheit, AbwesenheitStatus
+    if not mitarbeiter:
+        return None
+    tag = tag or date.today()
+    return (Abwesenheit.objects
+            .filter(mitarbeiter=mitarbeiter, status=AbwesenheitStatus.GENEHMIGT,
+                    von__lte=tag, bis__gte=tag)
+            .order_by("bis").first())
+
+
+def vertretungen_fuer(user, tag=None):
+    """Klient*innen, für die der/die Nutzer*in als Vertretung I/II eingetragen ist.
+    Markiert, ob der/die Bezugsbetreuer*in am Stichtag abwesend ist (Urlaub etc.) –
+    dann ist die Vertretung „aktiv" (übernimmt die Betreuung). Aktive zuerst."""
+    m = mitarbeiter_fuer(user)
+    if not m:
+        return []
+    tag = tag or date.today()
+    klienten = (Klient.objects.filter(Q(vertretung1=m) | Q(vertretung2=m))
+                .exclude(bezugsbetreuer=m)
+                .select_related("bezugsbetreuer", "team")
+                .distinct().order_by("nachname", "vorname"))
+    zeilen = []
+    for k in klienten:
+        abw = abwesend_am(k.bezugsbetreuer, tag)
+        zeilen.append({
+            "klient": k,
+            "betreuer": k.bezugsbetreuer,
+            "rolle": "Vertretung I" if k.vertretung1_id == m.id else "Vertretung II",
+            "aktiv": bool(abw),
+            "art": abw.get_art_display() if abw else "",
+            "bis": abw.bis if abw else None,
+        })
+    zeilen.sort(key=lambda z: (not z["aktiv"], z["klient"].nachname))
+    return zeilen
+
+
 # --------------------------------------------------------------------------
 #  Kasse (Kassenbuch) – Verwaltung = Finanz-Hub (sieht/pflegt alle Kassen)
 # --------------------------------------------------------------------------

@@ -55,6 +55,7 @@ def belegungsliste(request):
     klienten = services.klienten_fuer(request.user).select_related("team", "bezugsbetreuer").order_by("nachname", "vorname")
     return render(request, "nachweis/belegungsliste.html", {
         "aktiv": "belegungsliste", "klienten": klienten,
+        "kein_team": not services.teams_fuer(request.user).exists(),
     })
 
 

@@ -106,6 +106,8 @@ urlpatterns = [
     # Onboarding / Mitarbeiter-Verwaltung (Admin)
     path("mitarbeiter/", views_onboarding.mitarbeiter_liste, name="mitarbeiter_liste"),
     path("mitarbeiter/neu/", views_onboarding.mitarbeiter_neu, name="mitarbeiter_neu"),
+    path("mitarbeiter/<int:pk>/bearbeiten/", views_onboarding.mitarbeiter_bearbeiten,
+         name="mitarbeiter_bearbeiten"),
     path("mitarbeiter/aktion/", views_onboarding.mitarbeiter_aktion, name="mitarbeiter_aktion"),
     # Konto-Aktivierung (öffentlich, per signiertem Link)
     path("aktivieren/<uidb64>/<token>/", views_onboarding.aktivieren, name="aktivieren"),
