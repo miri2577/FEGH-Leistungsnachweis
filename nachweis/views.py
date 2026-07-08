@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
@@ -552,8 +553,11 @@ def druck_pdf(request):
         return redirect(f"{reverse('nachweis:druck')}?klient={klient.id}&monat={monat}&jahr={jahr}")
     pdf = HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()
     resp = HttpResponse(pdf, content_type="application/pdf")
+    # Dateiname aus Freitext (Nachname) bereinigen: nur unbedenkliche Zeichen, damit
+    # keine Sonderzeichen/Zeilenumbrüche in den Content-Disposition-Header gelangen.
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", klient.nachname or "").strip("_") or "Klient"
     resp["Content-Disposition"] = (
-        f'inline; filename="Leistungsnachweis_{klient.nachname}_{monat:02d}_{jahr}.pdf"')
+        f'inline; filename="Leistungsnachweis_{safe}_{monat:02d}_{jahr}.pdf"')
     return resp
 
 
