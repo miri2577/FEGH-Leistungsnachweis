@@ -1,20 +1,35 @@
-# --- Basis (Prototyp lokal) ---
-Django>=5.2,<5.3          # LTS – Security-Support bis ~04/2028 (5.1 war EOL seit 31.12.2025)
-holidays>=0.50
-django-otp>=1.5
-qrcode>=7.4
+# Exakt gepinnt auf den produktiv getesteten Stand (reproduzierbare Builds, ISO A.8.8).
+# Aktualisieren = bewusst: Version hochsetzen, lokal testen, dann committen.
+# Erzeugt/abgeglichen aus `pip freeze` des laufenden Web-Containers.
 
-# --- Produktion (Strato V-Server: Docker + Caddy + PostgreSQL) ---
-gunicorn>=22.0            # WSGI-Server
-psycopg[binary]>=3.1      # PostgreSQL-Treiber
-whitenoise>=6.6           # statische Dateien aus dem Django-Prozess
-dj-database-url>=2.1      # DATABASE_URL -> DATABASES
-argon2-cffi>=23.1         # Argon2-Passwort-Hash
+# --- Direkte Abhängigkeiten ---
+Django==5.2.15              # LTS – Security-Support bis ~04/2028
+holidays==0.99             # Berliner Feiertage (Teamsitzung/Werktage)
+django-otp==1.7.0          # 2FA / TOTP
+qrcode==8.2                # QR-Code für die 2FA-Einrichtung
 
-# --- Sicherheit/Revision (fest verdrahtet in settings.py) ---
-django-auditlog>=3.0      # Revisionssicherheit (Wer/Wann/Was) – bei öffentlichem Geld faktisch Pflicht
-django-axes>=6.0          # Brute-Force-Schutz auf der Passwortstufe
-django-ipware>=6.0        # echte Client-IP hinter dem Caddy-Proxy (für axes-Lockout & Forensik)
+gunicorn==26.0.0           # WSGI-Server
+psycopg[binary]==3.3.4     # PostgreSQL-Treiber
+whitenoise==6.12.0         # statische Dateien aus dem Django-Prozess
+dj-database-url==3.1.2     # DATABASE_URL -> DATABASES
+argon2-cffi==25.1.0        # Argon2-Passwort-Hash
+
+django-auditlog==3.4.1     # Revisionssicherheit (Wer/Wann/Was)
+django-axes==8.3.1         # Brute-Force-Schutz (Login-Lockout)
+django-ipware==7.0.1       # echte Client-IP hinter dem Caddy-Proxy
+
+# --- Transitive Abhängigkeiten (mitgepinnt für identische Rebuilds) ---
+argon2-cffi-bindings==25.1.0
+asgiref==3.11.1
+cffi==2.0.0
+packaging==26.2
+psycopg-binary==3.3.4
+pycparser==3.0
+python-dateutil==2.9.0.post0
+python-ipware==3.0.0
+six==1.17.0
+sqlparse==0.5.5
+typing_extensions==4.16.0
 
 # --- Optional (Server) ---
-# weasyprint>=61          # amtlicher Druck-Nachweis als echtes PDF (Server: Pango/Cairo nötig)
+# weasyprint==65.1         # amtlicher Druck-Nachweis als echtes PDF (Server: Pango/Cairo nötig)
