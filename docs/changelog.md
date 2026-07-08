@@ -14,6 +14,26 @@ auf die jeweiligen Detailseiten.
 
 ---
 
+## ★ ISO-27001-Sicherheitsrunde + VPN (Juli 2026)
+
+Ein mehrstufiger Sicherheitsaudit (White-Box-Code-/Deployment-Prüfung, jede Erkenntnis adversarial
+gegengeprüft, Bewertung nach **ISO/IEC 27001:2022** & OWASP) ergab 20 bestätigte Befunde – **keine**
+aus dem Internet ohne Zugangsdaten ausnutzbare Lücke. Die hohen und mittleren wurden behoben und
+ausgerollt; Details auf der Seite [Sicherheitshärtung, Abschnitt (j)](sicherheit/haertung.md).
+
+- **Zugriff/Rollen:** Selbst-Eskalation eines Admins zur Leitung unterbunden (A.5.3); deaktivierte
+  Konten nicht mehr per Aktivierungslink reaktivierbar (A.8.3).
+- **Datenabfluss:** `.dockerignore` (keine DB/Secrets im Image), globale **Suche per POST**
+  (keine Klientennamen im Access-Log), **Auditlog** ohne Art-9-Freitexte (`exclude_fields`).
+- **Härtung:** 2FA in Produktion **fail-closed** (Pflicht), Passwort-Mindestlänge 12,
+  CSV-Injection im Abrechnungs-Export neutralisiert, gunicorn-Least-Trust, Abhängigkeiten
+  exakt gepinnt + Docker-Images per Digest.
+- **Neu: [VPN-Zugang & Admin-Schutz](sicherheit/vpn.md)** – der Django-Admin (`/admin/`) liegt jetzt
+  hinter einem **WireGuard-VPN** (wg-easy, 0 €); die App selbst bleibt öffentlich (TLS + 2FA +
+  Lockout), damit die Mehr-Team-/Mobil-Nutzung reibungslos bleibt.
+
+---
+
 ## 0 · Senats-Systematik (Umrechnungstool „ab März 2026")
 
 Die App bildet die **Umrechnungslogik des Senats-Tools** (Maßnahmepauschale → FLS/kLE,

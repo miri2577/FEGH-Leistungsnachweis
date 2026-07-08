@@ -55,6 +55,7 @@ nav:
   - Betrieb & Sicherheit:
       - Datenschutz: sicherheit/datenschutz.md
       - Sicherheitshärtung: sicherheit/haertung.md
+      - "VPN-Zugang & Admin-Schutz (WireGuard)": sicherheit/vpn.md
       - "Datentrennung & Row-Level-Security": sicherheit/rls.md
       - Deployment (Produktivbetrieb): sicherheit/deployment.md
       - "Backup & Wiederherstellung (verschlüsselt)": sicherheit/backup-restore.md

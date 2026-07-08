@@ -143,19 +143,27 @@ MIDDLEWARE = [
 
 ```python
 AUDITLOG_INCLUDE_TRACKING_MODELS = (
-    "nachweis.Klient",
-    "nachweis.Leistung",
+    # Art-9-Freitexte werden NICHT im Auditlog gespeichert (Datenminimierung, ISO A.8.11):
+    {"model": "nachweis.Leistung", "exclude_fields": ["dokumentation", "notiz"]},
+    {"model": "nachweis.Klient", "exclude_fields": ["kommentar"]},
+    {"model": "nachweis.Termin", "exclude_fields": ["notiz"]},
+    {"model": "nachweis.Abwesenheit", "exclude_fields": ["kommentar"]},
     "nachweis.Gruppe",
     "nachweis.Arbeitszeit",
-    "nachweis.Abwesenheit",
     "nachweis.Kassenbuchung",
     "nachweis.Zaehlprotokoll",
     "nachweis.Mitarbeiter",
-    "nachweis.Termin",
 )
 ```
 
 Die `auditlog.middleware.AuditlogMiddleware` hängt an jeden Log-Eintrag den **Actor** (`request.user`), sodass Änderungen einer konkreten Person zugeordnet werden können. Sie ist in `MIDDLEWARE` eingetragen.
+
+!!! note "Datenminimierung: Verlaufstexte bleiben aus dem Auditlog"
+    Die besonders sensiblen Freitextfelder (`Leistung.dokumentation`/`notiz`, `Klient.kommentar`,
+    `Termin.notiz`, `Abwesenheit.kommentar`) sind per `exclude_fields` vom Tracking ausgenommen –
+    der **Wer/Wann/Was-Nachweis bleibt** erhalten, der Art-9-Inhalt landet aber **nicht zusätzlich**
+    im Log. Die Timeline-Wiederherstellung lässt diese Felder dadurch unangetastet (sie werden nicht
+    mit Log-Werten überschrieben).
 
 ---
 
@@ -257,6 +265,40 @@ Der Test `TeamIsolationTests` baut zwei Fach-Teams (A, B), ein Verwaltungsteam s
 
 ---
 
+## (j) ISO-27001-Audit (Juli 2026): umgesetzte Fixes
+
+Ein mehrstufiger Sicherheitsaudit (White-Box-Codeprüfung + Deployment-Review, jede Erkenntnis
+adversarial gegengeprüft) bewertete die App nach **ISO/IEC 27001:2022** und OWASP. Ergebnis: keine
+aus dem Internet ohne Zugangsdaten ausnutzbare Lücke. Die bestätigten Befunde wurden umgesetzt:
+
+| Fix | ISO-Control | Kurzbeschreibung |
+|-----|-------------|------------------|
+| **Selbst-Eskalation** unterbunden | A.5.3 Aufgabentrennung | Ein Admin kann die **eigene** Rolle/Team/Teamleitung nicht mehr ändern (kein Selbst-Upgrade zur Leitung → kein Klientenzugriff). Fremde Konten bleiben verwaltbar. |
+| **Offboarding-Schutz** | A.8.3 Zugriffsbeschränkung | Ein bewusst deaktiviertes Konto (`Mitarbeiter.aktiv=False`) lässt sich **nicht** per (noch gültigem) Aktivierungslink reaktivieren. |
+| **`.dockerignore`** | A.8.12 Data-Leakage | `db.sqlite3`, `.git`, Logs, `.env*`, `*.age` landen nicht mehr in den (unverschlüsselten) Image-Layern. |
+| **Suche per POST** | A.8.15 Protokollierung | Der Suchbegriff (Klientenname/Aktenzeichen) steht nicht mehr im Query-String und damit nicht im Reverse-Proxy-/Access-Log. |
+| **Passwort-Mindestlänge 12** | A.5.17 Authentisierungsinfo | `MinimumLengthValidator` mit `min_length=12` (statt Django-Default 8). |
+| **CSV-Injection neutralisiert** | A.8.28 Sichere Codierung | Formel-Präfixe (`= + - @`) in Rechnungs-/eAbrechnungs-CSV bekommen ein Apostroph vorangestellt (`_csv_safe`). |
+| **Auditlog-Maskierung** | A.8.11 Datenmaskierung | Art-9-Freitexte via `exclude_fields` nicht mehr im Auditlog (siehe Abschnitt e). |
+| **OTP fail-closed** | A.8.5 Sichere Authentisierung | 2FA in Produktion **standardmäßig Pflicht** (siehe unten). |
+| **`/admin/` hinter VPN** | A.8.20 Netzwerksicherheit | Django-Admin nur aus dem zugelassenen Netz (Caddy `ADMIN_ALLOW_CIDR`) – siehe [VPN-Zugang & Admin-Schutz](vpn.md). |
+| **PDF-Dateiname bereinigt** | A.8.28 Sichere Codierung | Nachname im `Content-Disposition`-Header auf `[A-Za-z0-9._-]` reduziert. |
+| **gunicorn gehärtet** | A.8.20 / A.8.9 | `forwarded_allow_ips` auf das Docker-Netz beschränkt (statt `*`), Worker-Recycling + Request-Limits. |
+| **Abhängigkeiten exakt gepinnt** | A.8.8 Schwachstellen-Mgmt | `requirements.txt` vollständig `==`-gepinnt (reproduzierbare Builds); Docker-Images per **Digest** gepinnt (`postgres`/`caddy`), Python-Basis auf Patch-Version. |
+| **Permissions-Policy-Header** | A.8.9 Konfigurationsmgmt | Caddy setzt `Permissions-Policy` und entfernt den `Server`-Header. |
+
+!!! tip "OTP-Zwang ist jetzt fail-closed"
+    `OTP_REQUIRED` ist in Produktion (`DEBUG=False`) standardmäßig **an** – nur ein explizites
+    `DJANGO_OTP_REQUIRED=0` schaltet es ab. Lokal (`DEBUG=True`) bleibt 2FA optional.
+
+!!! note "Bewusst offen / organisatorisch"
+    Niedrigpriore Härtungen (CSP scharf schalten mit Nonce, Rate-Limiting am Aktivierungs-Endpunkt,
+    2FA-Step-up bei Kontoänderungen, DB-TLS im internen Netz) sind dokumentiert und folgen. Der
+    **wichtigste** verbleibende Schritt ist organisatorisch: die Datenschutz-Dokumente
+    (VVT, DSFA, AVV Träger↔Betreiber) **vor** dem ersten echten Klientendatensatz.
+
+---
+
 ## Relevante Umgebungsvariablen
 
 | Env-Variable | Default | Wirkung |
@@ -269,7 +311,9 @@ Der Test `TeamIsolationTests` baut zwei Fach-Teams (A, B), ein Verwaltungsteam s
 | `DJANGO_AXES_FAILURE_LIMIT` | `5` | Fehlversuche bis Login-Lockout. |
 | `DJANGO_AXES_COOLOFF_HOURS` | `1` | Stunden bis zur automatischen Entsperrung. |
 | `DJANGO_IDLE_TIMEOUT_MIN` | `15` | Inaktivitäts-Timeout in Minuten (→ `SESSION_IDLE_TIMEOUT`). |
-| `DJANGO_OTP_REQUIRED` | `0` | `1` = 2FA-Pflicht für **alle** (inkl. Break-Glass-Superuser). |
+| `DJANGO_OTP_REQUIRED` | `1` in Prod, `0` lokal | 2FA-Pflicht für **alle** (inkl. Break-Glass); in Produktion (`DEBUG=0`) **fail-closed an**, nur `0` schaltet ab. |
+| `CADDY_DOMAIN` | – | Domain für Caddy/TLS (Platzhalter `{$CADDY_DOMAIN}` in der Caddyfile). |
+| `ADMIN_ALLOW_CIDR` | `127.0.0.1/32` | Netz, aus dem `/admin/` erreichbar ist (VPN); Default = nur localhost. Siehe [VPN](vpn.md). |
 | `DJANGO_SEED_ROOT_PASSWORD` | – | Passwort für Break-Glass `root` im Seed; ohne dies + `DEBUG=0` kein Seed-Superuser. |
 | `DJANGO_HSTS_SECONDS` | `31536000` | HSTS-Dauer (nur bei `DEBUG=0`). |
 | `DJANGO_CSP_ENFORCE` | `0` | `1` = CSP erzwingen statt Report-Only. |
