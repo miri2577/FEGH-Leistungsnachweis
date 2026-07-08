@@ -286,16 +286,24 @@ aus dem Internet ohne Zugangsdaten ausnutzbare Lücke. Die bestätigten Befunde 
 | **gunicorn gehärtet** | A.8.20 / A.8.9 | `forwarded_allow_ips` auf das Docker-Netz beschränkt (statt `*`), Worker-Recycling + Request-Limits. |
 | **Abhängigkeiten exakt gepinnt** | A.8.8 Schwachstellen-Mgmt | `requirements.txt` vollständig `==`-gepinnt (reproduzierbare Builds); Docker-Images per **Digest** gepinnt (`postgres`/`caddy`), Python-Basis auf Patch-Version. |
 | **Permissions-Policy-Header** | A.8.9 Konfigurationsmgmt | Caddy setzt `Permissions-Policy` und entfernt den `Server`-Header. |
+| **CSP fail-closed** | A.8.9 Konfigurationsmgmt | Content-Security-Policy wird in Produktion **erzwungen** (statt nur Report-Only); Override per `DJANGO_CSP_ENFORCE`. |
+| **Rate-Limiting** | A.5.17 Authentisierungsinfo | IP-Limit (15/h) am öffentlichen Aktivierungs-Endpunkt gegen Token-Bruteforce/DoS – über geteilten DB-Cache. |
 
-!!! tip "OTP-Zwang ist jetzt fail-closed"
-    `OTP_REQUIRED` ist in Produktion (`DEBUG=False`) standardmäßig **an** – nur ein explizites
-    `DJANGO_OTP_REQUIRED=0` schaltet es ab. Lokal (`DEBUG=True`) bleibt 2FA optional.
+!!! tip "OTP-Zwang & CSP sind jetzt fail-closed"
+    In Produktion (`DEBUG=False`) sind **2FA-Pflicht** (`OTP_REQUIRED`) und **CSP-Enforce**
+    standardmäßig **an**; nur ein explizites `DJANGO_OTP_REQUIRED=0` bzw. `DJANGO_CSP_ENFORCE=0`
+    schaltet sie ab. Lokal (`DEBUG=True`) bleiben beide aus (Report-Only bzw. optional).
+
+!!! note "Geteilter Cache & Rate-Limiting"
+    In Produktion nutzt die App einen **DB-Cache** (PostgreSQL, prozessübergreifend über alle
+    gunicorn-Worker – kein zusätzlicher Dienst). Die Tabelle legt der `entrypoint.sh` per
+    `createcachetable` an (idempotent). Darauf setzt das IP-Rate-Limit des Aktivierungs-Endpunkts auf.
 
 !!! note "Bewusst offen / organisatorisch"
-    Niedrigpriore Härtungen (CSP scharf schalten mit Nonce, Rate-Limiting am Aktivierungs-Endpunkt,
-    2FA-Step-up bei Kontoänderungen, DB-TLS im internen Netz) sind dokumentiert und folgen. Der
-    **wichtigste** verbleibende Schritt ist organisatorisch: die Datenschutz-Dokumente
-    (VVT, DSFA, AVV Träger↔Betreiber) **vor** dem ersten echten Klientendatensatz.
+    Verbliebene niedrigpriore Härtungen: CSP zusätzlich **Nonce-basiert** (statt `'unsafe-inline'`),
+    2FA-Step-up bei Kontoänderungen, DB-TLS im internen Docker-Netz, Migrationen aus dem
+    Container-Start entkoppeln. Der **wichtigste** verbleibende Schritt ist organisatorisch: die
+    Datenschutz-Dokumente (VVT, DSFA, AVV Träger↔Betreiber) **vor** dem ersten echten Klientendatensatz.
 
 ---
 
@@ -316,7 +324,7 @@ aus dem Internet ohne Zugangsdaten ausnutzbare Lücke. Die bestätigten Befunde 
 | `ADMIN_ALLOW_CIDR` | `127.0.0.1/32` | Netz, aus dem `/admin/` erreichbar ist (VPN); Default = nur localhost. Siehe [VPN](vpn.md). |
 | `DJANGO_SEED_ROOT_PASSWORD` | – | Passwort für Break-Glass `root` im Seed; ohne dies + `DEBUG=0` kein Seed-Superuser. |
 | `DJANGO_HSTS_SECONDS` | `31536000` | HSTS-Dauer (nur bei `DEBUG=0`). |
-| `DJANGO_CSP_ENFORCE` | `0` | `1` = CSP erzwingen statt Report-Only. |
+| `DJANGO_CSP_ENFORCE` | `1` in Prod, `0` lokal | CSP erzwingen statt Report-Only; in Produktion (`DEBUG=0`) **fail-closed an**, nur `0` schaltet ab. |
 | `DJANGO_CSP_REPORT_URI` | – | optionaler Melde-Endpunkt für CSP-Verstöße. |
 | `DJANGO_LOG_FILE` | `logs/django.log` | Rotierendes Security-/Request-Log (nur bei `DEBUG=0`). |
 

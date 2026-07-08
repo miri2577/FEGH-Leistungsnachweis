@@ -25,9 +25,9 @@ ausgerollt; Details auf der Seite [Sicherheitshärtung, Abschnitt (j)](sicherhei
   Konten nicht mehr per Aktivierungslink reaktivierbar (A.8.3).
 - **Datenabfluss:** `.dockerignore` (keine DB/Secrets im Image), globale **Suche per POST**
   (keine Klientennamen im Access-Log), **Auditlog** ohne Art-9-Freitexte (`exclude_fields`).
-- **Härtung:** 2FA in Produktion **fail-closed** (Pflicht), Passwort-Mindestlänge 12,
-  CSV-Injection im Abrechnungs-Export neutralisiert, gunicorn-Least-Trust, Abhängigkeiten
-  exakt gepinnt + Docker-Images per Digest.
+- **Härtung:** 2FA **und CSP** in Produktion **fail-closed** (Pflicht/erzwungen), Passwort-Mindestlänge 12,
+  CSV-Injection im Abrechnungs-Export neutralisiert, **Rate-Limiting** am Aktivierungs-Endpunkt
+  (geteilter DB-Cache), gunicorn-Least-Trust, Abhängigkeiten exakt gepinnt + Docker-Images per Digest.
 - **Neu: [VPN-Zugang & Admin-Schutz](sicherheit/vpn.md)** – der Django-Admin (`/admin/`) liegt jetzt
   hinter einem **WireGuard-VPN** (wg-easy, 0 €); die App selbst bleibt öffentlich (TLS + 2FA +
   Lockout), damit die Mehr-Team-/Mobil-Nutzung reibungslos bleibt.
