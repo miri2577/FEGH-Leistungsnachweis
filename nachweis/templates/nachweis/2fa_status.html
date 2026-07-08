@@ -26,12 +26,15 @@
     <div class="body" style="padding:16px 18px">
       {% if aktiv %}
         <p>Deine Anmeldung ist mit einem Einmalcode aus deiner Authenticator-App geschützt.</p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;align-items:center">
           <a class="btn ghost" href="{% url 'nachweis:2fa_setup' %}">Neu einrichten (Gerät wechseln)</a>
-          <form method="post" action="{% url 'nachweis:2fa_deaktivieren' %}" onsubmit="return confirm('Zwei-Faktor wirklich deaktivieren?')" style="margin:0">
-            {% csrf_token %}<button class="btn" style="background:var(--bad)">Deaktivieren</button>
+          <form method="post" action="{% url 'nachweis:2fa_deaktivieren' %}" onsubmit="return confirm('Zwei-Faktor wirklich deaktivieren?')" style="margin:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            {% csrf_token %}
+            <input type="password" name="password" placeholder="Passwort bestätigen" required autocomplete="current-password" style="max-width:210px">
+            <button class="btn" style="background:var(--bad)">Deaktivieren</button>
           </form>
         </div>
+        <p class="muted" style="font-size:12.5px;margin-top:8px">Zum Deaktivieren ist aus Sicherheitsgründen die erneute Eingabe deines Passworts nötig.</p>
       {% else %}
         <p>Aktiviere die Zwei-Faktor-Authentifizierung, um deinen Zugang zusätzlich zu schützen.</p>
         <a class="btn" href="{% url 'nachweis:2fa_setup' %}">Jetzt einrichten</a>

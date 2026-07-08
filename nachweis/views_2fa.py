@@ -93,6 +93,11 @@ def zwei_faktor_status(request):
 @login_required
 @require_http_methods(["POST"])
 def zwei_faktor_deaktivieren(request):
+    # Step-up (ISO A.8.5): sicherheitskritische Aktion erfordert erneute Passwort-Eingabe,
+    # damit eine übernommene/offen gelassene Session 2FA nicht einfach abschalten kann.
+    if not request.user.check_password(request.POST.get("password", "")):
+        messages.error(request, "Passwort falsch – Zwei-Faktor wurde NICHT deaktiviert.")
+        return redirect("nachweis:2fa_status")
     request.user.totpdevice_set.all().delete()
     StaticDevice.objects.filter(user=request.user).delete()
     messages.success(request, "Zwei-Faktor wurde deaktiviert.")
