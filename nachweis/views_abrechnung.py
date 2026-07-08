@@ -30,6 +30,14 @@ MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
                "August", "September", "Oktober", "November", "Dezember"]
 
 
+def _csv_safe(v):
+    """Neutralisiert CSV-/Formel-Injection (Excel/LibreOffice werten =,+,-,@ am
+    Zellanfang als Formel). Nur für Freitextfelder (Name/Aktenzeichen/Empfänger) –
+    NICHT für formatierte Zahlen, deren führendes '-' erhalten bleiben muss."""
+    s = "" if v is None else str(v)
+    return "'" + s if s[:1] in ("=", "+", "-", "@", "\t", "\r") else s
+
+
 def _int(val, default):
     try:
         return int(val)
@@ -232,10 +240,10 @@ def rechnung_csv(request, pk):
                 "FLS_Soll", "FLS_Ist_einzeln", "FLS_Ist_Gruppe", "FLS_Ist", "kLE",
                 "Vorschuss_EUR", "Betrag_EUR"])
     for p in _positionen(r):
-        w.writerow([r.nummer, r.empfaenger, r.monat_text, p["name"], p["az"],
+        w.writerow([r.nummer, _csv_safe(r.empfaenger), r.monat_text, _csv_safe(p["name"]), _csv_safe(p["az"]),
                     f'{p["soll"]}', f'{p["einzeln"]}', f'{p["gruppe"]}', f'{p["fls"]}',
                     f'{p["kle"]}', f'{p["vorschuss"]}', f'{p["betrag"]}'])
-    w.writerow([r.nummer, r.empfaenger, r.monat_text, "SUMME", "", "", "", "", "", "", "",
+    w.writerow([r.nummer, _csv_safe(r.empfaenger), r.monat_text, "SUMME", "", "", "", "", "", "", "",
                 f"{r.betrag}"])
     return resp
 
@@ -259,7 +267,7 @@ def rechnung_eabrechnung(request, pk):
                 "k_Rechnungsbetrag_EUR"])
     for p in _positionen(r):
         zwsumme = p["fls"] + p["kle"]
-        w.writerow([r.monat_text, p["az"] or p["name"], f"{satz}", f'{p["vorschuss"]}',
+        w.writerow([r.monat_text, _csv_safe(p["az"] or p["name"]), f"{satz}", f'{p["vorschuss"]}',
                     f'{p["soll"]}', f'{p["fls"]}', f'{p["einzeln"]}', f'{p["gruppe"]}',
                     f'{p["kle"]}', f"{zwsumme}", f'{p["betrag"]}', f'{p["betrag"]}'])
     w.writerow([r.monat_text, "GESAMT", f"{satz}", "", "", "", "", "", "", "", "",

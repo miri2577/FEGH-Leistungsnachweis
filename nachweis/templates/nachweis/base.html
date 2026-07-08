@@ -490,11 +490,18 @@
       });
     }
 
+    function csrfToken(){
+      var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    }
     async function suche(){
       const q = input.value.trim(); lastQ = q;
       if(q.length < 2){ close(); return; }
       try{
-        const r = await fetch(API+'?q='+encodeURIComponent(q));
+        // POST (mit CSRF): der Suchbegriff darf nicht als Query-String in Logs landen
+        const r = await fetch(API, {method:'POST', credentials:'same-origin',
+          headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRFToken':csrfToken()},
+          body:'q='+encodeURIComponent(q)});
         const data = await r.json();
         if(input.value.trim() !== lastQ) return;   // veraltete Antwort verwerfen
         render(data);

@@ -59,9 +59,9 @@ class TeamIsolationTests(TestCase):
         self.assertIn(self.kA, services.klienten_fuer(self.uLA))
         self.assertNotIn(self.kB, services.klienten_fuer(self.uLA))
 
-    # --- Suche ----------------------------------------------------------
+    # --- Suche (POST: Suchbegriff darf nicht im Query-String/Log landen) ----
     def _such_klienten(self, user, q):
-        d = json.loads(self.cl(user).get(f"/api/suche/?q={q}").content)
+        d = json.loads(self.cl(user).post("/api/suche/", {"q": q}).content)
         return [i["titel"] for k in d["kategorien"] if k["key"] == "klienten" for i in k["items"]]
 
     def test_suche_kein_fremdteam_klient(self):
@@ -69,7 +69,7 @@ class TeamIsolationTests(TestCase):
         self.assertTrue(any("Alpha" in t for t in self._such_klienten(self.uA, "Alpha")))
 
     def test_suche_admin_ohne_klienten(self):
-        d = json.loads(self.cl(self.uAdmin).get("/api/suche/?q=Alpha").content)
+        d = json.loads(self.cl(self.uAdmin).post("/api/suche/", {"q": "Alpha"}).content)
         self.assertNotIn("klienten", [k["key"] for k in d["kategorien"]])
 
     # --- IDOR / Objektebene --------------------------------------------

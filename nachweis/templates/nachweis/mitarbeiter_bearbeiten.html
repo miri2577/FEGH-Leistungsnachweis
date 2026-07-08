@@ -19,6 +19,13 @@
 
   {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
+  {% if selbst %}
+  <div class="alert" style="background:var(--warnbg);color:var(--warn);padding:12px 16px;border-radius:9px;margin-bottom:14px;line-height:1.5;max-width:760px">
+    <b>Eigenes Konto.</b> Rolle, Team und Teamleitung sind hier gesperrt (Aufgabentrennung) – diese muss ein
+    anderes Administrations-Konto ändern. Name und Arbeitszeit kannst du selbst pflegen.
+  </div>
+  {% endif %}
+
   <div class="panel" style="max-width:760px">
     <form method="post" action="{% url 'nachweis:mitarbeiter_bearbeiten' m.id %}">
       {% csrf_token %}
@@ -29,15 +36,15 @@
 
         <div class="sec">Rolle &amp; Team</div>
         <div><label class="fld">Rolle</label>
-          <select name="rolle" id="rolle">{% for v,l in rollen %}<option value="{{ v }}" {% if m.rolle == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+          <select name="rolle" id="rolle" {% if selbst %}disabled{% endif %}>{% for v,l in rollen %}<option value="{{ v }}" {% if m.rolle == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
         <div><label class="fld">Team (Zugehörigkeit)</label>
-          <select name="team"><option value="">— keins —</option>{% for t in teams %}<option value="{{ t.id }}" {% if m.team_id == t.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div>
+          <select name="team" {% if selbst %}disabled{% endif %}><option value="">— keins —</option>{% for t in teams %}<option value="{{ t.id }}" {% if m.team_id == t.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div>
 
         <div class="full" id="leitet-wrap">
           <label class="fld">Leitet Team(s) <span class="muted" style="font-weight:400">– nur für Rolle „Leitung"</span></label>
           <div class="leitet-box">
             {% for t in teams %}
-            <label><input type="checkbox" name="leitet" value="{{ t.id }}" {% if t.id in geleitet_ids %}checked{% endif %}> {{ t.name }}</label>
+            <label><input type="checkbox" name="leitet" value="{{ t.id }}" {% if t.id in geleitet_ids %}checked{% endif %} {% if selbst %}disabled{% endif %}> {{ t.name }}</label>
             {% empty %}<span class="muted">Noch keine Teams angelegt.</span>{% endfor %}
           </div>
           <div class="hint">Nur wer hier ein Team leitet (oder ihm angehört), sieht dessen Klient*innen

@@ -126,6 +126,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        # Art-9-Gesundheitsdaten: mind. 12 Zeichen (BSI/NIST-Empfehlung), nicht der Default 8.
+        'OPTIONS': {'min_length': 12},
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',

@@ -414,10 +414,13 @@ def api_ping(request):
     return HttpResponse(status=204)
 
 
+@require_POST
 @login_required
 def api_suche(request):
-    """Globale, rollen-gescopte Suche für das Spotlight-Overlay (Live-JSON)."""
-    q = (request.GET.get("q") or "").strip()
+    """Globale, rollen-gescopte Suche für das Spotlight-Overlay (Live-JSON).
+    Bewusst POST (mit CSRF): Der Suchbegriff (Klientenname/Aktenzeichen/Art-9-Stichwort)
+    darf NICHT im Query-String stehen, sonst landet er im Reverse-Proxy-/Access-Log."""
+    q = (request.POST.get("q") or "").strip()
     kategorien = _suche_kategorien(request, q) if len(q) >= 2 else []
     total = sum(len(k["items"]) for k in kategorien)
     return JsonResponse({"q": q, "total": total, "kategorien": kategorien})

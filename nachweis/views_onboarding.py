@@ -174,30 +174,41 @@ def mitarbeiter_bearbeiten(request, pk):
     if not _nur_admin(request):
         return HttpResponseForbidden()
     m = get_object_or_404(Mitarbeiter, pk=pk)
+    # Aufgabentrennung (ISO A.5.3 / DSGVO): Ein Admin darf die eigene Rolle, das
+    # eigene Team und die eigene Teamleitung NICHT ändern – sonst könnte er sich
+    # selbst zur Leitung machen und so Klienten-(Art-9-)Zugriff erlangen. Fremde
+    # Konten darf er weiterhin verwalten (legitime Kontoführung).
+    selbst = (m == services.mitarbeiter_fuer(request.user))
     if request.method == "POST":
         m.name = (request.POST.get("nachname") or m.name).strip()
         m.vorname = (request.POST.get("vorname") or "").strip()
-        rolle = request.POST.get("rolle")
-        if rolle in Rolle.values:
-            m.rolle = rolle
-        tid = request.POST.get("team")
-        m.team = Team.objects.filter(pk=tid).first() if (tid or "").isdigit() else None
+        if not selbst:
+            rolle = request.POST.get("rolle")
+            if rolle in Rolle.values:
+                m.rolle = rolle
+            tid = request.POST.get("team")
+            m.team = Team.objects.filter(pk=tid).first() if (tid or "").isdigit() else None
         try:
             m.wochenstunden = request.POST.get("wochenstunden") or m.wochenstunden
             m.urlaubstage = int(request.POST.get("urlaubstage") or m.urlaubstage)
         except (TypeError, ValueError):
             pass
         m.save()
-        # Geleitete Teams nur für Rolle Leitung; sonst leeren.
-        if m.rolle == Rolle.LEITUNG:
-            ids = [int(i) for i in request.POST.getlist("leitet") if i.isdigit()]
-            m.leitet.set(Team.objects.filter(pk__in=ids))
+        if not selbst:
+            # Geleitete Teams nur für Rolle Leitung; sonst leeren.
+            if m.rolle == Rolle.LEITUNG:
+                ids = [int(i) for i in request.POST.getlist("leitet") if i.isdigit()]
+                m.leitet.set(Team.objects.filter(pk__in=ids))
+            else:
+                m.leitet.clear()
+            messages.success(request, f"{m} gespeichert.")
         else:
-            m.leitet.clear()
-        messages.success(request, f"{m} gespeichert.")
+            messages.info(request, "Gespeichert. Hinweis: Die eigene Rolle, das eigene Team und die "
+                          "eigene Teamleitung lassen sich aus Sicherheitsgründen (Aufgabentrennung) "
+                          "nicht selbst ändern – das muss ein anderes Administrations-Konto vornehmen.")
         return redirect("nachweis:mitarbeiter_liste")
     return render(request, "nachweis/mitarbeiter_bearbeiten.html", {
-        "aktiv": "mitarbeiter", "m": m,
+        "aktiv": "mitarbeiter", "m": m, "selbst": selbst,
         "teams": Team.objects.all(),
         "rollen": Rolle.choices,
         "geleitet_ids": set(m.leitet.values_list("id", flat=True)),
@@ -249,6 +260,13 @@ def aktivieren(request, uidb64, token):
         user = None
 
     gueltig = user is not None and default_token_generator.check_token(user, token)
+    # Offboarding-Schutz (ISO A.8.3): Ein bewusst deaktiviertes Konto (Mitarbeiter.aktiv=False)
+    # darf sich NICHT per (noch gültigem) Aktivierungslink selbst reaktivieren. Wiedereinstellung
+    # läuft über die Admin-Aktion „Entsperren" – erst danach greift ein neuer Link.
+    if gueltig:
+        prof = Mitarbeiter.objects.filter(user=user).first()
+        if prof is not None and not prof.aktiv:
+            gueltig = False
     if not gueltig:
         return render(request, "nachweis/aktivieren.html", {"ungueltig": True})
 
