@@ -338,12 +338,17 @@ def _suche_kategorien(request, q, limit=7):
                    else f"{reverse('nachweis:druck')}?klient={k.id}",
         } for k in klq])
 
+        # Volltext auch über die Dokumentation (Verlaufstext) – nur hier, im
+        # Klientenarbeit-Zweig (Leitung + Team-Nutzer*innen); Admin/Verwaltung erreichen
+        # diesen Block gar nicht erst (DSGVO). Ein kurzer Doku-Auszug hilft beim Wiederfinden.
         lq = (Leistung.objects.filter(klient__in=kl)
-              .filter(_volltext_q(["taetigkeit", "notiz", "klient__nachname", "klient__vorname"], q))
+              .filter(_volltext_q(["taetigkeit", "notiz", "dokumentation",
+                                   "klient__nachname", "klient__vorname"], q))
               .select_related("klient").order_by("-datum")[:limit])
         add("leistungen", "Leistungen", [{
             "titel": l.taetigkeit or l.get_leistungsart_display(),
-            "sub": f"{l.datum:%d.%m.%Y} · {l.klient.name} · {l.leistungsart}",
+            "sub": " · ".join(filter(None, [f"{l.datum:%d.%m.%Y}", l.klient.name, str(l.leistungsart),
+                              (l.dokumentation[:70] + "…") if l.dokumentation else ""])),
             "url": f"{reverse('nachweis:druck')}?klient={l.klient_id}&monat={l.datum.month}&jahr={l.datum.year}",
         } for l in lq])
 
@@ -621,6 +626,17 @@ def _kalender_kontext(request):
         for d in services.serientermine(wl, von, bis):
             serien_by_date[d].append({"bezeichnung": wl.bezeichnung, "farbe": wl.farbe,
                                       "art": wl.get_leistungsart_display()})
+
+    # Teamsitzung automatisch einblenden: fester Wochentag ohne Feiertage aus den
+    # Parametern (dieselbe Berechnung wie in der kLE/FLS-Auswertung). Jahresübergreifend,
+    # falls der Zeitraum über den Jahreswechsel reicht.
+    for j in range(von.year, bis.year + 1):
+        pj = services.get_parameter(j)
+        for d in services.teamsitzungstage(j, pj.teamsitzung_wochentag):
+            if von <= d <= bis:
+                serien_by_date[d].append({
+                    "bezeichnung": "Teamsitzung", "farbe": "#0e7490",
+                    "art": f"fallunspezifisch · {pj.teamsitzung_dauer_std} h"})
 
     # Filter-Querystring für view-erhaltende Navigations-Links
     fq = "".join(f"&{k}={v}" for k, v in (("team", team_id), ("mitarbeiter", ma_id), ("klient", kl_id)) if v)

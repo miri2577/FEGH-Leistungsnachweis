@@ -199,9 +199,10 @@ CSP_REPORT_URI = os.environ.get("DJANGO_CSP_REPORT_URI", "")
 
 # Zwei-Faktor (django-otp / TOTP)
 OTP_TOTP_ISSUER = "FEGH-Leistungsnachweis"     # Anzeigename in der Authenticator-App
-# Prototyp: 0 = optional (Opt-in, wer ein Gerät einrichtet wird gefragt).
-# Prod: DJANGO_OTP_REQUIRED=1 -> Pflicht für ALLE (außer Break-Glass-Superuser).
-OTP_REQUIRED = os.environ.get("DJANGO_OTP_REQUIRED", "0") == "1"
+# Fail-closed: In Produktion (DEBUG=False) ist 2FA standardmäßig PFLICHT für alle
+# (außer Break-Glass-Superuser). Nur explizit DJANGO_OTP_REQUIRED=0 schaltet es ab.
+# Lokal (DEBUG) bleibt es optional (Opt-in). (ISO A.8.5)
+OTP_REQUIRED = os.environ.get("DJANGO_OTP_REQUIRED", "0" if DEBUG else "1") == "1"
 
 # --- Brute-Force-Schutz (django-axes) ---
 AXES_FAILURE_LIMIT = int(os.environ.get("DJANGO_AXES_FAILURE_LIMIT", "5"))
@@ -214,15 +215,19 @@ AXES_VERBOSE = True
 # --- Änderungs-/Zugriffsprotokoll (django-auditlog) ---
 # Wer wann welche besonders sensiblen Datensätze angelegt/geändert/gelöscht hat.
 AUDITLOG_INCLUDE_TRACKING_MODELS = (
-    "nachweis.Klient",
-    "nachweis.Leistung",
+    # Art-9-Freitexte (Verlaufs-Dokumentation, Notizen, Kommentare) werden NICHT im
+    # Auditlog gespeichert (Datenminimierung, ISO A.8.11). exclude_fields hält den Inhalt
+    # aus auditlog_logentry heraus; die Timeline-Wiederherstellung lässt diese Felder dann
+    # unangetastet (kein Überschreiben mit Log-Werten). Wer/Wann/Was-Trail bleibt erhalten.
+    {"model": "nachweis.Leistung", "exclude_fields": ["dokumentation", "notiz"]},
+    {"model": "nachweis.Klient", "exclude_fields": ["kommentar"]},
+    {"model": "nachweis.Termin", "exclude_fields": ["notiz"]},
+    {"model": "nachweis.Abwesenheit", "exclude_fields": ["kommentar"]},
     "nachweis.Gruppe",
     "nachweis.Arbeitszeit",
-    "nachweis.Abwesenheit",
     "nachweis.Kassenbuchung",
     "nachweis.Zaehlprotokoll",
     "nachweis.Mitarbeiter",
-    "nachweis.Termin",
 )
 
 # =====================================================================

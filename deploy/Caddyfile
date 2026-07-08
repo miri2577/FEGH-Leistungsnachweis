@@ -4,5 +4,21 @@ nachweis.deine-domain.de {
     log {
         output file /data/access.log
     }
+
+    # Defense-in-Depth-Header (ergänzen Djangos eigene Header; ISO A.8.9).
+    header {
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+        -Server
+    }
+
+    # Django-Admin (Break-Glass) nur aus dem zugelassenen Netz erreichbar (ISO A.8.20).
+    # Erlaubte Quell-IPs/CIDR über .env.prod: ADMIN_ALLOW_CIDR (z. B. Büro-/VPN-Netz).
+    # Ohne gesetzte Variable ist /admin/ von außen gesperrt (nur localhost) – sicher per Default.
+    @admin_blocked {
+        path /admin/*
+        not remote_ip {$ADMIN_ALLOW_CIDR:127.0.0.1/32}
+    }
+    respond @admin_blocked "Zugriff auf diesen Bereich ist nur aus dem zugelassenen Netz erlaubt." 403
+
     reverse_proxy web:8000
 }
