@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:16
+    image: postgres:16@sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54
     restart: unless-stopped
     env_file: .env.prod
     volumes:
@@ -33,7 +33,7 @@ services:
       start_period: 40s
 
   caddy:
-    image: caddy:2
+    image: caddy:2@sha256:af5fdcd76f2db5e4e974ee92f96ee8c0fc3edb55bd4ba5032547cbf3f65e486d
     restart: unless-stopped
     env_file: .env.prod          # CADDY_DOMAIN + ADMIN_ALLOW_CIDR für die Caddyfile-Platzhalter
     ports: ["80:80", "443:443"]
