@@ -288,6 +288,7 @@ aus dem Internet ohne Zugangsdaten ausnutzbare Lücke. Die bestätigten Befunde 
 | **Permissions-Policy-Header** | A.8.9 Konfigurationsmgmt | Caddy setzt `Permissions-Policy` und entfernt den `Server`-Header. |
 | **CSP fail-closed** | A.8.9 Konfigurationsmgmt | Content-Security-Policy wird in Produktion **erzwungen** (statt nur Report-Only); Override per `DJANGO_CSP_ENFORCE`. |
 | **Rate-Limiting** | A.5.17 Authentisierungsinfo | IP-Limit (15/h) am öffentlichen Aktivierungs-Endpunkt gegen Token-Bruteforce/DoS – über geteilten DB-Cache. |
+| **2FA-Step-up** | A.8.5 Sichere Authentisierung | Deaktivieren der Zwei-Faktor-Authentifizierung erfordert die erneute Passwort-Eingabe (Schutz gegen Session-Übernahme). |
 
 !!! tip "OTP-Zwang & CSP sind jetzt fail-closed"
     In Produktion (`DEBUG=False`) sind **2FA-Pflicht** (`OTP_REQUIRED`) und **CSP-Enforce**
@@ -300,10 +301,12 @@ aus dem Internet ohne Zugangsdaten ausnutzbare Lücke. Die bestätigten Befunde 
     `createcachetable` an (idempotent). Darauf setzt das IP-Rate-Limit des Aktivierungs-Endpunkts auf.
 
 !!! note "Bewusst offen / organisatorisch"
-    Verbliebene niedrigpriore Härtungen: CSP zusätzlich **Nonce-basiert** (statt `'unsafe-inline'`),
-    2FA-Step-up bei Kontoänderungen, DB-TLS im internen Docker-Netz, Migrationen aus dem
-    Container-Start entkoppeln. Der **wichtigste** verbleibende Schritt ist organisatorisch: die
-    Datenschutz-Dokumente (VVT, DSFA, AVV Träger↔Betreiber) **vor** dem ersten echten Klientendatensatz.
+    Verbliebene niedrigpriore Härtungen: CSP zusätzlich **Nonce-basiert** (statt `'unsafe-inline'` –
+    wegen der vielen Inline-`style`-Attribute unverhältnismäßig aufwändig), **DB-TLS** im internen
+    Docker-Netz (geringer Nutzen, da nicht exponiert) und Migrationen aus dem Container-Start
+    entkoppeln (bei **einem** Web-Container unkritisch – der aktuelle Weg ist korrekt). Der
+    **wichtigste** verbleibende Schritt ist organisatorisch: die Datenschutz-Dokumente
+    (VVT, DSFA, AVV Träger↔Betreiber) **vor** dem ersten echten Klientendatensatz.
 
 ---
 
