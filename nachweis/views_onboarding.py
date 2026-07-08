@@ -5,6 +5,7 @@ Ablauf:
   -> Nutzer öffnet Link, vergibt eigenes Passwort -> (falls Pflicht) 2FA einrichten.
 """
 from django.conf import settings
+from django.core.cache import cache
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -26,6 +27,27 @@ User = get_user_model()
 
 def _nur_admin(request):
     return services.ist_admin(request.user) or request.user.is_superuser
+
+
+def _client_ip(request):
+    """Echte Client-IP hinter Caddy (X-Forwarded-For, sonst REMOTE_ADDR)."""
+    xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    return xff.split(",")[0].strip() if xff else request.META.get("REMOTE_ADDR", "?")
+
+
+def _rate_limited(request, bucket, limit=15, window=3600):
+    """Einfaches IP-Rate-Limit über den (geteilten) Cache. True = Limit überschritten.
+    Schützt öffentliche Endpunkte vor Bruteforce/DoS (ISO A.5.17). Fällt bei Cache-
+    Problemen offen aus (kein Selbst-DoS), da der Token ohnehin kryptografisch signiert ist."""
+    key = f"rl:{bucket}:{_client_ip(request)}"
+    try:
+        n = cache.incr(key)
+    except ValueError:
+        cache.set(key, 1, window)
+        n = 1
+    except Exception:
+        return False
+    return n > limit
 
 
 # ---------------------------------------------------------------- Admin: Teams
@@ -253,6 +275,9 @@ def mitarbeiter_aktion(request):
 
 # ---------------------------------------------------------------- Nutzer: Aktivierung (öffentlich)
 def aktivieren(request, uidb64, token):
+    # Rate-Limit (ISO A.5.17): öffentlich erreichbarer Endpunkt – gegen Token-Bruteforce/DoS.
+    if _rate_limited(request, "aktivieren", limit=15, window=3600):
+        return render(request, "nachweis/aktivieren.html", {"ungueltig": True}, status=429)
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)

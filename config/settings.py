@@ -192,9 +192,10 @@ WIKI_URL = os.environ.get("WIKI_URL", "https://miri2577.github.io/FEGH-Leistungs
 # Absender (Trägeranschrift) auf Rechnungen – mehrzeilig via Env (\n). Leer = Platzhalter.
 RECHNUNG_ABSENDER = os.environ.get("RECHNUNG_ABSENDER", "").replace("\\n", "\n")
 
-# Content-Security-Policy: Standard Report-Only (bricht nichts, meldet nur Verstöße).
-# Erst eine Weile beobachten, dann DJANGO_CSP_ENFORCE=1 zum scharf schalten.
-CSP_ENFORCE = os.environ.get("DJANGO_CSP_ENFORCE", "0") == "1"
+# Content-Security-Policy: In Produktion (DEBUG=False) fail-closed ERZWUNGEN, lokal
+# Report-Only (bricht nichts). Override jederzeit per DJANGO_CSP_ENFORCE=0/1.
+# Die App ist self-contained (keine CDNs) -> die Policy bricht nichts (ISO A.8.9).
+CSP_ENFORCE = os.environ.get("DJANGO_CSP_ENFORCE", "0" if DEBUG else "1") == "1"
 CSP_REPORT_URI = os.environ.get("DJANGO_CSP_REPORT_URI", "")
 
 # Zwei-Faktor (django-otp / TOTP)
@@ -251,6 +252,15 @@ PASSWORD_HASHERS = [
 ]
 
 if not DEBUG:
+    # Geteilter Cache über die PostgreSQL-DB (prozessübergreifend über alle gunicorn-Worker;
+    # kein zusätzlicher Dienst nötig). Wird u. a. fürs Rate-Limiting genutzt. Die Tabelle legt
+    # der entrypoint per `createcachetable` an. Lokal bleibt der Default-LocMemCache.
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "fegh_cache",
+        }
+    }
     # Statische Dateien über WhiteNoise (direkt nach der SecurityMiddleware)
     MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
     STORAGES = {

@@ -63,6 +63,8 @@ class SelfEscalationTests(TestCase):
 class ReaktivierungsSperreTests(TestCase):
     """Befund #2: Deaktiviertes Konto lässt sich nicht per Aktivierungslink reaktivieren."""
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()   # Rate-Limit-Zähler (prozessweiter Cache) je Test zurücksetzen
         self.u = accounts.konto_anlegen("Weber", "Anna", Rolle.USER)
         self.m = Mitarbeiter.objects.create(user=self.u, name="Weber", rolle=Rolle.USER, kuerzel="web")
 
