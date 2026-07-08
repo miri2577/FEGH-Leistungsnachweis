@@ -35,6 +35,7 @@ services:
   caddy:
     image: caddy:2
     restart: unless-stopped
+    env_file: .env.prod          # CADDY_DOMAIN + ADMIN_ALLOW_CIDR für die Caddyfile-Platzhalter
     ports: ["80:80", "443:443"]
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro

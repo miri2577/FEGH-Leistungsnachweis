@@ -1,5 +1,7 @@
-# Domain anpassen. Caddy holt & erneuert das TLS-Zertifikat automatisch (Let's Encrypt).
-nachweis.deine-domain.de {
+# Domain & Admin-Netz kommen aus .env.prod (CADDY_DOMAIN, ADMIN_ALLOW_CIDR) –
+# diese Datei muss NICHT mehr lokal editiert werden. Caddy holt & erneuert das
+# TLS-Zertifikat automatisch (Let's Encrypt).
+{$CADDY_DOMAIN} {
     encode zstd gzip
     log {
         output file /data/access.log
@@ -12,7 +14,7 @@ nachweis.deine-domain.de {
     }
 
     # Django-Admin (Break-Glass) nur aus dem zugelassenen Netz erreichbar (ISO A.8.20).
-    # Erlaubte Quell-IPs/CIDR über .env.prod: ADMIN_ALLOW_CIDR (z. B. Büro-/VPN-Netz).
+    # Erlaubte Quell-IPs/CIDR über .env.prod: ADMIN_ALLOW_CIDR (z. B. VPN-/Büro-Netz).
     # Ohne gesetzte Variable ist /admin/ von außen gesperrt (nur localhost) – sicher per Default.
     @admin_blocked {
         path /admin/*
