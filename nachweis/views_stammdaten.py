@@ -14,7 +14,8 @@ from django.views.decorators.http import require_POST
 
 from . import services
 from .models import (Klient, Mitarbeiter, Parameter, Status, Team, Leistungsart,
-                     WiederkehrendeLeistung, Rhythmus, Anrechnung, HBGSatz, Umrechnung)
+                     WiederkehrendeLeistung, Rhythmus, Anrechnung, HBGSatz, Umrechnung,
+                     Kostentraeger, KostentraegerTyp, Bewilligung, BewilligungStatus, Leistungstyp)
 
 
 def _nur_leitung(request):
@@ -112,27 +113,140 @@ def klient_speichern(request):
     k.bezugsbetreuer = bez
     k.vertretung1 = _ma(request.POST.get("vertretung1"))
     k.vertretung2 = _ma(request.POST.get("vertretung2"))
-    k.al = _dec(request.POST.get("al"))
-    k.kle = _dec(request.POST.get("kle"))
-    k.hbg = _int_or_none(request.POST.get("hbg"))
-    # Komfort/Sicherheitsnetz: HBG gewählt, aber AL und kLE leer (=0) -> aus der
-    # HBG-Tabelle der Parameter ableiten. Getippte Werte werden nie überschrieben.
-    if k.hbg and not k.al and not k.kle:
-        v = services.bewilligung_vorschlag(date.today().year).get(k.hbg)
-        if v:
-            k.al, k.kle = v["al"], v["kle"]
-    k.kue_bis = _datum(request.POST.get("kue_bis"))
+    # Bewilligungsdaten (al/kle/hbg/kue_bis/kostentraeger) werden aus dem Klient-Formular
+    # nur noch gepflegt, solange es KEINE aktive Bewilligung gibt. Sobald eine Bewilligung
+    # existiert, ist sie die führende Quelle und synchronisiert diese Cache-Felder selbst –
+    # das Formular überschreibt sie dann nicht (keine Divergenz).
+    hat_bewilligung = bool(k.pk) and k.aktive_bewilligung() is not None
+    if not hat_bewilligung:
+        k.al = _dec(request.POST.get("al"))
+        k.kle = _dec(request.POST.get("kle"))
+        k.hbg = _int_or_none(request.POST.get("hbg"))
+        # HBG gewählt, aber AL/kLE leer -> aus der HBG-Tabelle der Parameter ableiten.
+        if k.hbg and not k.al and not k.kle:
+            v = services.bewilligung_vorschlag(date.today().year).get(k.hbg)
+            if v:
+                k.al, k.kle = v["al"], v["kle"]
+        k.kue_bis = _datum(request.POST.get("kue_bis"))
+        k.kostentraeger = (request.POST.get("kostentraeger") or "").strip()
     k.brp_bis = _datum(request.POST.get("brp_bis"))
     k.versendet_am = _datum(request.POST.get("versendet_am"))
     status = request.POST.get("status")
     k.status = status if status in Status.values else Status.BETREUUNG
     k.person_id = (request.POST.get("person_id") or "").strip()
     k.thfd = (request.POST.get("thfd") or "").strip()
-    k.kostentraeger = (request.POST.get("kostentraeger") or "").strip()
     k.kommentar = (request.POST.get("kommentar") or "").strip()
     k.save()
     messages.success(request, f"{k.name} gespeichert.")
     return redirect("nachweis:belegungsliste")
+
+
+# ---------------------------------------------------------------- Kostenträger
+@login_required
+def kostentraeger_liste(request):
+    if not _nur_leitung(request):
+        return HttpResponseForbidden()
+    bearbeiten = Kostentraeger.objects.filter(pk=request.GET.get("edit")).first() if request.GET.get("edit") else None
+    return render(request, "nachweis/kostentraeger_liste.html", {
+        "aktiv": "belegungsliste",
+        "kostentraeger": Kostentraeger.objects.all(),
+        "typen": KostentraegerTyp.choices,
+        "bearbeiten": bearbeiten,
+    })
+
+
+@require_POST
+@login_required
+def kostentraeger_speichern(request):
+    if not _nur_leitung(request):
+        return HttpResponseForbidden()
+    name = (request.POST.get("name") or "").strip()
+    if not name:
+        messages.error(request, "Bitte einen Namen angeben.")
+        return redirect("nachweis:kostentraeger_liste")
+    pk = request.POST.get("id")
+    kt = get_object_or_404(Kostentraeger, pk=pk) if pk else Kostentraeger()
+    kt.name = name
+    typ = request.POST.get("typ")
+    kt.typ = typ if typ in KostentraegerTyp.values else KostentraegerTyp.BEZIRKSAMT
+    kt.amt = (request.POST.get("amt") or "").strip()
+    kt.adresse = (request.POST.get("adresse") or "").strip()
+    kt.ansprechpartner = (request.POST.get("ansprechpartner") or "").strip()
+    kt.leitweg_id = (request.POST.get("leitweg_id") or "").strip()
+    kt.zahlungsziel_tage = _int_or_none(request.POST.get("zahlungsziel_tage")) or 30
+    kt.aktiv = request.POST.get("aktiv") == "on"
+    kt.save()
+    messages.success(request, f'Kostenträger „{kt.name}“ gespeichert.')
+    return redirect("nachweis:kostentraeger_liste")
+
+
+# ---------------------------------------------------------------- Bewilligungen (je Klient*in)
+@login_required
+def bewilligungen(request, pk):
+    if not _nur_leitung(request):
+        return HttpResponseForbidden()
+    klient = get_object_or_404(services.klienten_fuer(request.user), pk=pk)
+    liste = list(klient.bewilligungen.select_related("kostentraeger").all())
+    bearbeiten = next((b for b in liste if str(b.id) == request.GET.get("edit", "")), None)
+    # Fortschreibung: neue Fassung, vorbefüllt aus einer bestehenden Bewilligung
+    fortschreibung = next((b for b in liste if str(b.id) == request.GET.get("fort", "")), None)
+    hbg_map = services.hbg_tabelle(date.today().year)
+    import json
+    hbg_json = {str(h): {"fls_woche": str(w),
+                         "kle_tag": str(services.get_parameter(date.today().year).kle_je_tag or 0)}
+                for h, w in hbg_map.items()}
+    return render(request, "nachweis/bewilligungen.html", {
+        "aktiv": "belegungsliste", "klient": klient, "bewilligungen": liste,
+        "aktive": klient.aktive_bewilligung(),
+        "kostentraeger": Kostentraeger.objects.filter(aktiv=True),
+        "status_wahl": BewilligungStatus.choices, "typ_wahl": Leistungstyp.choices,
+        "bearbeiten": bearbeiten, "fortschreibung": fortschreibung,
+        "hbg_json": json.dumps(hbg_json),
+    })
+
+
+@require_POST
+@login_required
+def bewilligung_speichern(request):
+    if not _nur_leitung(request):
+        return HttpResponseForbidden()
+    klient = get_object_or_404(services.klienten_fuer(request.user), pk=request.POST.get("klient"))
+    pk = request.POST.get("id")
+    if pk:
+        b = get_object_or_404(Bewilligung, pk=pk, klient=klient)
+    else:
+        b = Bewilligung(klient=klient)
+    _kt = request.POST.get("kostentraeger")
+    b.kostentraeger = Kostentraeger.objects.filter(pk=_kt).first() if (_kt or "").isdigit() else None
+    b.aktenzeichen = (request.POST.get("aktenzeichen") or "").strip()
+    typ = request.POST.get("leistungstyp")
+    b.leistungstyp = typ if typ in Leistungstyp.values else Leistungstyp.FLS_KLE
+    b.gueltig_von = _datum(request.POST.get("gueltig_von"))
+    b.gueltig_bis = _datum(request.POST.get("gueltig_bis"))
+    b.fls_woche = _dec(request.POST.get("fls_woche"))
+    b.kle_tag = _dec(request.POST.get("kle_tag"))
+    b.hbg = _int_or_none(request.POST.get("hbg"))
+    st = request.POST.get("status")
+    b.status = st if st in BewilligungStatus.values else BewilligungStatus.AKTIV
+    _vg = request.POST.get("vorgaenger")
+    b.vorgaenger = Bewilligung.objects.filter(pk=_vg, klient=klient).first() if (_vg or "").isdigit() else None
+    b.kommentar = (request.POST.get("kommentar") or "").strip()
+    b.save()   # synchronisiert den Klient-Cache automatisch
+    messages.success(request, "Bewilligung gespeichert.")
+    return redirect("nachweis:bewilligungen", pk=klient.pk)
+
+
+@require_POST
+@login_required
+def bewilligung_loeschen(request):
+    if not _nur_leitung(request):
+        return HttpResponseForbidden()
+    b = get_object_or_404(Bewilligung.objects.filter(
+        klient__in=services.klienten_fuer(request.user)), pk=request.POST.get("id"))
+    kpk = b.klient_id
+    b.delete()
+    messages.success(request, "Bewilligung gelöscht.")
+    return redirect("nachweis:bewilligungen", pk=kpk)
 
 
 # ---------------------------------------------------------------- Team-Parameter

@@ -46,7 +46,12 @@
         <div><label class="fld">Vertretung II</label>
           <select name="vertretung2"><option value="">—</option>{% for m in mitarbeiter %}<option value="{{ m.id }}" {% if klient.vertretung2_id == m.id %}selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
 
-        <div class="sec">Fachleistungsstunden (pro Monat)</div>
+        <div class="sec">Fachleistungsstunden (pro Monat){% if klient %}
+          <a href="{% url 'nachweis:bewilligungen' klient.id %}" style="text-transform:none;font-weight:400;letter-spacing:0;margin-left:8px">→ Bewilligungen verwalten</a>{% endif %}</div>
+        {% if klient and klient.aktive_bewilligung %}
+        <div class="full" style="grid-column:1/-1"><div class="alert" style="background:var(--brand-soft);color:var(--brand-d);padding:8px 12px;border-radius:8px;font-size:12.5px">
+          Diese Werte werden aus der <b>aktiven Bewilligung</b> gesetzt – Änderungen bitte dort vornehmen (dieses Formular überschreibt sie nicht).</div></div>
+        {% endif %}
         <div><label class="fld">AL (fallspezifisch)</label><input type="text" name="al" id="fld-al" value="{{ klient.al|default:'0' }}"></div>
         <div><label class="fld">kLE (kalkulatorisch)</label><input type="text" name="kle" id="fld-kle" value="{{ klient.kle|default:'0' }}"></div>
         <div><label class="fld">HBG (1–12)</label><input type="number" name="hbg" id="fld-hbg" min="1" max="12" value="{{ klient.hbg|default:'' }}">

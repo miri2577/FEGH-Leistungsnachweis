@@ -230,6 +230,35 @@ class Klient(models.Model):
         start = self.kue_bis - _td(self.BERICHT_VORLAUF_TAGE)
         return start <= stichtag <= self.kue_bis
 
+    def aktive_bewilligung(self, stichtag=None):
+        """Die zum Stichtag gültige Bewilligung (offener Beginn/Ende zählt als gültig)."""
+        stichtag = stichtag or date.today()
+        return (self.bewilligungen
+                .filter(status=BewilligungStatus.AKTIV)
+                .filter(models.Q(gueltig_von__lte=stichtag) | models.Q(gueltig_von__isnull=True))
+                .filter(models.Q(gueltig_bis__gte=stichtag) | models.Q(gueltig_bis__isnull=True))
+                .select_related("kostentraeger")
+                .order_by("-gueltig_von").first())
+
+    def sync_cache_aus_bewilligung(self):
+        """Hält die abwärtskompatiblen Cache-Felder (al/kle/kue_bis/kostentraeger) aus der
+        aktiven Bewilligung aktuell – so bleiben Abrechnung, Wochenauslastung und Vorschuss
+        unverändert, obwohl die Bewilligung jetzt die führende Quelle ist. Bewusst per
+        .update() (kein save/Auditlog), da es ein abgeleiteter Cache ist."""
+        b = self.aktive_bewilligung()
+        if not b:
+            return
+        self.al = b.al_monat
+        self.kle = b.kle_monat
+        self.kue_bis = b.gueltig_bis
+        if b.kostentraeger_id:
+            self.kostentraeger = b.kostentraeger.name
+        if b.hbg:
+            self.hbg = b.hbg
+        type(self).objects.filter(pk=self.pk).update(
+            al=self.al, kle=self.kle, kue_bis=self.kue_bis,
+            kostentraeger=self.kostentraeger, hbg=self.hbg)
+
 
 class Leistung(models.Model):
     """Eine erfasste Leistung im Leistungsnachweis (manuelle 1:1-Zeile)."""
@@ -854,3 +883,121 @@ class Monatsfreigabe(models.Model):
     def ist_gesperrt(self) -> bool:
         """Nachweis festgeschrieben (nicht mehr durch MA änderbar)?"""
         return self.status in (Freigabestatus.FREIGEGEBEN, Freigabestatus.ABGERECHNET)
+
+
+# =====================================================================
+#  Bewilligung / Kostenzusage (Phase-1-Ausbau: führendes Abrechnungsobjekt)
+# =====================================================================
+# Umrechnung Bescheid-Einheiten -> Monatswerte (wie services_senatstool/bewilligung_vorschlag):
+WOCHEN_JE_MONAT = Decimal("365.25") / Decimal(7) / Decimal(12)   # 4,348214…
+TAGE_JE_MONAT = Decimal("365.25") / Decimal(12)                  # 30,4375
+
+
+class KostentraegerTyp(models.TextChoices):
+    BEZIRKSAMT = "Bezirksamt", "Bezirksamt"
+    UEBEROERTLICH = "überörtlich", "überörtlicher Träger"
+    SELBSTZAHLER = "Selbstzahler", "Selbstzahler"
+    SONSTIGE = "Sonstige", "Sonstige"
+
+
+class Kostentraeger(models.Model):
+    """Rechnungsempfänger (Bezirksamt/überörtlicher Träger). Ersetzt den bisherigen
+    Freitext am Klienten – gleiche Rechnungen bündeln jetzt zuverlässig über die FK."""
+    name = models.CharField("Name", max_length=140)
+    typ = models.CharField(max_length=20, choices=KostentraegerTyp.choices,
+                           default=KostentraegerTyp.BEZIRKSAMT)
+    amt = models.CharField("Amt / Fachbereich", max_length=140, blank=True)
+    adresse = models.TextField("Anschrift", blank=True)
+    ansprechpartner = models.CharField(max_length=140, blank=True)
+    leitweg_id = models.CharField("Leitweg-ID (XRechnung)", max_length=60, blank=True)
+    zahlungsziel_tage = models.PositiveSmallIntegerField("Zahlungsziel (Tage)", default=30)
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Kostenträger"
+        verbose_name_plural = "Kostenträger"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class BewilligungStatus(models.TextChoices):
+    AKTIV = "aktiv", "aktiv"
+    ABGELAUFEN = "abgelaufen", "abgelaufen"
+    STORNIERT = "storniert", "storniert"
+
+
+class Leistungstyp(models.TextChoices):
+    FLS_KLE = "FLS", "Fachleistungsstunden + kLE"
+
+
+class Bewilligung(models.Model):
+    """Kostenzusage/Bewilligung als führendes Objekt: WER (Kostenträger) bewilligt
+    WAS (Leistungstyp), in welchem ZEITRAUM und welchem KONTINGENT. Speichert die
+    Bescheid-nativen Einheiten (FLS/Woche, kLE/Tag); Monatswerte werden abgeleitet.
+    Fortschreibungen/Änderungsbescheide bilden über `vorgaenger` eine Kette."""
+    klient = models.ForeignKey(Klient, on_delete=models.CASCADE, related_name="bewilligungen")
+    kostentraeger = models.ForeignKey(Kostentraeger, on_delete=models.PROTECT,
+                                      null=True, blank=True, related_name="bewilligungen")
+    aktenzeichen = models.CharField("Aktenzeichen", max_length=60, blank=True)
+    leistungstyp = models.CharField(max_length=8, choices=Leistungstyp.choices,
+                                    default=Leistungstyp.FLS_KLE)
+    gueltig_von = models.DateField("bewilligt ab", null=True, blank=True)
+    gueltig_bis = models.DateField("bewilligt bis", null=True, blank=True)
+    fls_woche = models.DecimalField("FLS/Woche (bewilligt)", max_digits=7, decimal_places=4,
+                                    default=0, validators=[MinValueValidator(Decimal("0"))])
+    kle_tag = models.DecimalField("kLE/Tag", max_digits=7, decimal_places=6,
+                                  default=0, validators=[MinValueValidator(Decimal("0"))])
+    hbg = models.PositiveSmallIntegerField("HBG (Herkunft)", null=True, blank=True)
+    status = models.CharField(max_length=12, choices=BewilligungStatus.choices,
+                              default=BewilligungStatus.AKTIV)
+    vorgaenger = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name="nachfolger", verbose_name="Fortschreibung von")
+    kommentar = models.CharField(max_length=200, blank=True)
+    erstellt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Bewilligung"
+        verbose_name_plural = "Bewilligungen"
+        ordering = ["-gueltig_von", "-erstellt"]
+        indexes = [models.Index(fields=["klient", "status"])]
+
+    def __str__(self):
+        z = f"{self.gueltig_von or '?'}–{self.gueltig_bis or 'offen'}"
+        return f"{self.klient} · {self.aktenzeichen or 'ohne Az'} · {z}"
+
+    @property
+    def al_monat(self) -> Decimal:
+        """Bewilligte Fachleistungsstunden pro Monat = FLS/Woche × 4,3482."""
+        return ((self.fls_woche or Decimal("0")) * WOCHEN_JE_MONAT).quantize(Q3, ROUND_HALF_UP)
+
+    @property
+    def kle_monat(self) -> Decimal:
+        """kLE-Monatsäquivalent = kLE/Tag × 30,4375 (Kalendertage/Monat)."""
+        return ((self.kle_tag or Decimal("0")) * TAGE_JE_MONAT).quantize(Q3, ROUND_HALF_UP)
+
+    @property
+    def fls_gesamt_monat(self) -> Decimal:
+        return self.al_monat + self.kle_monat
+
+    @property
+    def ist_gueltig_heute(self) -> bool:
+        heute = date.today()
+        if self.status != BewilligungStatus.AKTIV:
+            return False
+        if self.gueltig_von and self.gueltig_von > heute:
+            return False
+        if self.gueltig_bis and self.gueltig_bis < heute:
+            return False
+        return True
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Abwärtskompatiblen Cache am Klienten nachziehen (Abrechnung liest weiter al/kle/kue_bis).
+        self.klient.sync_cache_aus_bewilligung()
+
+    def delete(self, *args, **kwargs):
+        klient = self.klient
+        super().delete(*args, **kwargs)
+        klient.sync_cache_aus_bewilligung()

@@ -1,0 +1,63 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Kostenträger · FEGH{% endblock %}
+{% block extrastyle %}
+  .kt-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;padding:18px}
+  .kt-form .full{grid-column:1 / -1}
+  .kt-form input,.kt-form select,.kt-form textarea{width:100%}
+  .kt-form textarea{min-height:52px;font-family:inherit;padding:8px 10px;border:1px solid var(--border);border-radius:8px}
+  @media(max-width:600px){.kt-form{grid-template-columns:1fr}}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Kostenträger</h1>
+  <p class="sub">Rechnungsempfänger (Bezirksamt / überörtlicher Träger) – ersetzt den Freitext und bündelt Rechnungen zuverlässig.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div class="freeflow" style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+    <div class="panel" style="flex:1 1 420px">
+      <div class="head"><h2>Angelegte Kostenträger</h2>
+        <a class="btn ghost" href="{% url 'nachweis:belegungsliste' %}">← Belegungsliste</a></div>
+      <div class="body">
+        <table class="grid">
+          <thead><tr><th>Name</th><th>Typ</th><th>Amt</th><th class="num">Zahlungsziel</th><th></th></tr></thead>
+          <tbody>
+            {% for k in kostentraeger %}
+            <tr>
+              <td><b>{{ k.name }}</b>{% if not k.aktiv %} <span class="muted">(inaktiv)</span>{% endif %}</td>
+              <td class="muted">{{ k.get_typ_display }}</td>
+              <td class="muted">{{ k.amt|default:"—" }}</td>
+              <td class="num">{{ k.zahlungsziel_tage }} T</td>
+              <td><a class="btn ghost" style="padding:4px 10px;font-size:12px" href="?edit={{ k.id }}">Bearbeiten</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="muted" style="text-align:center;padding:18px">Noch keine Kostenträger.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel" style="flex:0 1 460px">
+      <div class="head"><h2>{% if bearbeiten %}Kostenträger bearbeiten{% else %}Neuen Kostenträger anlegen{% endif %}</h2></div>
+      <form method="post" action="{% url 'nachweis:kostentraeger_speichern' %}">
+        {% csrf_token %}
+        {% if bearbeiten %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">{% endif %}
+        <div class="kt-form">
+          <div class="full"><label class="fld">Name *</label><input type="text" name="name" value="{{ bearbeiten.name|default:'' }}" required></div>
+          <div><label class="fld">Typ</label>
+            <select name="typ">{% for v,l in typen %}<option value="{{ v }}" {% if bearbeiten.typ == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+          <div><label class="fld">Zahlungsziel (Tage)</label><input type="number" name="zahlungsziel_tage" min="0" value="{{ bearbeiten.zahlungsziel_tage|default:'30' }}"></div>
+          <div class="full"><label class="fld">Amt / Fachbereich</label><input type="text" name="amt" value="{{ bearbeiten.amt|default:'' }}"></div>
+          <div class="full"><label class="fld">Anschrift</label><textarea name="adresse">{{ bearbeiten.adresse|default:'' }}</textarea></div>
+          <div><label class="fld">Ansprechpartner*in</label><input type="text" name="ansprechpartner" value="{{ bearbeiten.ansprechpartner|default:'' }}"></div>
+          <div><label class="fld">Leitweg-ID <span class="muted" style="font-weight:400">(für XRechnung)</span></label><input type="text" name="leitweg_id" value="{{ bearbeiten.leitweg_id|default:'' }}"></div>
+          <div class="full"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><input type="checkbox" name="aktiv" style="width:auto" {% if bearbeiten.aktiv or not bearbeiten %}checked{% endif %}> aktiv (wählbar bei Bewilligungen)</label></div>
+          <div class="full">
+            <button class="btn" type="submit">Speichern</button>
+            {% if bearbeiten %}<a class="btn ghost" href="{% url 'nachweis:kostentraeger_liste' %}">Abbrechen</a>{% endif %}
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

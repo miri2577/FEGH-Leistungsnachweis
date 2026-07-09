@@ -229,6 +229,8 @@ AUDITLOG_INCLUDE_TRACKING_MODELS = (
     "nachweis.Kassenbuchung",
     "nachweis.Zaehlprotokoll",
     "nachweis.Mitarbeiter",
+    "nachweis.Bewilligung",
+    "nachweis.Kostentraeger",
 )
 
 # =====================================================================

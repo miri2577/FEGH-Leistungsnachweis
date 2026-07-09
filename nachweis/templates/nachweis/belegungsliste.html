@@ -18,8 +18,9 @@
   </div>
   {% endif %}
 
-  <div style="margin-bottom:14px">
+  <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap">
     <a class="btn" href="{% url 'nachweis:klient_neu' %}" {% if kein_team %}style="opacity:.5;pointer-events:none" aria-disabled="true"{% endif %}>+ Klient*in anlegen</a>
+    <a class="btn ghost" href="{% url 'nachweis:kostentraeger_liste' %}">Kostenträger verwalten</a>
   </div>
 
   <div class="panel">
@@ -41,7 +42,10 @@
             <td>{{ k.kue_bis|date:"d.m.Y"|default:"—" }}</td>
             <td>{% if k.versendet_am %}{{ k.versendet_am|date:"d.m.Y" }}{% else %}<span class="muted">—</span>{% endif %}</td>
             <td>{% if k.status == 'Beendigung' %}<span class="st end">Beendigung</span>{% else %}<span class="st ok">Betreuung</span>{% endif %}</td>
-            <td><a class="btn ghost" style="padding:4px 10px;font-size:12px" href="{% url 'nachweis:klient_bearbeiten' k.id %}">Bearbeiten</a></td>
+            <td style="white-space:nowrap">
+              <a class="btn ghost" style="padding:4px 10px;font-size:12px" href="{% url 'nachweis:klient_bearbeiten' k.id %}">Bearbeiten</a>
+              <a class="btn ghost" style="padding:4px 10px;font-size:12px" href="{% url 'nachweis:bewilligungen' k.id %}" title="Kostenzusagen / Bewilligungen">Bewilligungen</a>
+            </td>
           </tr>
           {% empty %}
           <tr><td colspan="11" class="muted" style="text-align:center;padding:20px">Noch keine Klient*innen in deinem Team.</td></tr>
