@@ -50,6 +50,8 @@
         <td>
           <a href="{% url 'nachweis:druck' %}?klient={{ z.klient.id }}&monat={{ monat }}&jahr={{ jahr }}" title="Einzelnachweis ansehen">{{ z.klient.name }}</a>
           {% if z.status == 'offen' and z.hinweis %}<div class="hint-back">↩ zurückgewiesen: {{ z.hinweis }}</div>{% endif %}
+          {% if z.ohne_bewilligung %}<div style="font-size:11.5px;color:var(--bad);margin-top:2px" title="Keine gültige Kostenzusage – Abrechnung nicht rechtssicher">⚠ keine aktive Bewilligung</div>{% endif %}
+          {% if z.ueber_kontingent %}<div style="font-size:11.5px;color:var(--warn);margin-top:2px" title="Dokumentierte FLS über dem bewilligten Kontingent – über den Bescheid nicht abrechenbar">⚠ Ist {{ z.fls|floatformat:2 }} über Kontingent {{ z.soll|floatformat:2 }}</div>{% endif %}
         </td>
         <td>{{ z.betreuer.name|default:"—" }}</td>
         <td class="num">{{ z.fls|floatformat:2 }}</td>

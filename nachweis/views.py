@@ -178,11 +178,17 @@ def dashboard(request):
     for z in zeilen:
         z["woche"] = woche["zeilen"].get(z["klient"].id)
 
+    # Slice 1b: Bewilligungs-/KÜ-Fristen (auslaufend ≤ 10 Wochen oder ganz fehlend)
+    fristen = services.bewilligung_fristen(gefiltert)
+
     context = {
         "aktiv": "dashboard",
         "jahr": jahr,
         "zeilen": zeilen,
         "summe": summe,
+        "fristen": fristen,
+        "fristen_fehlt": [f for f in fristen if f["fehlt"]],
+        "fristen_auslauf": [f for f in fristen if not f["fehlt"]],
         "woche_total": woche["total"], "kw": woche["kw"],
         "zeitreihe_json": zeitreihe,
         "team_liste": teams,

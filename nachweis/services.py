@@ -206,6 +206,31 @@ def berichte_faellig(klienten, stichtag=None):
     return [k for k in klienten.exclude(kue_bis__isnull=True) if k.bericht_offen(stichtag)]
 
 
+def bewilligung_fristen(klienten, stichtag=None, vorlauf_tage: int = 70):
+    """Kontingent-/Fristenüberwachung (Slice 1b) für die Leitung: Klient*innen in Betreuung,
+    deren aktive Bewilligung in ≤ vorlauf_tage ausläuft ODER die KEINE aktive Bewilligung
+    haben (dann fehlt die rechtssichere Kostenzusage für die Abrechnung).
+    Rückgabe je Eintrag: {klient, bewilligung, gueltig_bis, tage_bis, fehlt}.
+    Sortiert: fehlende zuerst, danach nach Restlaufzeit aufsteigend."""
+    stichtag = stichtag or date.today()
+    eintraege = []
+    for k in klienten:
+        if k.status != Status.BETREUUNG:
+            continue
+        b = k.aktive_bewilligung(stichtag)
+        if b is None:
+            eintraege.append({"klient": k, "bewilligung": None, "gueltig_bis": None,
+                              "tage_bis": None, "fehlt": True})
+        elif b.gueltig_bis is not None:
+            tage = (b.gueltig_bis - stichtag).days
+            if tage <= vorlauf_tage:
+                eintraege.append({"klient": k, "bewilligung": b, "gueltig_bis": b.gueltig_bis,
+                                  "tage_bis": tage, "fehlt": False})
+    eintraege.sort(key=lambda e: (not e["fehlt"],
+                                  e["tage_bis"] if e["tage_bis"] is not None else 10 ** 6))
+    return eintraege
+
+
 def undokumentierte_termine(me, tage: int = 30):
     """Vergangene Klienten-Termine der/des MA, die noch NICHT dokumentiert sind
     (kein verknüpfter Leistungseintrag). Erinnerung im Überblick. Feste
@@ -948,18 +973,26 @@ def abrechnungsuebersicht(klienten, jahr: int, monat: int):
     fmap = freigaben_map(klienten, jahr, monat)
     preis = fls_preis(jahr)
     kle_pauschale = kle_monat_stunden(jahr, monat)
+    TOL = Decimal("0.05")           # Rundungstoleranz für die Kontingent-Plausibilität
     zeilen = []
     for k in klienten.select_related("bezugsbetreuer"):
         mf = fmap.get(k.id)
         if mf and mf.status != Freigabestatus.OFFEN:
             fls, kle, betrag = mf.fls_summe, mf.kle_summe, mf.betrag
+            soll = mf.soll_fls or (k.al or Decimal("0"))
         else:
             fls = druck_nachweis(k, jahr, monat)["fls_summe"]
             kle = kle_pauschale if k.status == Status.BETREUUNG else Decimal("0")
             betrag = ((fls + kle) * preis).quantize(E2, ROUND_HALF_UP)
+            soll = k.al or Decimal("0")
+        # Kontingent-Plausibilität (Slice 1b, nicht-blockierend): Ist über bewilligtem
+        # Kontingent (nicht abrechenbar über den Bescheid) bzw. gar keine aktive Bewilligung.
+        ohne_bew = k.aktive_bewilligung() is None
+        ueber = bool(soll) and (Decimal(fls) > Decimal(soll) + TOL)
         zeilen.append({
             "klient": k, "betreuer": k.bezugsbetreuer, "fls": fls, "kle": kle,
-            "betrag": betrag,
+            "betrag": betrag, "soll": soll,
+            "ueber_kontingent": ueber, "ohne_bewilligung": ohne_bew,
             "status": mf.status if mf else Freigabestatus.OFFEN,
             "mf": mf, "hinweis": mf.hinweis if mf else "",
         })

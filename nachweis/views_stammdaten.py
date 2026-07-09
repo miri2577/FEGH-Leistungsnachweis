@@ -180,6 +180,22 @@ def kostentraeger_speichern(request):
     return redirect("nachweis:kostentraeger_liste")
 
 
+@require_POST
+@login_required
+def kostentraeger_bezirke(request):
+    """Legt die 12 Berliner Bezirksämter als Kostenträger an (idempotent)."""
+    if not _nur_leitung(request):
+        return HttpResponseForbidden()
+    from .berlin import ensure_berliner_bezirke
+    neu, gesamt = ensure_berliner_bezirke()
+    if neu:
+        messages.success(request, f"{neu} Berliner Bezirksamt/-ämter angelegt "
+                                  f"({gesamt}/12 vorhanden). Leitweg-IDs für die XRechnung bitte je Bezirk ergänzen.")
+    else:
+        messages.info(request, f"Alle 12 Berliner Bezirksämter waren bereits angelegt ({gesamt}/12).")
+    return redirect("nachweis:kostentraeger_liste")
+
+
 # ---------------------------------------------------------------- Bewilligungen (je Klient*in)
 @login_required
 def bewilligungen(request, pk):

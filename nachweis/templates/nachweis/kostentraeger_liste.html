@@ -16,7 +16,13 @@
   <div class="freeflow" style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
     <div class="panel" style="flex:1 1 420px">
       <div class="head"><h2>Angelegte Kostenträger</h2>
-        <a class="btn ghost" href="{% url 'nachweis:belegungsliste' %}">← Belegungsliste</a></div>
+        <span style="display:flex;gap:8px">
+          <form method="post" action="{% url 'nachweis:kostentraeger_bezirke' %}" style="display:inline"
+                title="Legt die 12 Berliner Bezirksämter idempotent an (vorhandene bleiben unangetastet)">
+            {% csrf_token %}<button class="btn ghost" type="submit" style="font-size:12.5px">+ Alle Berliner Bezirke</button>
+          </form>
+          <a class="btn ghost" href="{% url 'nachweis:belegungsliste' %}">← Belegungsliste</a>
+        </span></div>
       <div class="body">
         <table class="grid">
           <thead><tr><th>Name</th><th>Typ</th><th>Amt</th><th class="num">Zahlungsziel</th><th></th></tr></thead>

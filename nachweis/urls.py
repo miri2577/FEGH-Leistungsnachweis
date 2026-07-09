@@ -100,6 +100,7 @@ urlpatterns = [
     path("bewilligung/loeschen/", views_stammdaten.bewilligung_loeschen, name="bewilligung_loeschen"),
     path("kostentraeger/", views_stammdaten.kostentraeger_liste, name="kostentraeger_liste"),
     path("kostentraeger/speichern/", views_stammdaten.kostentraeger_speichern, name="kostentraeger_speichern"),
+    path("kostentraeger/bezirke/", views_stammdaten.kostentraeger_bezirke, name="kostentraeger_bezirke"),
     path("parameter/", views_stammdaten.parameter, name="parameter"),
     path("parameter/serie/speichern/", views_stammdaten.serie_save, name="serie_save"),
     path("parameter/serie/loeschen/", views_stammdaten.serie_delete, name="serie_delete"),
