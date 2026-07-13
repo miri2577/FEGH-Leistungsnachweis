@@ -1,0 +1,99 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Berichte · {{ klient.name }} · FEGH{% endblock %}
+{% block extrastyle %}
+  .b-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;padding:18px}
+  .b-form .full{grid-column:1 / -1}
+  .b-form input,.b-form select,.b-form textarea{width:100%}
+  .b-form textarea{min-height:180px;font-family:inherit;padding:9px 11px;border:1px solid var(--border);border-radius:8px;line-height:1.55}
+  .bst{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700}
+  .bst.offen{background:#eef2f5;color:#697786}
+  .bst.in_arbeit{background:var(--brand-soft);color:var(--brand-d)}
+  .bst.besprochen{background:var(--warnbg);color:var(--warn)}
+  .bst.versendet{background:var(--okbg);color:var(--ok)}
+  .b-act{display:flex;gap:6px;flex-wrap:wrap}
+  .b-act .btn,.b-act form .btn{padding:3px 9px;font-size:12px}
+  @media(max-width:600px){.b-form{grid-template-columns:1fr}}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Berichte · {{ klient.name }}</h1>
+  <p class="sub">Entwicklungs-/Informationsberichte mit Workflow: offen → in Arbeit → <b>mit Klient*in besprochen</b> → versendet.
+    Der Berichtstext entsteht i. d. R. KI-gestützt in <b>FEGH-Bericht</b> (TeilhabeAssist) und wird hier abgelegt.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap">
+    {% if ist_leitung %}<a class="btn ghost" href="{% url 'nachweis:belegungsliste' %}">← Belegungsliste</a>{% else %}
+    <a class="btn ghost" href="{% url 'nachweis:start' %}">← Mein Überblick</a>{% endif %}
+    <a class="btn ghost" href="{% url 'nachweis:ziele' klient.id %}">Ziele (ZLP)</a>
+    {% if klient.kue_bis %}<span class="muted" style="align-self:center">KÜ endet {{ klient.kue_bis|date:"d.m.Y" }}</span>{% endif %}
+  </div>
+
+  <div class="panel">
+    <div class="head"><h2>Berichte</h2></div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Vorlage</th><th>Zeitraum</th><th>fällig am</th><th>Status</th><th>besprochen</th><th>versendet</th><th></th></tr></thead>
+        <tbody>
+          {% for b in berichte %}
+          <tr>
+            <td><b>{{ b.vorlage.name|default:"Bericht" }}</b>{% if b.notiz %}<div class="muted" style="font-size:12px">{{ b.notiz }}</div>{% endif %}</td>
+            <td class="muted">{{ b.zeitraum_von|date:"d.m.y"|default:"—" }} – {{ b.zeitraum_bis|date:"d.m.y"|default:"—" }}</td>
+            <td>{% if b.ueberfaellig %}<span style="color:var(--bad);font-weight:600">{{ b.faellig_am|date:"d.m.Y" }} ⚠</span>{% else %}{{ b.faellig_am|date:"d.m.Y"|default:"—" }}{% endif %}</td>
+            <td><span class="bst {{ b.status }}">{{ b.get_status_display }}</span></td>
+            <td class="muted">{{ b.besprochen_am|date:"d.m.y"|default:"—" }}</td>
+            <td class="muted">{{ b.versendet_am|date:"d.m.y"|default:"—" }}</td>
+            <td>
+              <span class="b-act">
+                <a class="btn ghost" href="?edit={{ b.id }}">Bearbeiten</a>
+                <a class="btn ghost" href="{% url 'nachweis:bericht_druck' b.id %}">Druck</a>
+                {% if b.status == 'offen' or b.status == 'in_arbeit' %}
+                <form method="post" action="{% url 'nachweis:bericht_status' %}">{% csrf_token %}
+                  <input type="hidden" name="id" value="{{ b.id }}"><input type="hidden" name="status" value="besprochen">
+                  <button class="btn ghost" title="Pflicht-Schritt vor dem Versand">✓ besprochen</button></form>
+                {% elif b.status == 'besprochen' %}
+                <form method="post" action="{% url 'nachweis:bericht_status' %}">{% csrf_token %}
+                  <input type="hidden" name="id" value="{{ b.id }}"><input type="hidden" name="status" value="versendet">
+                  <button class="btn ghost" style="color:var(--ok)">→ versendet</button></form>
+                {% endif %}
+                {% if ist_leitung %}
+                <form method="post" action="{% url 'nachweis:bericht_loeschen' %}" onsubmit="return confirm('Bericht löschen?')">{% csrf_token %}
+                  <input type="hidden" name="id" value="{{ b.id }}">
+                  <button class="btn ghost" style="color:var(--bad)">✕</button></form>
+                {% endif %}
+              </span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="muted" style="text-align:center;padding:18px">Noch kein Bericht – unten anlegen.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" style="max-width:860px;margin-top:16px">
+    <div class="head"><h2>{% if bearbeiten %}Bericht bearbeiten{% else %}Neuer Bericht{% endif %}</h2>
+      {% if bearbeiten %}<a class="btn ghost" href="{% url 'nachweis:berichte' klient.id %}">Abbrechen</a>{% endif %}</div>
+    <form method="post" action="{% url 'nachweis:bericht_speichern' %}">
+      {% csrf_token %}
+      <input type="hidden" name="klient" value="{{ klient.id }}">
+      {% if bearbeiten %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">{% endif %}
+      <div class="b-form">
+        <div class="full"><label class="fld">Vorlage</label>
+          <select name="vorlage">{% for v in vorlagen %}<option value="{{ v.id }}" {% if bearbeiten.vorlage_id == v.id %}selected{% endif %}>{{ v.name }}{% if v.bereich %} · {{ v.bereich }}{% endif %}</option>{% endfor %}</select></div>
+        <div><label class="fld">Zeitraum von</label><input type="date" name="zeitraum_von" value="{{ bearbeiten.zeitraum_von|date:'Y-m-d'|default:von_default }}"></div>
+        <div><label class="fld">Zeitraum bis</label><input type="date" name="zeitraum_bis" value="{{ bearbeiten.zeitraum_bis|date:'Y-m-d'|default:bis_default }}"></div>
+        <div><label class="fld">fällig am</label><input type="date" name="faellig_am" value="{{ bearbeiten.faellig_am|date:'Y-m-d'|default:faellig_default }}"></div>
+        <div><label class="fld">Notiz</label><input type="text" name="notiz" maxlength="200" value="{{ bearbeiten.notiz|default:'' }}"></div>
+        <div class="full"><label class="fld">Berichtstext <span class="muted" style="font-weight:400">(aus FEGH-Bericht einfügen – oder direkt schreiben)</span></label>
+          <textarea name="inhalt" placeholder="Der fertige Text aus der KI-gestützten Erstellung wird hier abgelegt …">{{ bearbeiten.inhalt|default:'' }}</textarea></div>
+        <div class="full" style="margin-top:4px">
+          <button class="btn" type="submit">Speichern</button>
+        </div>
+      </div>
+    </form>
+  </div>
+  <p class="note" style="max-width:860px">EGH: Entwicklungsbericht zur KÜ-Fortschreibung (10 Wochen vor KÜ-Ende) ·
+    Jugend-/Familienhilfe: Entwicklungsbericht i. d. R. 2 Wochen vor der Hilfekonferenz (§ 36 SGB VIII), vorab mit der
+    Familie besprechen. Der Schritt „besprochen“ ist deshalb Pflicht vor „versendet“.</p>
+{% endblock %}

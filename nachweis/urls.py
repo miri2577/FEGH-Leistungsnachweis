@@ -2,7 +2,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import path
 
 from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse,
-               views_abrechnung, views_feld, views_ziele)
+               views_abrechnung, views_feld, views_ziele, views_berichte)
 
 app_name = "nachweis"
 
@@ -22,6 +22,13 @@ urlpatterns = [
     path("ziele/status/", views_ziele.ziel_status, name="ziel_status"),
     path("ziele/loeschen/", views_ziele.ziel_loeschen, name="ziel_loeschen"),
     path("api/ziele/", views_ziele.api_ziele, name="api_ziele"),
+
+    # Berichte (Phase 2)
+    path("berichte/<int:pk>/", views_berichte.berichte, name="berichte"),
+    path("berichte/speichern/", views_berichte.bericht_speichern, name="bericht_speichern"),
+    path("berichte/status/", views_berichte.bericht_status, name="bericht_status"),
+    path("berichte/loeschen/", views_berichte.bericht_loeschen, name="bericht_loeschen"),
+    path("bericht/<int:pk>/druck/", views_berichte.bericht_druck, name="bericht_druck"),
 
     # Unterwegs-Modus (mobile Vor-Ort-Doku)
     path("unterwegs/", views_feld.feld_heute, name="feld_heute"),

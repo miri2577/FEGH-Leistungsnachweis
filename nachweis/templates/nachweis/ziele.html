@@ -35,6 +35,7 @@
     {% if ist_leitung %}<a class="btn ghost" href="{% url 'nachweis:belegungsliste' %}">← Belegungsliste</a>
     <a class="btn ghost" href="{% url 'nachweis:bewilligungen' klient.id %}">Bewilligungen</a>{% else %}
     <a class="btn ghost" href="{% url 'nachweis:start' %}">← Mein Überblick</a>{% endif %}
+    <a class="btn ghost" href="{% url 'nachweis:berichte' klient.id %}">Berichte</a>
     <span class="muted" style="align-self:center">{{ n_aktiv }} aktive Ziel(e)</span>
   </div>
 

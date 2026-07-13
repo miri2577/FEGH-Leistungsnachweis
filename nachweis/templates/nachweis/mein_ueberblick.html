@@ -207,7 +207,7 @@
         <div class="frow rep {% if az.fehlende_tage %}{% if forloop.counter > 1 %}extra{% endif %}{% else %}{% if forloop.counter > 2 %}extra{% endif %}{% endif %}">
           <span class="fi"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></span>
           <span class="ftxt">Entwicklungsbericht <b>{{ k.name }}</b> – KÜ endet am {{ k.kue_bis|date:"d.m.Y" }}</span>
-          <a href="{% url 'nachweis:druck' %}?klient={{ k.id }}">Zum Klienten →</a>
+          <a href="{% url 'nachweis:berichte' k.id %}">Zum Bericht →</a>
         </div>
         {% endfor %}
         {% for t in undok_termine %}

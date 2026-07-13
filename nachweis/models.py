@@ -1243,3 +1243,75 @@ class Ziel(models.Model):
     @property
     def ist_aktiv(self) -> bool:
         return self.status == ZielStatus.AKTIV
+
+
+# ==========================================================================
+#  Phase 2: Berichts-Engine — Berichte mit Vorlagen (als Daten) und Workflow
+# ==========================================================================
+class Berichtsvorlage(models.Model):
+    """Berichtstyp als DATEN statt Code (bereichs-neutral): der EGH-Entwicklungsbericht
+    und der Informationsbericht (Vorlage 1.01) sind zwei Datensätze; der Hilfeplan-
+    Bericht § 36 SGB VIII (Jugendhilfe) kommt später als weiterer dazu — kein Code-Fork."""
+    name = models.CharField(max_length=120)
+    bereich = models.CharField(max_length=60, blank=True,
+                               help_text="z. B. EGH, Jugendhilfe – rein informativ")
+    beschreibung = models.CharField(max_length=255, blank=True)
+    abschnitte = models.JSONField("Gliederung", default=list, blank=True,
+                                  help_text="Liste der Abschnitts-Überschriften")
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Berichtsvorlage"
+        verbose_name_plural = "Berichtsvorlagen"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class BerichtsStatus(models.TextChoices):
+    OFFEN = "offen", "offen"
+    IN_ARBEIT = "in_arbeit", "in Arbeit"
+    BESPROCHEN = "besprochen", "mit Klient*in besprochen"
+    VERSENDET = "versendet", "versendet"
+
+
+class Bericht(models.Model):
+    """Bericht je Klient*in (Entwicklungs-/Informationsbericht) mit Workflow:
+    offen → in Arbeit → mit Klient*in besprochen (Pflicht-Schritt örV/AV Hilfeplanung)
+    → versendet. Die Fälligkeit kommt i. d. R. aus der KÜ-Frist; 'versendet' pflegt
+    das bestehende Feld Klient.versendet_am automatisch nach."""
+    klient = models.ForeignKey(Klient, on_delete=models.CASCADE, related_name="berichte")
+    vorlage = models.ForeignKey(Berichtsvorlage, on_delete=models.SET_NULL,
+                                null=True, blank=True, related_name="berichte")
+    zeitraum_von = models.DateField("Berichtszeitraum von", null=True, blank=True)
+    zeitraum_bis = models.DateField("Berichtszeitraum bis", null=True, blank=True)
+    faellig_am = models.DateField("fällig am", null=True, blank=True)
+    status = models.CharField(max_length=12, choices=BerichtsStatus.choices,
+                              default=BerichtsStatus.OFFEN)
+    inhalt = models.TextField("Berichtstext", blank=True,
+                              help_text="entsteht i. d. R. KI-gestützt in FEGH-Bericht (TeilhabeAssist)")
+    besprochen_am = models.DateField(null=True, blank=True)
+    versendet_am = models.DateField(null=True, blank=True)
+    notiz = models.CharField(max_length=200, blank=True)
+    erstellt_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name="+")
+    erstellt = models.DateTimeField(auto_now_add=True)
+    geaendert = models.DateTimeField(auto_now=True)
+    # Workflow-Historie ohne den Art-9-Berichtstext (Datenminimierung in der History-Tabelle)
+    history = HistoricalRecords(excluded_fields=["inhalt"])
+
+    class Meta:
+        verbose_name = "Bericht"
+        verbose_name_plural = "Berichte"
+        ordering = ["-faellig_am", "-id"]
+        indexes = [models.Index(fields=["klient", "status"])]
+
+    def __str__(self):
+        v = self.vorlage.name if self.vorlage else "Bericht"
+        return f"{self.klient} · {v} · fällig {self.faellig_am or '—'}"
+
+    @property
+    def ueberfaellig(self) -> bool:
+        return (self.status != BerichtsStatus.VERSENDET and self.faellig_am is not None
+                and self.faellig_am < date.today())

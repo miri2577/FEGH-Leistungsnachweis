@@ -237,6 +237,8 @@ AUDITLOG_INCLUDE_TRACKING_MODELS = (
     "nachweis.Zahlung",
     "nachweis.Mahnung",
     {"model": "nachweis.Ziel", "exclude_fields": ["beschreibung", "indikator"]},
+    {"model": "nachweis.Bericht", "exclude_fields": ["inhalt", "notiz"]},
+    "nachweis.Berichtsvorlage",
 )
 
 # =====================================================================

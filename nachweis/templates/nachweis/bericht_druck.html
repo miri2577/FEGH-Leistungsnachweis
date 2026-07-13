@@ -1,0 +1,70 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Bericht · {{ klient.name }} · FEGH{% endblock %}
+
+{% block extrastyle %}
+  .form-doc{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+    padding:30px 34px;max-width:820px;margin-top:16px;color:#1e2a37}
+  .form-doc h2{font-size:19px;margin:0 0 2px;color:var(--brand-d)}
+  .doc-meta{display:flex;flex-wrap:wrap;gap:8px 34px;margin:14px 0 18px;font-size:13.5px}
+  .doc-meta b{color:var(--muted);font-weight:600;margin-right:6px}
+  .absch{font-size:14px;font-weight:700;color:#16212c;margin:20px 0 6px;border-bottom:1px solid #d9e2ea;padding-bottom:3px}
+  .btext{font-size:13.5px;line-height:1.6;white-space:normal}
+  .ziel-t{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}
+  .ziel-t th,.ziel-t td{border:1px solid #d9e2ea;padding:5px 8px;text-align:left}
+  .ziel-t th{background:#f2f7fb}
+  .sign{display:flex;gap:60px;margin-top:44px}
+  .sign div{flex:1;border-top:1px solid #444;padding-top:6px;color:var(--muted);font-size:12.5px}
+  @media print{
+    header.top,nav.side,.no-print{display:none !important}
+    body{background:#fff} main{padding:0}
+    .form-doc{border:0;box-shadow:none;border-radius:0;max-width:none;padding:0}
+  }
+{% endblock %}
+
+{% block content %}
+  <div class="no-print" style="display:flex;gap:8px;margin-top:6px">
+    <button class="btn" onclick="window.print()">🖨️ Drucken / als PDF speichern</button>
+    <a class="btn ghost" href="{% url 'nachweis:berichte' klient.id %}">← Berichte</a>
+  </div>
+
+  <div class="form-doc">
+    <h2>{{ b.vorlage.name|default:"Bericht" }}</h2>
+    <div class="doc-meta">
+      <span><b>Klient*in:</b> {{ klient.name }}</span>
+      <span><b>Person-ID:</b> {{ klient.person_id|default:"—" }}</span>
+      <span><b>Bezugsbetreuer*in:</b> {{ klient.bezugsbetreuer }}</span>
+      <span><b>Berichtszeitraum:</b> {{ b.zeitraum_von|date:"d.m.Y"|default:"—" }} – {{ b.zeitraum_bis|date:"d.m.Y"|default:"—" }}</span>
+      {% if b.besprochen_am %}<span><b>Besprochen am:</b> {{ b.besprochen_am|date:"d.m.Y" }}</span>{% endif %}
+    </div>
+
+    {% if b.inhalt %}
+      <div class="btext">{{ b.inhalt|linebreaksbr }}</div>
+    {% else %}
+      {% for a in abschnitte %}
+      <div class="absch">{{ forloop.counter }}. {{ a }}</div>
+      <div class="btext muted" style="min-height:52px">…</div>
+      {% empty %}
+      <p class="muted">Kein Berichtstext und keine Vorlagen-Gliederung vorhanden.</p>
+      {% endfor %}
+    {% endif %}
+
+    {% if ziele %}
+    <div class="absch">Anlage: Ziele der Ziel- und Leistungsplanung</div>
+    <table class="ziel-t">
+      <thead><tr><th>Ziel</th><th style="width:34%">Indikator</th><th style="width:110px">Stand</th></tr></thead>
+      <tbody>
+        {% for z in ziele %}
+        <tr><td>{% if z.uebergeordnet %}<span class="muted">{{ z.uebergeordnet.titel }} → </span>{% endif %}{{ z.titel }}</td>
+          <td>{{ z.indikator|default:"—" }}</td>
+          <td>{{ z.get_status_display }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    <div class="sign">
+      <div>Datum, Unterschrift Bezugsbetreuer*in</div>
+      <div>Datum, Unterschrift Leitung</div>
+    </div>
+  </div>
+{% endblock %}
