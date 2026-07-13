@@ -1050,6 +1050,42 @@ def rechnung_erstellen(freigaben, empfaenger, jahr, monat, datum, ersteller,
     return r
 
 
+def gutschrift_erstellen(rechnung, ersteller):
+    """Storniert eine GESTELLTE Rechnung beleghaft: erzeugt eine Gutschrift (eigene Nummer,
+    negativer Betrag, `storno_zu`), setzt das Original auf 'storniert' und gibt die
+    Positionen zur erneuten Abrechnung frei. Entwürfe brauchen keine Gutschrift (direktes
+    Storno); bezahlte/teilbezahlte Rechnungen zuerst über die Zahlungen klären.
+    Rückgabe (gutschrift, fehler): genau eines von beiden ist gesetzt."""
+    from django.db import transaction
+    from .models import Rechnungstyp
+    with transaction.atomic():
+        r = Rechnung.objects.select_for_update().get(pk=rechnung.pk)
+        if r.typ != Rechnungstyp.RECHNUNG:
+            return None, "Gutschriften können nicht erneut storniert werden."
+        if r.status != Rechnungsstatus.GESTELLT:
+            return None, ("Nur gestellte Rechnungen werden per Gutschrift storniert – "
+                          "Entwürfe direkt stornieren, bezahlte zuerst über die Zahlungen klären.")
+        if r.zahlungen.exists():
+            return None, (f"Rechnung {r.nummer} hat gebuchte Zahlungen ({r.bezahlt_summe} €) – "
+                          f"bitte zuerst löschen/umbuchen, dann stornieren.")
+        if r.gutschriften.exclude(status=Rechnungsstatus.STORNIERT).exists():
+            return None, "Zu dieser Rechnung existiert bereits eine Gutschrift."
+        g = Rechnung.objects.create(
+            nummer=naechste_rechnungsnummer(r.jahr), typ=Rechnungstyp.GUTSCHRIFT,
+            storno_zu=r, empfaenger=r.empfaenger, empfaenger_anschrift=r.empfaenger_anschrift,
+            kostentraeger=r.kostentraeger, jahr=r.jahr, monat=r.monat, datum=date.today(),
+            betrag=-(r.betrag or Decimal("0")), status=Rechnungsstatus.GESTELLT,
+            notiz=f"Gutschrift (Storno) zur Rechnung {r.nummer}", erstellt_von=ersteller)
+        r.status = Rechnungsstatus.STORNIERT
+        r.save(update_fields=["status"])
+        for p in r.positionen.all():
+            p.status = Freigabestatus.FREIGEGEBEN
+            p.rechnung = None
+            p.abgerechnet_am = None
+            p.save(update_fields=["status", "rechnung", "abgerechnet_am", "geaendert"])
+    return g, None
+
+
 def kostentraeger_liste():
     """Vorhandene Kostenträger (für Auswahl bei der Rechnungserstellung)."""
     return sorted({k for k in Klient.objects.exclude(kostentraeger="")

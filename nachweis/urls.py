@@ -60,6 +60,7 @@ urlpatterns = [
     path("rechnungen/<int:pk>/xrechnung/", views_abrechnung.rechnung_xrechnung,
          name="rechnung_xrechnung"),
     path("rechnungen/<int:pk>/status/", views_abrechnung.rechnung_status, name="rechnung_status"),
+    path("rechnungen/<int:pk>/gutschrift/", views_abrechnung.rechnung_gutschrift, name="rechnung_gutschrift"),
     path("rechnungssteller/", views_abrechnung.rechnungssteller, name="rechnungssteller"),
     path("offene-posten/", views_abrechnung.offene_posten, name="offene_posten"),
     path("rechnungen/<int:pk>/zahlung/", views_abrechnung.zahlung_erfassen, name="zahlung_erfassen"),

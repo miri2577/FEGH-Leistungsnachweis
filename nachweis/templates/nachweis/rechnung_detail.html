@@ -25,8 +25,19 @@
 
 {% block content %}
   <a class="muted" href="{% url 'nachweis:rechnungen' %}" style="font-size:13px;text-decoration:none">‹ zurück zu Rechnungen</a>
-  <h1 class="page" style="margin-top:6px">Rechnung {{ r.nummer }}
+  <h1 class="page" style="margin-top:6px">{% if r.typ == 'gutschrift' %}Gutschrift{% else %}Rechnung{% endif %} {{ r.nummer }}
     <span class="st st-{{ r.status }}" style="vertical-align:middle;margin-left:8px">{{ r.get_status_display }}</span></h1>
+
+  {% if r.typ == 'gutschrift' and r.storno_zu %}
+  <div class="alert" style="background:var(--warnbg);color:var(--warn);padding:9px 14px;border-radius:9px;margin:10px 0">
+    Gutschrift (Storno) zur Rechnung <a href="{% url 'nachweis:rechnung_detail' r.storno_zu.id %}"><b>{{ r.storno_zu.nummer }}</b></a> –
+    die Nachweise des Originals wurden wieder zur Abrechnung freigegeben.</div>
+  {% endif %}
+  {% if gutschrift %}
+  <div class="alert" style="background:var(--warnbg);color:var(--warn);padding:9px 14px;border-radius:9px;margin:10px 0">
+    Diese Rechnung wurde beleghaft storniert durch Gutschrift
+    <a href="{% url 'nachweis:rechnung_detail' gutschrift.id %}"><b>{{ gutschrift.nummer }}</b></a>.</div>
+  {% endif %}
 
   {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% elif 'warning' in msg.tags or 'info' in msg.tags %}var(--warnbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% elif 'warning' in msg.tags or 'info' in msg.tags %}var(--warn){% else %}var(--ok){% endif %};padding:9px 14px;border-radius:9px;margin:10px 0">{{ msg }}</div>{% endfor %}
 
@@ -34,14 +45,18 @@
     <a class="btn" href="{% url 'nachweis:rechnung_pdf' r.id %}">PDF</a>
     <a class="btn ghost" href="{% url 'nachweis:rechnung_csv' r.id %}">CSV</a>
     <a class="btn ghost" href="{% url 'nachweis:rechnung_eabrechnung' r.id %}" title="Strukturierter Export nach § 18 Abs. 3 örV – vorbereitet für die eAbrechnung über OPEN/PROSOZ">eAbrechnung-Export</a>
+    {% if r.typ != 'gutschrift' %}
     <a class="btn" href="{% url 'nachweis:rechnung_xrechnung' r.id %}" title="XRechnung 3.0 (UBL-XML) für die Einreichung über OZG-RE / xrechnung-bdr.de">XRechnung (XML)</a>
+    {% endif %}
     <a class="btn ghost" href="{% url 'nachweis:rechnungssteller' %}" title="Absender-/Steuerdaten für die E-Rechnung pflegen">Rechnungssteller</a>
     {% if r.status != 'gestellt' and r.status != 'storniert' %}
     <form method="post" action="{% url 'nachweis:rechnung_status' r.id %}">{% csrf_token %}<input type="hidden" name="status" value="gestellt"><button class="btn ghost" type="submit">Als gestellt markieren</button></form>{% endif %}
-    {% if r.status != 'bezahlt' and r.status != 'storniert' %}
+    {% if r.typ != 'gutschrift' and r.status != 'bezahlt' and r.status != 'storniert' %}
     <form method="post" action="{% url 'nachweis:rechnung_status' r.id %}">{% csrf_token %}<input type="hidden" name="status" value="bezahlt"><button class="btn ghost" type="submit">Als bezahlt markieren</button></form>{% endif %}
-    {% if r.status != 'storniert' %}
-    <form method="post" action="{% url 'nachweis:rechnung_status' r.id %}" onsubmit="return confirm('Rechnung stornieren? Die Nachweise werden wieder als freigegeben markiert.')">{% csrf_token %}<input type="hidden" name="status" value="storniert"><button class="btn ghost" type="submit" style="color:var(--bad)">Stornieren</button></form>{% endif %}
+    {% if r.status == 'entwurf' %}
+    <form method="post" action="{% url 'nachweis:rechnung_status' r.id %}" onsubmit="return confirm('Entwurf stornieren? Die Nachweise werden wieder als freigegeben markiert.')">{% csrf_token %}<input type="hidden" name="status" value="storniert"><button class="btn ghost" type="submit" style="color:var(--bad)">Stornieren</button></form>{% endif %}
+    {% if r.typ != 'gutschrift' and r.status == 'gestellt' and not gutschrift %}
+    <form method="post" action="{% url 'nachweis:rechnung_gutschrift' r.id %}" onsubmit="return confirm('Rechnung beleghaft stornieren? Es wird eine Gutschrift über den vollen Betrag erzeugt; die Nachweise werden wieder freigegeben.')">{% csrf_token %}<button class="btn ghost" type="submit" style="color:var(--bad)" title="Erzeugt eine Gutschrift (Storno-Beleg) – für bereits gestellte Rechnungen">Stornieren (Gutschrift)</button></form>{% endif %}
   </div>
 
   <div class="inv">
@@ -84,7 +99,7 @@
       Elektronische Übermittlung (XRechnung/Fachverfahren) nach Abstimmung mit dem Kostenträger.</p>
   </div>
 
-  {% if r.status != 'entwurf' %}
+  {% if r.status != 'entwurf' and r.typ != 'gutschrift' %}
   <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-top:16px;max-width:820px">
     <div class="panel" style="flex:1 1 380px">
       <div class="head"><h2>Zahlungen</h2>
@@ -139,6 +154,23 @@
         </form>
         {% endif %}
       </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if historie %}
+  <div class="panel" style="max-width:820px;margin-top:16px">
+    <div class="head"><h2>Änderungshistorie</h2><span class="muted">versioniert · § 128-Prüfung</span></div>
+    <div class="body">
+      <table class="grid">
+        <tbody>
+          {% for h in historie %}
+          <tr><td style="white-space:nowrap">{{ h.zeit|date:"d.m.Y H:i" }}</td>
+            <td class="muted">{{ h.nutzer|default:"System" }}</td>
+            <td><b>{{ h.art }}</b>{% if h.felder %} <span class="muted">({{ h.felder }})</span>{% endif %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
   {% endif %}

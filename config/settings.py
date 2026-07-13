@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'django_otp.plugins.otp_static',
     'axes',            # Brute-Force-Schutz (Login-Lockout)
     'auditlog',        # Revisionssichere Änderungsprotokollierung
+    'simple_history',  # Versionshistorie Rechnung/Bewilligung (vollständige Snapshots)
     'nachweis',
 ]
 
@@ -71,6 +72,7 @@ MIDDLEWARE = [
     'nachweis.middleware.InaktivitaetsAbmeldung',     # Auto-Logout bei Inaktivität
     'nachweis.middleware.OTPErzwingenMiddleware',     # NACH OTPMiddleware
     'auditlog.middleware.AuditlogMiddleware',         # Actor (request.user) für das Audit-Log
+    'simple_history.middleware.HistoryRequestMiddleware',  # Nutzer für die Versionshistorie
     'nachweis.middleware.RLSKontext',                 # PostgreSQL Row-Level-Security-Kontext (opt-in)
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',

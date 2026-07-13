@@ -17,6 +17,7 @@ argon2-cffi==25.1.0        # Argon2-Passwort-Hash
 django-auditlog==3.4.1     # Revisionssicherheit (Wer/Wann/Was)
 django-axes==8.3.1         # Brute-Force-Schutz (Login-Lockout)
 django-ipware==7.0.1       # echte Client-IP hinter dem Caddy-Proxy
+django-simple-history==3.12.0  # Versionshistorie Rechnung/Bewilligung (Storno, § 128-Prüfung)
 
 # --- Transitive Abhängigkeiten (mitgepinnt für identische Rebuilds) ---
 argon2-cffi-bindings==25.1.0

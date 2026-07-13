@@ -26,10 +26,11 @@
     </div>
   </div>
 
-  <h2>Rechnung {{ r.nummer }}</h2>
+  <h2>{% if r.typ == 'gutschrift' %}Gutschrift{% else %}Rechnung{% endif %} {{ r.nummer }}</h2>
   <div class="meta">
-    <b>Rechnungsdatum:</b> {{ r.datum|date:"d.m.Y" }} &nbsp;&nbsp;
+    <b>{% if r.typ == 'gutschrift' %}Gutschriftsdatum{% else %}Rechnungsdatum{% endif %}:</b> {{ r.datum|date:"d.m.Y" }} &nbsp;&nbsp;
     <b>Leistungszeitraum:</b> {{ monatsname }} {{ r.jahr }}<br>
+    {% if r.typ == 'gutschrift' and r.storno_zu %}<b>Storno zur Rechnung:</b> {{ r.storno_zu.nummer }} vom {{ r.storno_zu.datum|date:"d.m.Y" }}<br>{% endif %}
     <b>Leistung:</b> Fachleistungsstunden Eingliederungshilfe (SGB IX)
   </div>
 

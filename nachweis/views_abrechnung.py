@@ -25,7 +25,7 @@ from django.views.decorators.http import require_POST
 
 from . import services
 from .models import (Monatsfreigabe, Rechnung, Freigabestatus, Rechnungsstatus,
-                     Rechnungssteller, Zahlung, Mahnung, Mahnstufe)
+                     Rechnungssteller, Zahlung, Mahnung, Mahnstufe, Rechnungstyp)
 
 MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
                "August", "September", "Oktober", "November", "Dezember"]
@@ -209,6 +209,19 @@ def rechnung_detail(request, pk):
     if not services.darf_abrechnen(request.user):
         return redirect("nachweis:start")
     r = get_object_or_404(Rechnung, pk=pk)
+    # Änderungshistorie (simple-history): kompakte Wer/Wann/Was-Zeilen für die Detailseite
+    historie = []
+    for h in r.history.select_related("history_user")[:10]:
+        prev = h.prev_record
+        felder = []
+        if prev:
+            delta = h.diff_against(prev)
+            felder = [c.field for c in delta.changes]
+        historie.append({
+            "zeit": h.history_date, "nutzer": h.history_user,
+            "art": {"+": "angelegt", "~": "geändert", "-": "gelöscht"}.get(h.history_type, "?"),
+            "felder": ", ".join(felder),
+        })
     return render(request, "nachweis/rechnung_detail.html", {
         "aktiv": "abrechnung", "r": r, "positionen": _positionen(r),
         "monatsname": MONATSNAMEN[r.monat], "RS": Rechnungsstatus,
@@ -217,6 +230,8 @@ def rechnung_detail(request, pk):
         "offen": r.offener_betrag, "heute": date.today().isoformat(),
         "naechste_stufe": min(r.mahnstufe + 1, 3),
         "stufen": dict(Mahnstufe.choices),
+        "historie": historie,
+        "gutschrift": r.gutschriften.exclude(status=Rechnungsstatus.STORNIERT).first(),
     })
 
 
@@ -294,6 +309,12 @@ def rechnung_status(request, pk):
     r = get_object_or_404(Rechnung, pk=pk)
     neu = request.POST.get("status")
     if neu in Rechnungsstatus.values:
+        if neu == Rechnungsstatus.STORNIERT and r.status != Rechnungsstatus.ENTWURF:
+            # Beleg-Disziplin: eine bereits GESTELLTE Rechnung war beim Kostenträger –
+            # sie wird nur beleghaft per Gutschrift storniert (rechnung_gutschrift).
+            messages.error(request, f"Rechnung {r.nummer} wurde bereits gestellt – bitte über "
+                                    f"„Stornieren (Gutschrift)“ beleghaft stornieren.")
+            return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
         if neu == Rechnungsstatus.STORNIERT and r.zahlungen.exists():
             # Geld-Schutz: Storno gäbe die Positionen zur ERNEUTEN Voll-Fakturierung frei,
             # während die gebuchten Zahlungen unsichtbar an der stornierten Rechnung hingen.
@@ -315,6 +336,22 @@ def rechnung_status(request, pk):
     return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
 
 
+@require_POST
+@login_required
+def rechnung_gutschrift(request, pk):
+    """Gestellte Rechnung beleghaft stornieren: Gutschrift erzeugen (services.gutschrift_erstellen)."""
+    if not services.darf_abrechnen(request.user):
+        return HttpResponseForbidden()
+    r = get_object_or_404(Rechnung, pk=pk)
+    g, fehler = services.gutschrift_erstellen(r, services.mitarbeiter_fuer(request.user))
+    if fehler:
+        messages.error(request, fehler)
+        return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
+    messages.success(request, f"Gutschrift {g.nummer} über {_eur(g.betrag)} € erstellt – "
+                              f"Rechnung {r.nummer} ist storniert, die Nachweise sind wieder freigegeben.")
+    return redirect(reverse("nachweis:rechnung_detail", args=[g.id]))
+
+
 @login_required
 def rechnung_xrechnung(request, pk):
     """XRechnung 3.0 (UBL-XML) einer Rechnung herunterladen – für OZG-RE (Berlin)."""
@@ -322,6 +359,11 @@ def rechnung_xrechnung(request, pk):
         return redirect("nachweis:start")
     from . import xrechnung
     r = get_object_or_404(Rechnung, pk=pk)
+    if r.typ == Rechnungstyp.GUTSCHRIFT:
+        # XRechnung-Gutschrift ist ein eigenes UBL-Dokument (CreditNote) – noch nicht gebaut.
+        messages.info(request, "Gutschriften werden aktuell als PDF/Druck übermittelt – "
+                               "die XRechnung-Gutschrift (UBL CreditNote) folgt bei Bedarf.")
+        return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
     probleme = xrechnung.pruefe_voraussetzungen(r)
     if probleme:
         for p in probleme:

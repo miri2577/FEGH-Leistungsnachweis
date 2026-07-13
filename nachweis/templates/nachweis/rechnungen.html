@@ -81,11 +81,12 @@
     <tbody>
       {% for r in rechnungen %}
       <tr>
-        <td><a href="{% url 'nachweis:rechnung_detail' r.id %}">{{ r.nummer }}</a></td>
+        <td><a href="{% url 'nachweis:rechnung_detail' r.id %}">{{ r.nummer }}</a>
+          {% if r.typ == 'gutschrift' %}<span class="st" style="background:var(--warnbg);color:var(--warn);margin-left:6px" title="Storno-Beleg zu {{ r.storno_zu.nummer }}">Gutschrift</span>{% endif %}</td>
         <td>{{ r.datum|date:"d.m.Y" }}</td>
         <td>{{ r.empfaenger }}</td>
         <td>{{ r.monat_text }}</td>
-        <td class="num">{{ r.betrag|floatformat:2 }} €</td>
+        <td class="num" {% if r.betrag < 0 %}style="color:var(--bad)"{% endif %}>{{ r.betrag|floatformat:2 }} €</td>
         <td><span class="st st-{{ r.status }}">{{ r.get_status_display }}</span></td>
         <td style="white-space:nowrap"><a class="btn ghost xs" href="{% url 'nachweis:rechnung_detail' r.id %}">Öffnen</a></td>
       </tr>

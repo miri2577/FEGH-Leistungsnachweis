@@ -13,6 +13,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator
+from simple_history.models import HistoricalRecords
 
 
 Q3 = Decimal("0.001")  # Rundung auf 3 Nachkommastellen (Stunden)
@@ -802,10 +803,21 @@ class Rechnungsstatus(models.TextChoices):
     STORNIERT = "storniert", "storniert"
 
 
+class Rechnungstyp(models.TextChoices):
+    RECHNUNG = "rechnung", "Rechnung"
+    GUTSCHRIFT = "gutschrift", "Gutschrift (Storno)"
+
+
 class Rechnung(models.Model):
     """Sammelrechnung an einen Kostenträger für einen Leistungsmonat.
-    Positionen = die freigegebenen Monatsnachweise (Monatsfreigabe)."""
+    Positionen = die freigegebenen Monatsnachweise (Monatsfreigabe).
+    Eine GUTSCHRIFT (typ) storniert eine bereits gestellte Rechnung beleghaft:
+    negativer Betrag, eigener Nummernkreislauf-Eintrag, `storno_zu` zeigt aufs Original."""
     nummer = models.CharField("Rechnungsnummer", max_length=20, unique=True)
+    typ = models.CharField(max_length=12, choices=Rechnungstyp.choices,
+                           default=Rechnungstyp.RECHNUNG)
+    storno_zu = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True,
+                                  related_name="gutschriften", verbose_name="Gutschrift zu")
     empfaenger = models.CharField("Empfänger (Kostenträger)", max_length=120)
     empfaenger_anschrift = models.TextField("Anschrift", blank=True)
     # Strukturierter Empfänger für die E-Rechnung (Leitweg-ID, Anschrift). Nullable/abwärts-
@@ -824,6 +836,9 @@ class Rechnung(models.Model):
     erstellt_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True, blank=True,
                                      related_name="rechnungen")
     erstellt = models.DateTimeField(auto_now_add=True)
+    # Vollständige Versionshistorie (jede Änderung als Snapshot, inkl. Nutzer) –
+    # revisionssicher für Kostenträger-Prüfungen (§ 128 SGB IX).
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = "Rechnung"
@@ -1122,6 +1137,8 @@ class Bewilligung(models.Model):
                                    related_name="nachfolger", verbose_name="Fortschreibung von")
     kommentar = models.CharField(max_length=200, blank=True)
     erstellt = models.DateTimeField(auto_now_add=True)
+    # Versionshistorie: jede Änderung an einer Kostenzusage nachvollziehbar (Snapshots).
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = "Bewilligung"
