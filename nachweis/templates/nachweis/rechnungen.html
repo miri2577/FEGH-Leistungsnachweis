@@ -29,6 +29,11 @@
   <p class="sub">Freigegebene Monatsnachweise zu Sammelrechnungen bündeln und abrechnen.</p>
   <p class="dsgvo">Datenschutz: Die Verwaltung sieht hier ausschließlich Abrechnungsdaten (Name, Aktenzeichen, Kostenträger, FLS, Betrag) – keine Tätigkeits-Dokumentation.</p>
 
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+    <a class="btn ghost" href="{% url 'nachweis:offene_posten' %}">Offene Posten / Mahnwesen</a>
+    <a class="btn ghost" href="{% url 'nachweis:rechnungssteller' %}">Rechnungssteller (E-Rechnung)</a>
+  </div>
+
   <div class="panel" style="margin-top:12px">
     <div class="head">
       <h2>Zeitraum {{ monatsname }} {{ jahr }}</h2>

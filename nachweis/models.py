@@ -815,6 +815,8 @@ class Rechnung(models.Model):
     jahr = models.PositiveIntegerField()
     monat = models.PositiveSmallIntegerField()
     datum = models.DateField("Rechnungsdatum")
+    faellig_am = models.DateField("fällig am", null=True, blank=True,
+                                  help_text="Rechnungsdatum + Zahlungsziel (beim Erstellen gesetzt)")
     betrag = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     status = models.CharField(max_length=10, choices=Rechnungsstatus.choices,
                               default=Rechnungsstatus.ENTWURF)
@@ -834,6 +836,118 @@ class Rechnung(models.Model):
     @property
     def monat_text(self) -> str:
         return f"{self.monat:02d}.{self.jahr}"
+
+    # ---- Offene Posten / Mahnwesen ----
+    @property
+    def faelligkeit(self):
+        """Fälligkeit; Bestandsrechnungen ohne faellig_am: Rechnungsdatum + 30 Tage."""
+        return self.faellig_am or (self.datum + _td(30))
+
+    @property
+    def bezahlt_summe(self) -> Decimal:
+        return sum((z.betrag for z in self.zahlungen.all()), Decimal("0"))
+
+    @property
+    def offener_betrag(self) -> Decimal:
+        return (self.betrag or Decimal("0")) - self.bezahlt_summe
+
+    @property
+    def ist_offen(self) -> bool:
+        """Zählt als offener Posten: gestellt und noch nicht (voll) bezahlt."""
+        return self.status == Rechnungsstatus.GESTELLT and self.offener_betrag > 0
+
+    def tage_ueberfaellig(self, stichtag=None) -> int:
+        """Tage über Fälligkeit (negativ = noch nicht fällig). Nur für offene relevant."""
+        stichtag = stichtag or date.today()
+        return (stichtag - self.faelligkeit).days
+
+    @property
+    def mahnstufe(self) -> int:
+        """Höchste bereits versandte Mahnstufe (0 = noch nicht gemahnt)."""
+        m = self.mahnungen.order_by("-stufe").first()
+        return m.stufe if m else 0
+
+    def zahlungsstand_aktualisieren(self):
+        """Setzt den Status auf 'bezahlt', sobald die Zahlungen den Betrag decken
+        (bzw. zurück auf 'gestellt', wenn eine Zahlung gelöscht wurde). Das Schreiben
+        läuft als BEDINGTES DB-Update (nur aus dem erwarteten Alt-Status heraus) –
+        so kann ein paralleler Storno nie mit 'bezahlt' überschrieben werden."""
+        if self.status == Rechnungsstatus.STORNIERT:
+            return
+        voll = self.offener_betrag <= 0 and (self.betrag or 0) > 0
+        neu = Rechnungsstatus.BEZAHLT if voll else (
+            Rechnungsstatus.GESTELLT if self.status == Rechnungsstatus.BEZAHLT else self.status)
+        if neu != self.status:
+            geaendert = (type(self).objects
+                         .filter(pk=self.pk, status=self.status)      # nur aus Alt-Status
+                         .exclude(status=Rechnungsstatus.STORNIERT)
+                         .update(status=neu))
+            if geaendert:
+                self.status = neu
+
+
+class Zahlung(models.Model):
+    """Zahlungseingang zu einer Rechnung (Teilzahlungen möglich).
+    Deckt die Summe den Rechnungsbetrag, wird die Rechnung automatisch 'bezahlt'."""
+    rechnung = models.ForeignKey(Rechnung, on_delete=models.CASCADE, related_name="zahlungen")
+    datum = models.DateField("Zahlungseingang")
+    betrag = models.DecimalField(max_digits=12, decimal_places=2,
+                                 validators=[MinValueValidator(Decimal("0.01"))])
+    notiz = models.CharField(max_length=200, blank=True)
+    erfasst_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="+")
+    erstellt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Zahlung"
+        verbose_name_plural = "Zahlungen"
+        ordering = ["-datum", "-id"]
+
+    def __str__(self):
+        return f"{self.rechnung.nummer} · {self.betrag} € am {self.datum}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.rechnung.zahlungsstand_aktualisieren()
+
+    def delete(self, *args, **kwargs):
+        r = self.rechnung
+        super().delete(*args, **kwargs)
+        r.zahlungsstand_aktualisieren()
+
+
+class Mahnstufe(models.IntegerChoices):
+    ERINNERUNG = 1, "Zahlungserinnerung"
+    MAHNUNG_1 = 2, "1. Mahnung"
+    MAHNUNG_2 = 3, "2. Mahnung (letzte)"
+
+
+class Mahnung(models.Model):
+    """Versandte Zahlungserinnerung/Mahnung zu einer offenen Rechnung (Historie je Stufe).
+    Behörden zahlen i. d. R. nach Erinnerung – die App bildet 3 Stufen ohne Mahngebühren ab
+    (öffentliche Kostenträger; Verzugspauschalen wären hier unüblich)."""
+    rechnung = models.ForeignKey(Rechnung, on_delete=models.CASCADE, related_name="mahnungen")
+    stufe = models.PositiveSmallIntegerField(choices=Mahnstufe.choices)
+    datum = models.DateField("Mahndatum")
+    frist_tage = models.PositiveSmallIntegerField("Zahlungsfrist (Tage)", default=14)
+    notiz = models.CharField(max_length=200, blank=True)
+    erstellt_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True, blank=True,
+                                     related_name="+")
+    erstellt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Mahnung"
+        verbose_name_plural = "Mahnungen"
+        ordering = ["-datum", "-stufe"]
+        constraints = [models.UniqueConstraint(fields=["rechnung", "stufe"],
+                                               name="eine_mahnung_je_stufe")]
+
+    def __str__(self):
+        return f"{self.rechnung.nummer} · {self.get_stufe_display()} vom {self.datum}"
+
+    @property
+    def zahlbar_bis(self):
+        return self.datum + _td(self.frist_tage)
 
 
 class Monatsfreigabe(models.Model):

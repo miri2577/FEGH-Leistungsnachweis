@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><title>{{ m.get_stufe_display }} {{ r.nummer }}</title>
+<style>
+  @page{size:A4;margin:22mm 20mm}
+  body{font-family:"Segoe UI",Arial,sans-serif;color:#1e2a37;font-size:11pt;max-width:820px;margin:0 auto;padding:24px}
+  .top{display:flex;justify-content:space-between;gap:24px}
+  .abs{font-size:8.5pt;color:#666;line-height:1.5;max-width:55%}
+  .to{font-size:11pt;line-height:1.6;margin-top:26px}
+  h2{font-size:15pt;color:#0e7490;margin:34px 0 6px}
+  .meta{margin:4px 0 18px;font-size:10pt;color:#555}
+  table{width:100%;border-collapse:collapse;font-size:10pt;margin:14px 0}
+  th,td{border:1px solid #bcd;padding:5px 9px}
+  th{background:#eef4fa;text-align:left}
+  td.num,th.num{text-align:right}
+  tr.sum td{background:#0e7490;color:#fff;font-weight:700}
+  p{line-height:1.65}
+  .noprint{margin-bottom:18px}
+  @media print{.noprint{display:none}}
+</style></head>
+<body>
+  <div class="noprint">
+    <button onclick="window.print()" style="padding:8px 16px;cursor:pointer">🖨️ Drucken</button>
+    <a href="{% url 'nachweis:rechnung_detail' r.id %}" style="margin-left:10px">← zurück zur Rechnung</a>
+  </div>
+
+  <div class="top">
+    <div class="abs">{{ steller.name }} · {{ steller.strasse }} · {{ steller.plz }} {{ steller.ort }}</div>
+    <div style="font-size:9pt;color:#666;text-align:right">{{ m.datum|date:"d.m.Y" }}</div>
+  </div>
+  <div class="to">
+    <b>{{ r.empfaenger }}</b>{% if r.empfaenger_anschrift %}<br>{{ r.empfaenger_anschrift|linebreaksbr }}{% endif %}
+  </div>
+
+  <h2>{{ m.get_stufe_display }} – Rechnung {{ r.nummer }}</h2>
+  <div class="meta">Leistungszeitraum {{ monatsname }} {{ r.jahr }} · Rechnungsdatum {{ r.datum|date:"d.m.Y" }} · fällig am {{ r.faelligkeit|date:"d.m.Y" }}</div>
+
+  <p>Sehr geehrte Damen und Herren,</p>
+  {% if m.stufe == 1 %}
+  <p>auf unsere oben genannte Rechnung konnten wir bislang keinen Zahlungseingang feststellen.
+    Sicher ist das nur ein Versehen – wir bitten Sie freundlich, den offenen Betrag zu überweisen.
+    Sollte sich die Zahlung mit diesem Schreiben überschnitten haben, betrachten Sie es bitte als gegenstandslos.</p>
+  {% elif m.stufe == 2 %}
+  <p>trotz unserer Zahlungserinnerung ist auf die oben genannte Rechnung bislang kein (vollständiger)
+    Zahlungseingang zu verzeichnen. Wir bitten Sie, den offenen Betrag nunmehr kurzfristig anzuweisen.</p>
+  {% else %}
+  <p>trotz Zahlungserinnerung und Mahnung ist die oben genannte Rechnung weiterhin nicht (vollständig)
+    ausgeglichen. Wir fordern Sie letztmalig auf, den offenen Betrag innerhalb der unten genannten Frist
+    zu begleichen. Andernfalls behalten wir uns weitere Schritte vor.</p>
+  {% endif %}
+
+  <table>
+    <tbody>
+      <tr><td>Rechnungsbetrag {{ r.nummer }}</td><td class="num" style="width:130px">{{ r.betrag|floatformat:2 }} €</td></tr>
+      <tr><td>bereits gezahlt</td><td class="num">−{{ bezahlt|floatformat:2 }} €</td></tr>
+      <tr class="sum"><td>offener Betrag</td><td class="num">{{ offen|floatformat:2 }} €</td></tr>
+    </tbody>
+  </table>
+
+  <p>Bitte überweisen Sie den offenen Betrag <b>bis zum {{ m.zahlbar_bis|date:"d.m.Y" }}</b> unter Angabe der
+    Rechnungsnummer <b>{{ r.nummer }}</b> auf folgendes Konto:</p>
+  <p style="margin-left:14px"><b>{{ steller.name }}</b><br>
+    IBAN {{ steller.iban }}{% if steller.bic %} · BIC {{ steller.bic }}{% endif %}{% if steller.bank %} · {{ steller.bank }}{% endif %}</p>
+
+  {% if m.notiz %}<p style="color:#555;font-size:9.5pt">{{ m.notiz }}</p>{% endif %}
+  <p>Mit freundlichen Grüßen<br><br><br>{{ steller.kontakt_name|default:steller.name }}</p>
+  <p style="font-size:8.5pt;color:#888;margin-top:20px">Leistung nach SGB IX (Eingliederungshilfe), umsatzsteuerbefreit gem. § 4 Nr. 16 UStG.
+    Rückfragen: {{ steller.kontakt_tel }}{% if steller.kontakt_mail %} · {{ steller.kontakt_mail }}{% endif %}</p>
+</body></html>

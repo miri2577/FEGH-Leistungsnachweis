@@ -25,7 +25,7 @@ from django.views.decorators.http import require_POST
 
 from . import services
 from .models import (Monatsfreigabe, Rechnung, Freigabestatus, Rechnungsstatus,
-                     Rechnungssteller)
+                     Rechnungssteller, Zahlung, Mahnung, Mahnstufe)
 
 MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
                "August", "September", "Oktober", "November", "Dezember"]
@@ -44,6 +44,11 @@ def _int(val, default):
         return int(val)
     except (TypeError, ValueError):
         return default
+
+
+def _eur(betrag) -> str:
+    """Betrag deutsch formatiert (Komma) für Meldungstexte – Templates machen das via floatformat."""
+    return f"{Decimal(betrag):.2f}".replace(".", ",")
 
 
 def _jahr(request):
@@ -208,6 +213,10 @@ def rechnung_detail(request, pk):
         "aktiv": "abrechnung", "r": r, "positionen": _positionen(r),
         "monatsname": MONATSNAMEN[r.monat], "RS": Rechnungsstatus,
         "absender": getattr(settings, "RECHNUNG_ABSENDER", ""),
+        "zahlungen": r.zahlungen.all(), "mahnungen": r.mahnungen.all(),
+        "offen": r.offener_betrag, "heute": date.today().isoformat(),
+        "naechste_stufe": min(r.mahnstufe + 1, 3),
+        "stufen": dict(Mahnstufe.choices),
     })
 
 
@@ -285,6 +294,13 @@ def rechnung_status(request, pk):
     r = get_object_or_404(Rechnung, pk=pk)
     neu = request.POST.get("status")
     if neu in Rechnungsstatus.values:
+        if neu == Rechnungsstatus.STORNIERT and r.zahlungen.exists():
+            # Geld-Schutz: Storno gäbe die Positionen zur ERNEUTEN Voll-Fakturierung frei,
+            # während die gebuchten Zahlungen unsichtbar an der stornierten Rechnung hingen.
+            messages.error(request, f"Rechnung {r.nummer} hat gebuchte Zahlungen "
+                                    f"({r.bezahlt_summe} €) – bitte zuerst die Zahlungen löschen "
+                                    f"(bzw. umbuchen), dann stornieren.")
+            return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
         if neu == Rechnungsstatus.STORNIERT:
             for p in r.positionen.all():
                 p.status = Freigabestatus.FREIGEGEBEN
@@ -338,3 +354,134 @@ def rechnungssteller(request):
         return redirect("nachweis:rechnungssteller")
     return render(request, "nachweis/rechnungssteller.html", {
         "aktiv": "abrechnung", "s": s, "vollstaendig": s.vollstaendig})
+
+
+# ---------------------------------------------------------------- Offene Posten / Mahnwesen
+@login_required
+def offene_posten(request):
+    """OP-Liste (Verwaltung): gestellte, unbezahlte Rechnungen mit Fälligkeit,
+    Überfälligkeit und Mahnstand. Grundlage des Mahnwesens."""
+    if not services.darf_abrechnen(request.user):
+        return redirect("nachweis:start")
+    heute = date.today()
+    offene = [r for r in Rechnung.objects.filter(status=Rechnungsstatus.GESTELLT)
+              .prefetch_related("zahlungen", "mahnungen") if r.offener_betrag > 0]
+    zeilen = []
+    for r in offene:
+        tage = r.tage_ueberfaellig(heute)
+        zeilen.append({"r": r, "offen": r.offener_betrag, "faellig": r.faelligkeit,
+                       "tage": tage, "ueberfaellig": tage > 0, "stufe": r.mahnstufe})
+    zeilen.sort(key=lambda z: -z["tage"])
+    return render(request, "nachweis/offene_posten.html", {
+        "aktiv": "abrechnung", "zeilen": zeilen,
+        "summe_offen": sum((z["offen"] for z in zeilen), Decimal("0")),
+        "summe_ueberfaellig": sum((z["offen"] for z in zeilen if z["ueberfaellig"]), Decimal("0")),
+        "n_ueberfaellig": sum(1 for z in zeilen if z["ueberfaellig"]),
+    })
+
+
+@require_POST
+@login_required
+def zahlung_erfassen(request, pk):
+    """Zahlungseingang zu einer Rechnung buchen (Teilzahlung möglich)."""
+    if not services.darf_abrechnen(request.user):
+        return HttpResponseForbidden()
+    r = get_object_or_404(Rechnung, pk=pk)
+    if r.status != Rechnungsstatus.GESTELLT:
+        # Nur gestellte Rechnungen erhalten Zahlungen: ein Entwurf war nie beim Kostenträger,
+        # eine bezahlte/stornierte darf ihren Status hier nicht ändern.
+        messages.error(request, "Zahlungen können nur auf gestellte Rechnungen gebucht werden.")
+        return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
+    try:
+        betrag = Decimal((request.POST.get("betrag") or "").replace(",", ".").strip())
+        if not betrag.is_finite():
+            betrag = Decimal("0")
+    except Exception:
+        betrag = Decimal("0")
+    if betrag <= 0:
+        messages.error(request, "Bitte einen Zahlbetrag > 0 angeben.")
+        return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
+    if betrag > r.offener_betrag:
+        messages.error(request, f"Zahlbetrag {_eur(betrag)} € übersteigt den offenen Betrag "
+                                f"{_eur(r.offener_betrag)} € – bitte prüfen (Überzahlung wird nicht gebucht).")
+        return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
+    try:
+        datum = date.fromisoformat(request.POST.get("datum"))
+    except (TypeError, ValueError):
+        datum = date.today()
+    Zahlung.objects.create(rechnung=r, datum=datum, betrag=betrag,
+                           notiz=(request.POST.get("notiz") or "").strip()[:200],
+                           erfasst_von=services.mitarbeiter_fuer(request.user))
+    r.refresh_from_db()
+    rest = r.offener_betrag
+    if rest <= 0:
+        messages.success(request, f"Zahlung über {_eur(betrag)} € gebucht – Rechnung {r.nummer} ist bezahlt.")
+    else:
+        messages.success(request, f"Teilzahlung über {_eur(betrag)} € gebucht – offen bleiben {_eur(rest)} €.")
+    return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
+
+
+@require_POST
+@login_required
+def zahlung_loeschen(request):
+    if not services.darf_abrechnen(request.user):
+        return HttpResponseForbidden()
+    z = get_object_or_404(Zahlung, pk=_int(request.POST.get("id"), 0))
+    rid = z.rechnung_id
+    z.delete()
+    messages.success(request, "Zahlung gelöscht – Zahlungsstand aktualisiert.")
+    return redirect(reverse("nachweis:rechnung_detail", args=[rid]))
+
+
+@require_POST
+@login_required
+def mahnung_erstellen(request, pk):
+    """Nächste Mahnstufe (Zahlungserinnerung → 1. → 2. Mahnung) anlegen."""
+    if not services.darf_abrechnen(request.user):
+        return HttpResponseForbidden()
+    from django.db import IntegrityError, transaction
+    frist = max(1, min(_int(request.POST.get("frist_tage"), 14), 60))
+    heute = date.today()
+    try:
+        with transaction.atomic():
+            # Lock gegen Doppelklick/Race: sonst entstehen zwei Stufen am selben Tag
+            # oder ein IntegrityError-500 (UniqueConstraint je Stufe).
+            r = get_object_or_404(Rechnung.objects.select_for_update(), pk=pk)
+            if not r.ist_offen:
+                messages.error(request, "Nur offene (gestellte, unbezahlte) Rechnungen können gemahnt werden.")
+                return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
+            letzte = r.mahnungen.order_by("-stufe").first()
+            stufe = (letzte.stufe if letzte else 0) + 1
+            if stufe > 3:
+                messages.error(request, "Höchste Mahnstufe bereits erreicht (2. Mahnung).")
+                return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
+            if letzte is None and r.tage_ueberfaellig(heute) <= 0:
+                messages.error(request, f"Die Rechnung ist erst am {r.faelligkeit:%d.%m.%Y} fällig – "
+                                        f"eine Zahlungserinnerung vor Fälligkeit ist nicht üblich.")
+                return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
+            if letzte is not None and heute <= letzte.zahlbar_bis:
+                messages.error(request, f"Die Frist der letzten Mahnstufe läuft noch "
+                                        f"(zahlbar bis {letzte.zahlbar_bis:%d.%m.%Y}) – nächste Stufe erst danach.")
+                return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
+            m = Mahnung.objects.create(rechnung=r, stufe=stufe, datum=heute, frist_tage=frist,
+                                       notiz=(request.POST.get("notiz") or "").strip()[:200],
+                                       erstellt_von=services.mitarbeiter_fuer(request.user))
+    except IntegrityError:
+        messages.error(request, "Diese Mahnstufe wurde soeben bereits erstellt (Doppelklick?).")
+        return redirect(reverse("nachweis:rechnung_detail", args=[pk]))
+    messages.success(request, f"{m.get_stufe_display()} erstellt – Schreiben kann jetzt gedruckt werden.")
+    return redirect(reverse("nachweis:mahnung_druck", args=[m.id]))
+
+
+@login_required
+def mahnung_druck(request, pk):
+    """Mahnschreiben als druckfertige Seite (Browser-Druck/PDF)."""
+    if not services.darf_abrechnen(request.user):
+        return redirect("nachweis:start")
+    m = get_object_or_404(Mahnung.objects.select_related("rechnung"), pk=pk)
+    r = m.rechnung
+    return render(request, "nachweis/mahnung_druck.html", {
+        "m": m, "r": r, "offen": r.offener_betrag, "bezahlt": r.bezahlt_summe,
+        "monatsname": MONATSNAMEN[r.monat],
+        "steller": Rechnungssteller.load(),
+    })

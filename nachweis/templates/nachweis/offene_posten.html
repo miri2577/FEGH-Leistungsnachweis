@@ -1,0 +1,56 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Offene Posten · FEGH{% endblock %}
+{% block extrastyle %}
+  .op-badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700}
+  .op-badge.faellig{background:var(--badbg);color:var(--bad)}
+  .op-badge.offen{background:var(--warnbg);color:var(--warn)}
+  .op-badge.frist{background:var(--okbg);color:var(--ok)}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Offene Posten</h1>
+  <p class="sub">Gestellte, noch nicht (voll) bezahlte Rechnungen – mit Fälligkeit, Zahlungsstand und Mahnstufe.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div class="cards" style="margin-bottom:14px">
+    <div class="kpi"><div class="n">{{ zeilen|length }}</div><div class="l">offene Rechnungen</div></div>
+    <div class="kpi"><div class="n">{{ summe_offen|floatformat:2 }} €</div><div class="l">offener Betrag gesamt</div></div>
+    <div class="kpi {% if n_ueberfaellig %}k-orange{% endif %}"><div class="n">{{ n_ueberfaellig }}</div><div class="l">davon überfällig ({{ summe_ueberfaellig|floatformat:2 }} €)</div></div>
+  </div>
+
+  <div style="margin-bottom:12px"><a class="btn ghost" href="{% url 'nachweis:rechnungen' %}">← Rechnungen</a></div>
+
+  <div class="panel">
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Rechnung</th><th>Empfänger</th><th>Zeitraum</th>
+          <th class="num">Betrag</th><th class="num">bezahlt</th><th class="num">offen</th>
+          <th>fällig am</th><th>Stand</th><th>Mahnstufe</th><th></th></tr></thead>
+        <tbody>
+          {% for z in zeilen %}
+          <tr>
+            <td><a href="{% url 'nachweis:rechnung_detail' z.r.id %}"><b>{{ z.r.nummer }}</b></a></td>
+            <td class="muted">{{ z.r.empfaenger }}</td>
+            <td class="muted">{{ z.r.monat_text }}</td>
+            <td class="num">{{ z.r.betrag|floatformat:2 }} €</td>
+            <td class="num">{{ z.r.bezahlt_summe|floatformat:2 }} €</td>
+            <td class="num"><b>{{ z.offen|floatformat:2 }} €</b></td>
+            <td>{{ z.faellig|date:"d.m.Y" }}</td>
+            <td>{% if z.ueberfaellig %}<span class="op-badge faellig">{{ z.tage }} T überfällig</span>
+                {% else %}<span class="op-badge frist">fällig in {{ z.tage|cut:"-" }} T</span>{% endif %}</td>
+            <td>{% if z.stufe == 0 %}<span class="muted">—</span>
+                {% elif z.stufe == 1 %}<span class="op-badge offen">Erinnerung</span>
+                {% elif z.stufe == 2 %}<span class="op-badge offen">1. Mahnung</span>
+                {% else %}<span class="op-badge faellig">2. Mahnung</span>{% endif %}</td>
+            <td><a class="btn ghost" style="padding:4px 10px;font-size:12px" href="{% url 'nachweis:rechnung_detail' z.r.id %}">Öffnen</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="10" class="muted" style="text-align:center;padding:22px">✓ Keine offenen Posten – alles bezahlt.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="note">Als offen zählen Rechnungen im Status „gestellt", deren Zahlungen den Betrag noch nicht decken.
+    Zahlungen und Mahnungen werden in der Rechnungs-Detailansicht gebucht.</p>
+{% endblock %}

@@ -232,6 +232,8 @@ AUDITLOG_INCLUDE_TRACKING_MODELS = (
     "nachweis.Bewilligung",
     "nachweis.Kostentraeger",
     "nachweis.Rechnungssteller",
+    "nachweis.Zahlung",
+    "nachweis.Mahnung",
 )
 
 # =====================================================================

@@ -1034,9 +1034,11 @@ def rechnung_erstellen(freigaben, empfaenger, jahr, monat, datum, ersteller,
             kt = b.kostentraeger
     if kt is None:
         kt = Kostentraeger.objects.filter(name=empfaenger).first()
+    ziel = (kt.zahlungsziel_tage if kt else 0) or 30
     r = Rechnung.objects.create(
         nummer=naechste_rechnungsnummer(jahr), empfaenger=empfaenger,
         empfaenger_anschrift=anschrift, kostentraeger=kt, jahr=jahr, monat=monat, datum=datum,
+        faellig_am=datum + timedelta(days=ziel),
         betrag=sum((f.betrag for f in freigaben), Decimal("0")),
         notiz=notiz, erstellt_von=ersteller)
     jetzt = timezone.now()

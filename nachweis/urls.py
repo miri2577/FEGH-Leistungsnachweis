@@ -61,6 +61,11 @@ urlpatterns = [
          name="rechnung_xrechnung"),
     path("rechnungen/<int:pk>/status/", views_abrechnung.rechnung_status, name="rechnung_status"),
     path("rechnungssteller/", views_abrechnung.rechnungssteller, name="rechnungssteller"),
+    path("offene-posten/", views_abrechnung.offene_posten, name="offene_posten"),
+    path("rechnungen/<int:pk>/zahlung/", views_abrechnung.zahlung_erfassen, name="zahlung_erfassen"),
+    path("zahlung/loeschen/", views_abrechnung.zahlung_loeschen, name="zahlung_loeschen"),
+    path("rechnungen/<int:pk>/mahnung/", views_abrechnung.mahnung_erstellen, name="mahnung_erstellen"),
+    path("mahnung/<int:pk>/druck/", views_abrechnung.mahnung_druck, name="mahnung_druck"),
 
     # Kasse (Kassenbuch + Zählprotokoll)
     path("kasse/", views_kasse.kasse, name="kasse"),
@@ -92,6 +97,9 @@ urlpatterns = [
     path("login/", auth_views.LoginView.as_view(
         template_name="nachweis/login.html"), name="login"),
     path("logout/", auth_views.LogoutView.as_view(next_page="nachweis:login"), name="logout"),
+
+    # Über diese App / Impressum (öffentlich erreichbar)
+    path("ueber/", views.ueber, name="ueber"),
 
     # Stammdaten (Leitung)
     path("belegungsliste/", views_stammdaten.belegungsliste, name="belegungsliste"),

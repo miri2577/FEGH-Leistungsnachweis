@@ -28,7 +28,7 @@
   <h1 class="page" style="margin-top:6px">Rechnung {{ r.nummer }}
     <span class="st st-{{ r.status }}" style="vertical-align:middle;margin-left:8px">{{ r.get_status_display }}</span></h1>
 
-  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:9px 14px;border-radius:9px;margin:10px 0">{{ msg }}</div>{% endfor %}
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% elif 'warning' in msg.tags or 'info' in msg.tags %}var(--warnbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% elif 'warning' in msg.tags or 'info' in msg.tags %}var(--warn){% else %}var(--ok){% endif %};padding:9px 14px;border-radius:9px;margin:10px 0">{{ msg }}</div>{% endfor %}
 
   <div class="act">
     <a class="btn" href="{% url 'nachweis:rechnung_pdf' r.id %}">PDF</a>
@@ -83,4 +83,63 @@
     <p class="legal">Leistung nach SGB IX (Eingliederungshilfe), Fachleistungsstunden. Umsatzsteuerbefreit gem. § 4 Nr. 16 UStG (soweit zutreffend – Trägerangabe).
       Elektronische Übermittlung (XRechnung/Fachverfahren) nach Abstimmung mit dem Kostenträger.</p>
   </div>
+
+  {% if r.status != 'entwurf' %}
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-top:16px;max-width:820px">
+    <div class="panel" style="flex:1 1 380px">
+      <div class="head"><h2>Zahlungen</h2>
+        <span class="muted">offen: <b style="color:{% if offen > 0 %}var(--warn){% else %}var(--ok){% endif %}">{{ offen|floatformat:2 }} €</b>
+          &nbsp;·&nbsp; fällig {{ r.faelligkeit|date:"d.m.Y" }}</span></div>
+      <div class="body">
+        <table class="grid">
+          <tbody>
+            {% for z in zahlungen %}
+            <tr><td>{{ z.datum|date:"d.m.Y" }}</td>
+              <td class="num"><b>{{ z.betrag|floatformat:2 }} €</b></td>
+              <td class="muted">{{ z.notiz|default:"" }}</td>
+              <td style="width:1%"><form method="post" action="{% url 'nachweis:zahlung_loeschen' %}" onsubmit="return confirm('Zahlung löschen?')">
+                {% csrf_token %}<input type="hidden" name="id" value="{{ z.id }}">
+                <button class="btn ghost" style="padding:2px 8px;font-size:12px;color:var(--bad)">✕</button></form></td></tr>
+            {% empty %}
+            <tr><td class="muted" style="padding:14px;text-align:center">Noch kein Zahlungseingang.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if r.status == 'gestellt' %}
+        <form method="post" action="{% url 'nachweis:zahlung_erfassen' r.id %}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;padding:12px 4px 4px">
+          {% csrf_token %}
+          <div><label class="fld">Datum</label><input type="date" name="datum" value="{{ heute }}"></div>
+          <div><label class="fld">Betrag €</label><input type="text" name="betrag" value="{{ offen|floatformat:2 }}" style="width:110px"></div>
+          <div style="flex:1;min-width:120px"><label class="fld">Notiz</label><input type="text" name="notiz" placeholder="z. B. Kontoauszug"></div>
+          <button class="btn" type="submit">Zahlung buchen</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="panel" style="flex:1 1 300px">
+      <div class="head"><h2>Mahnungen</h2></div>
+      <div class="body">
+        <table class="grid">
+          <tbody>
+            {% for m in mahnungen %}
+            <tr><td><b>{{ m.get_stufe_display }}</b></td>
+              <td class="muted">{{ m.datum|date:"d.m.Y" }} · zahlbar bis {{ m.zahlbar_bis|date:"d.m.Y" }}</td>
+              <td style="width:1%"><a class="btn ghost" style="padding:3px 9px;font-size:12px" href="{% url 'nachweis:mahnung_druck' m.id %}">Schreiben</a></td></tr>
+            {% empty %}
+            <tr><td class="muted" style="padding:14px;text-align:center">Noch nicht gemahnt.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if r.status == 'gestellt' and offen > 0 and r.mahnstufe < 3 %}
+        <form method="post" action="{% url 'nachweis:mahnung_erstellen' r.id %}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;padding:12px 4px 4px">
+          {% csrf_token %}
+          <div><label class="fld">Zahlungsfrist (Tage)</label><input type="number" name="frist_tage" value="14" min="1" max="60" style="width:90px"></div>
+          <button class="btn" type="submit">{% for s, l in stufen.items %}{% if s == naechste_stufe %}{{ l }}{% endif %}{% endfor %} erstellen</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
 {% endblock %}
