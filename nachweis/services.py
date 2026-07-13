@@ -1023,10 +1023,20 @@ def rechnung_erstellen(freigaben, empfaenger, jahr, monat, datum, ersteller,
                        anschrift="", notiz=""):
     """Sammelrechnung aus freigegebenen Monatsnachweisen erzeugen; markiert sie als abgerechnet."""
     from django.utils import timezone
+    from .models import Kostentraeger
     freigaben = list(freigaben)
+    # Kostenträger-FK auflösen: bevorzugt aus der aktiven Bewilligung der ersten Position,
+    # sonst per Namensabgleich auf den Empfänger-Freitext (für die E-Rechnung/Leitweg-ID).
+    kt = None
+    if freigaben:
+        b = freigaben[0].klient.aktive_bewilligung()
+        if b and b.kostentraeger_id:
+            kt = b.kostentraeger
+    if kt is None:
+        kt = Kostentraeger.objects.filter(name=empfaenger).first()
     r = Rechnung.objects.create(
         nummer=naechste_rechnungsnummer(jahr), empfaenger=empfaenger,
-        empfaenger_anschrift=anschrift, jahr=jahr, monat=monat, datum=datum,
+        empfaenger_anschrift=anschrift, kostentraeger=kt, jahr=jahr, monat=monat, datum=datum,
         betrag=sum((f.betrag for f in freigaben), Decimal("0")),
         notiz=notiz, erstellt_von=ersteller)
     jetzt = timezone.now()

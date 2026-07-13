@@ -34,6 +34,8 @@
     <a class="btn" href="{% url 'nachweis:rechnung_pdf' r.id %}">PDF</a>
     <a class="btn ghost" href="{% url 'nachweis:rechnung_csv' r.id %}">CSV</a>
     <a class="btn ghost" href="{% url 'nachweis:rechnung_eabrechnung' r.id %}" title="Strukturierter Export nach § 18 Abs. 3 örV – vorbereitet für die eAbrechnung über OPEN/PROSOZ">eAbrechnung-Export</a>
+    <a class="btn" href="{% url 'nachweis:rechnung_xrechnung' r.id %}" title="XRechnung 3.0 (UBL-XML) für die Einreichung über OZG-RE / xrechnung-bdr.de">XRechnung (XML)</a>
+    <a class="btn ghost" href="{% url 'nachweis:rechnungssteller' %}" title="Absender-/Steuerdaten für die E-Rechnung pflegen">Rechnungssteller</a>
     {% if r.status != 'gestellt' and r.status != 'storniert' %}
     <form method="post" action="{% url 'nachweis:rechnung_status' r.id %}">{% csrf_token %}<input type="hidden" name="status" value="gestellt"><button class="btn ghost" type="submit">Als gestellt markieren</button></form>{% endif %}
     {% if r.status != 'bezahlt' and r.status != 'storniert' %}

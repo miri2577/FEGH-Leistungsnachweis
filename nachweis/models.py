@@ -808,6 +808,10 @@ class Rechnung(models.Model):
     nummer = models.CharField("Rechnungsnummer", max_length=20, unique=True)
     empfaenger = models.CharField("Empfänger (Kostenträger)", max_length=120)
     empfaenger_anschrift = models.TextField("Anschrift", blank=True)
+    # Strukturierter Empfänger für die E-Rechnung (Leitweg-ID, Anschrift). Nullable/abwärts-
+    # kompatibel: Bestandsrechnungen behalten nur den Freitext-Empfänger.
+    kostentraeger = models.ForeignKey("Kostentraeger", on_delete=models.SET_NULL,
+                                      null=True, blank=True, related_name="rechnungen")
     jahr = models.PositiveIntegerField()
     monat = models.PositiveSmallIntegerField()
     datum = models.DateField("Rechnungsdatum")
@@ -920,6 +924,54 @@ class Kostentraeger(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Rechnungssteller(models.Model):
+    """Stammdaten des rechnungsstellenden Trägers für die E-Rechnung (Verkäufer/BG-4).
+    Bewusst als DB-Datensatz (Singleton) – die echten Träger-/Steuerdaten stehen NIE im
+    Code/Repo, sondern werden auf der jeweiligen Instanz gepflegt. Eingliederungshilfe ist
+    i. d. R. umsatzsteuerfrei (§ 4 Nr. 16 UStG) → USt-Kategorie „E" mit Befreiungsgrund."""
+    name = models.CharField("Name / Träger", max_length=160, blank=True)
+    strasse = models.CharField("Straße + Nr.", max_length=160, blank=True)
+    plz = models.CharField("PLZ", max_length=10, blank=True)
+    ort = models.CharField("Ort", max_length=100, blank=True)
+    land = models.CharField("Ländercode", max_length=2, default="DE")
+    ust_id = models.CharField("USt-IdNr. (BT-31)", max_length=20, blank=True)
+    steuernummer = models.CharField("Steuernummer (BT-32)", max_length=30, blank=True)
+    # Zahlung
+    iban = models.CharField("IBAN", max_length=34, blank=True)
+    bic = models.CharField("BIC", max_length=11, blank=True)
+    bank = models.CharField("Kreditinstitut", max_length=120, blank=True)
+    zahlungsziel_tage = models.PositiveSmallIntegerField("Zahlungsziel (Tage)", default=30)
+    # Kontakt (BG-6)
+    kontakt_name = models.CharField("Ansprechpartner*in", max_length=120, blank=True)
+    kontakt_tel = models.CharField("Telefon", max_length=40, blank=True)
+    kontakt_mail = models.EmailField("E-Mail", blank=True)
+    # Umsatzsteuer
+    ust_befreit = models.BooleanField("umsatzsteuerbefreit", default=True)
+    befreiungsgrund = models.CharField("Befreiungsgrund", max_length=200,
+                                       default="Steuerfrei nach § 4 Nr. 16 UStG")
+
+    class Meta:
+        verbose_name = "Rechnungssteller"
+        verbose_name_plural = "Rechnungssteller"
+
+    def __str__(self):
+        return self.name or "Rechnungssteller (unvollständig)"
+
+    @classmethod
+    def load(cls):
+        """Singleton: den einen Stammdatensatz holen/anlegen."""
+        obj = cls.objects.first()
+        if obj is None:
+            obj = cls.objects.create()
+        return obj
+
+    @property
+    def vollstaendig(self) -> bool:
+        """Minimalfelder für eine gültige E-Rechnung vorhanden?"""
+        return bool(self.name and self.strasse and self.plz and self.ort
+                    and (self.ust_id or self.steuernummer) and self.iban)
 
 
 class BewilligungStatus(models.TextChoices):

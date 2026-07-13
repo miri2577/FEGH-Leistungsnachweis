@@ -57,7 +57,10 @@ urlpatterns = [
     path("rechnungen/<int:pk>/csv/", views_abrechnung.rechnung_csv, name="rechnung_csv"),
     path("rechnungen/<int:pk>/eabrechnung/", views_abrechnung.rechnung_eabrechnung,
          name="rechnung_eabrechnung"),
+    path("rechnungen/<int:pk>/xrechnung/", views_abrechnung.rechnung_xrechnung,
+         name="rechnung_xrechnung"),
     path("rechnungen/<int:pk>/status/", views_abrechnung.rechnung_status, name="rechnung_status"),
+    path("rechnungssteller/", views_abrechnung.rechnungssteller, name="rechnungssteller"),
 
     # Kasse (Kassenbuch + Zählprotokoll)
     path("kasse/", views_kasse.kasse, name="kasse"),

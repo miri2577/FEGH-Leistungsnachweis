@@ -24,7 +24,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from . import services
-from .models import Monatsfreigabe, Rechnung, Freigabestatus, Rechnungsstatus
+from .models import (Monatsfreigabe, Rechnung, Freigabestatus, Rechnungsstatus,
+                     Rechnungssteller)
 
 MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
                "August", "September", "Oktober", "November", "Dezember"]
@@ -296,3 +297,44 @@ def rechnung_status(request, pk):
         r.status = neu
         r.save(update_fields=["status"])
     return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
+
+
+@login_required
+def rechnung_xrechnung(request, pk):
+    """XRechnung 3.0 (UBL-XML) einer Rechnung herunterladen – für OZG-RE (Berlin)."""
+    if not services.darf_abrechnen(request.user):
+        return redirect("nachweis:start")
+    from . import xrechnung
+    r = get_object_or_404(Rechnung, pk=pk)
+    probleme = xrechnung.pruefe_voraussetzungen(r)
+    if probleme:
+        for p in probleme:
+            messages.error(request, p)
+        messages.info(request, "Bitte Stammdaten/Leitweg-ID ergänzen, dann erneut exportieren.")
+        return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
+    xml = xrechnung.build_ubl(r)
+    resp = HttpResponse(xml, content_type="application/xml; charset=utf-8")
+    resp["Content-Disposition"] = f'attachment; filename="XRechnung_{r.nummer}.xml"'
+    return resp
+
+
+@login_required
+def rechnungssteller(request):
+    """Stammdaten des Rechnungsstellers (Verkäufer) für die E-Rechnung pflegen."""
+    if not services.darf_abrechnen(request.user):
+        return redirect("nachweis:start")
+    s = Rechnungssteller.load()
+    if request.method == "POST":
+        for f in ("name", "strasse", "plz", "ort", "land", "ust_id", "steuernummer",
+                  "iban", "bic", "bank", "kontakt_name", "kontakt_tel", "kontakt_mail",
+                  "befreiungsgrund"):
+            setattr(s, f, (request.POST.get(f) or "").strip())
+        s.land = s.land or "DE"
+        s.zahlungsziel_tage = int(request.POST.get("zahlungsziel_tage") or 30)
+        s.ust_befreit = request.POST.get("ust_befreit") == "on"
+        s.befreiungsgrund = s.befreiungsgrund or "Steuerfrei nach § 4 Nr. 16 UStG"
+        s.save()
+        messages.success(request, "Rechnungssteller-Stammdaten gespeichert.")
+        return redirect("nachweis:rechnungssteller")
+    return render(request, "nachweis/rechnungssteller.html", {
+        "aktiv": "abrechnung", "s": s, "vollstaendig": s.vollstaendig})
