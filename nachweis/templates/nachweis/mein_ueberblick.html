@@ -260,6 +260,7 @@
           </summary>
           <div class="klmore muted">
             Woche {{ z.woche.ist|floatformat:1 }} / {{ z.woche.soll|floatformat:1 }} Std · AL {{ z.woche.al|floatformat:1 }} · KLE {{ z.woche.kle|floatformat:1 }} · Jahr {{ z.ist|floatformat:0 }}/{{ z.kontingent_jahr|floatformat:0 }}
+            · <a href="{% url 'nachweis:ziele' z.klient.id %}" style="font-size:12px" title="Ziel- und Leistungsplanung">Ziele →</a>
             <form method="post" action="{% url 'nachweis:versendet_setzen' %}" style="display:flex;gap:6px;align-items:center;margin:6px 0 0">
               {% csrf_token %}<input type="hidden" name="klient" value="{{ z.klient.id }}">
               <span style="font-size:12px">…versendet am</span>

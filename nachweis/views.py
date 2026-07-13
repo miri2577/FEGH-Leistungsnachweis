@@ -249,6 +249,7 @@ def _row(l: Leistung):
         "dauer": float(l.dauer_stunden),
         "betreuer": str(l.betreuer),
         "dokumentation": l.dokumentation,
+        "ziele": [z.id for z in l.ziele.all()],
     }
 
 
@@ -257,7 +258,7 @@ def api_leistungen(request):
     jahr = _jahr(request)
     qs = Leistung.objects.filter(
         datum__year=jahr, klient__in=services.klienten_fuer(request.user)
-    ).select_related("klient", "betreuer")
+    ).select_related("klient", "betreuer").prefetch_related("ziele")
     monat = _int(request.GET.get("monat"), 0)
     if 1 <= monat <= 12:
         qs = qs.filter(datum__month=monat)
@@ -305,6 +306,11 @@ def api_leistung_save(request):
         l.dokumentation = (p.get("dokumentation") or "").strip()
     l.betreuer = services.mitarbeiter_fuer(request.user) or klient.bezugsbetreuer
     l.save()
+    if "ziele" in p:
+        # Zielbezug der Doku: nur Ziele DIESES Klienten zulässig (kein Cross-Klient-Bezug)
+        from .models import Ziel
+        ids = [i for i in (p.get("ziele") or []) if isinstance(i, int)]
+        l.ziele.set(Ziel.objects.filter(klient=klient, pk__in=ids))
     return JsonResponse(_row(l))
 
 
@@ -955,7 +961,8 @@ def doku_druck(request):
     return render(request, "nachweis/doku_druck.html", {
         "klient": klient, "jahr": jahr, "monat": monat,
         "monat_name": MONATSNAMEN[monat] if 1 <= monat <= 12 else "",
-        "eintraege": list(qs.select_related("betreuer").order_by("datum", "beginn")),
+        "eintraege": list(qs.select_related("betreuer").prefetch_related("ziele")
+                          .order_by("datum", "beginn")),
     })
 
 

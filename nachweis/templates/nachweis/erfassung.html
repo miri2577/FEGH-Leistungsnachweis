@@ -79,6 +79,7 @@
     <div class="doku-box">
       <div class="doku-head"><b>Dokumentation</b><span id="doku-info" class="muted"></span></div>
       <textarea id="doku-text" placeholder="Ausführlicher Verlaufstext bei Bedarf …"></textarea>
+      <div id="doku-ziele" style="margin-top:8px;font-size:12.5px"></div>
       <div class="doku-actions">
         <button class="btn" id="doku-save">Speichern</button>
         <button class="btn ghost" id="doku-cancel">Abbrechen</button>
@@ -195,14 +196,29 @@ document.getElementById('wl-toggle').addEventListener('click', () => {
   document.getElementById('wl-toggle').textContent = open ? 'je Klient*in ▴' : 'je Klient*in ▾';
 });
 
-// --- Dokumentation (ausführlicher Text je Leistung) ---
+// --- Dokumentation (ausführlicher Text je Leistung, optional mit Zielbezug/ZLP) ---
 let dokuRow = null;
-function openDoku(row){
+async function openDoku(row){
   const d = row.getData();
   if(!d.datum || !d.klient || !d.leistungsart){ setStatus("Erst Datum, Klient*in und Leistung ausfüllen, dann Doku."); return; }
   dokuRow = row;
   document.getElementById('doku-text').value = d.dokumentation || '';
   document.getElementById('doku-info').textContent = (d.datum || '') + ' · ' + (klientMap[d.klient] || '');
+  // Aktive Ziele des Klienten laden -> Checkboxen (Zielbezug der Doku)
+  const zc = document.getElementById('doku-ziele');
+  zc.innerHTML = '';
+  try{
+    const r = await fetch("{% url 'nachweis:api_ziele' %}?klient=" + d.klient);
+    const zj = await r.json();
+    if(zj.ziele && zj.ziele.length){
+      const gewaehlt = new Set(d.ziele || []);
+      zc.innerHTML = '<div style="font-weight:600;color:var(--muted);text-transform:uppercase;font-size:10.5px;letter-spacing:.05em;margin-bottom:4px">Bezug zu Zielen (ZLP)</div>' +
+        zj.ziele.map(z =>
+          '<label style="display:inline-flex;align-items:center;gap:5px;margin:2px 12px 2px 0;cursor:pointer">' +
+          '<input type="checkbox" class="doku-ziel" value="' + z.id + '"' + (gewaehlt.has(z.id) ? ' checked' : '') + ' style="width:auto"> ' +
+          z.titel.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</label>').join('');
+    }
+  }catch(e){ /* Ziele optional – Doku funktioniert auch ohne */ }
   document.getElementById('dokuModal').hidden = false;
   document.getElementById('doku-text').focus();
 }
@@ -213,6 +229,7 @@ document.getElementById('doku-save').addEventListener('click', async () => {
   if(!dokuRow) return;
   const d = Object.assign({}, dokuRow.getData());
   d.dokumentation = document.getElementById('doku-text').value;
+  d.ziele = Array.from(document.querySelectorAll('.doku-ziel:checked')).map(cb => parseInt(cb.value, 10));
   try{
     setStatus("speichere Doku …");
     const saved = await api("{% url 'nachweis:api_leistung_save' %}", d);

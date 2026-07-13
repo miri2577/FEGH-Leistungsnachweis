@@ -44,6 +44,7 @@
         <span class="art">{{ e.leistungsart }}</span>{% if e.taetigkeit %} · {{ e.taetigkeit }}{% endif %}
         <span class="muted" style="font-weight:400"> · {{ e.betreuer }}</span></div>
       <div class="dt">{{ e.dokumentation|linebreaksbr }}</div>
+      {% if e.ziele.all %}<div style="font-size:12px;color:var(--muted);margin-top:4px">Zielbezug (ZLP): {% for z in e.ziele.all %}{{ z.titel }}{% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}
     </div>
     {% empty %}
     <p class="muted">Keine Dokumentationen im gewählten Zeitraum.</p>

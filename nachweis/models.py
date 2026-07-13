@@ -273,6 +273,9 @@ class Leistung(models.Model):
     notiz = models.CharField(max_length=255, blank=True)
     dokumentation = models.TextField("Dokumentation", blank=True,
                                      help_text="ausführlicher Verlaufstext bei Bedarf")
+    # Zielbezug der Verlaufsdoku (Phase 2/ZLP): auf welche vereinbarten Ziele bezieht
+    # sich dieser Eintrag? Optional – Doku ohne Zielbezug bleibt möglich.
+    ziele = models.ManyToManyField("Ziel", blank=True, related_name="leistungen")
     # Ursprungs-Termin (nur bei Doku über den Unterwegs-Modus) – macht sichtbar,
     # welche Kalender-Termine bereits dokumentiert sind (Erinnerung an offene).
     termin = models.ForeignKey("Termin", on_delete=models.SET_NULL, null=True, blank=True,
@@ -1184,3 +1187,59 @@ class Bewilligung(models.Model):
         klient = self.klient
         super().delete(*args, **kwargs)
         klient.sync_cache_aus_bewilligung()
+
+
+# ==========================================================================
+#  Phase 2: Teilhabe-Dokumentation — Ziele der Ziel- und Leistungsplanung
+# ==========================================================================
+class ZielArt(models.TextChoices):
+    RICHTUNGSZIEL = "richtungsziel", "Richtungsziel"
+    HANDLUNGSZIEL = "handlungsziel", "Handlungsziel"
+
+
+class ZielStatus(models.TextChoices):
+    AKTIV = "aktiv", "aktiv"
+    ERREICHT = "erreicht", "erreicht"
+    ANGEPASST = "angepasst", "angepasst (fortgeschrieben)"
+    AUFGEGEBEN = "aufgegeben", "nicht weiterverfolgt"
+
+
+class Ziel(models.Model):
+    """Ziel der Ziel- und Leistungsplanung (ZLP) je Klient*in — Berliner EGH-Systematik
+    (§ 11 BRV EGH, Gesamtplan §§ 117 ff. SGB IX): Richtungsziel mit untergeordneten
+    Handlungszielen, je mit Indikator der Zielerreichung. Bereichs-neutral angelegt —
+    der Hilfeplan § 36 SGB VIII (Jugendhilfe) nutzt dieselbe Struktur (Richtungs-/
+    Handlungsziele + Indikatoren). Die Verlaufsdoku (Leistung) kann sich auf Ziele
+    beziehen; Änderungen sind versioniert (Fortschreibung nachvollziehbar)."""
+    klient = models.ForeignKey(Klient, on_delete=models.CASCADE, related_name="ziele")
+    art = models.CharField(max_length=16, choices=ZielArt.choices,
+                           default=ZielArt.HANDLUNGSZIEL)
+    uebergeordnet = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True,
+                                      related_name="unterziele",
+                                      verbose_name="gehört zu (Richtungsziel)")
+    titel = models.CharField("Ziel", max_length=200)
+    beschreibung = models.TextField("Beschreibung / Handlungsschritte", blank=True)
+    indikator = models.TextField("Indikator der Zielerreichung", blank=True,
+                                 help_text="Woran erkennen wir, dass das Ziel erreicht ist?")
+    status = models.CharField(max_length=12, choices=ZielStatus.choices,
+                              default=ZielStatus.AKTIV)
+    gueltig_von = models.DateField("vereinbart am", null=True, blank=True)
+    gueltig_bis = models.DateField("Zielhorizont", null=True, blank=True)
+    reihenfolge = models.PositiveSmallIntegerField(default=0)
+    erstellt = models.DateTimeField(auto_now_add=True)
+    geaendert = models.DateTimeField(auto_now=True)
+    # Fortschreibungen/Anpassungen nachvollziehbar (wie Bewilligung/Rechnung)
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = "Ziel"
+        verbose_name_plural = "Ziele"
+        ordering = ["reihenfolge", "id"]
+        indexes = [models.Index(fields=["klient", "status"])]
+
+    def __str__(self):
+        return f"{self.klient} · {self.get_art_display()}: {self.titel}"
+
+    @property
+    def ist_aktiv(self) -> bool:
+        return self.status == ZielStatus.AKTIV

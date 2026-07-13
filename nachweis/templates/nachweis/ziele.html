@@ -1,0 +1,140 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Ziele · {{ klient.name }} · FEGH{% endblock %}
+{% block extrastyle %}
+  .z-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;padding:18px}
+  .z-form .full{grid-column:1 / -1}
+  .z-form input,.z-form select,.z-form textarea{width:100%}
+  .z-form textarea{min-height:56px;font-family:inherit;padding:8px 10px;border:1px solid var(--border);border-radius:8px}
+  .sec{grid-column:1 / -1;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:4px 0 -4px}
+  .zst{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700}
+  .zst.aktiv{background:var(--brand-soft);color:var(--brand-d)}
+  .zst.erreicht{background:var(--okbg);color:var(--ok)}
+  .zst.angepasst{background:var(--warnbg);color:var(--warn)}
+  .zst.aufgegeben{background:#eef2f5;color:#697786}
+  .rz{border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;background:var(--card,#fff)}
+  .rz>.rz-head{padding:12px 16px;background:var(--bg-2,#f6f9fb);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .rz>.rz-head h3{margin:0;font-size:15px}
+  .hz{display:flex;gap:12px;align-items:flex-start;padding:11px 16px;border-top:1px solid var(--line)}
+  .hz .zt{flex:1;min-width:0}
+  .hz .zt .ind{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .hz .verlauf{font-size:12px;color:var(--muted);white-space:nowrap;text-align:right}
+  .hz .verlauf b{color:var(--ink)}
+  .hz .verlauf .warn{color:var(--warn);font-weight:600}
+  .z-act{display:flex;gap:6px;flex-wrap:wrap}
+  .z-act .btn{padding:3px 9px;font-size:12px}
+  @media(max-width:600px){.z-form{grid-template-columns:1fr}}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Ziele · {{ klient.name }}</h1>
+  <p class="sub">Ziel- und Leistungsplanung (ZLP): Richtungsziele mit Handlungszielen und Indikatoren der Zielerreichung.
+    Die Verlaufsdokumentation kann sich auf diese Ziele beziehen (📝-Doku in der Erfassung).</p>
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap">
+    {% if ist_leitung %}<a class="btn ghost" href="{% url 'nachweis:belegungsliste' %}">← Belegungsliste</a>
+    <a class="btn ghost" href="{% url 'nachweis:bewilligungen' klient.id %}">Bewilligungen</a>{% else %}
+    <a class="btn ghost" href="{% url 'nachweis:start' %}">← Mein Überblick</a>{% endif %}
+    <span class="muted" style="align-self:center">{{ n_aktiv }} aktive Ziel(e)</span>
+  </div>
+
+  {% for r in richtungsziele %}
+  <div class="rz">
+    <div class="rz-head">
+      <span class="zst {{ r.status }}">{{ r.get_status_display }}</span>
+      <h3>{{ r.titel }}</h3>
+      {% if r.gueltig_bis %}<span class="muted" style="font-size:12px">Zielhorizont {{ r.gueltig_bis|date:"d.m.Y" }}</span>{% endif %}
+      <span style="margin-left:auto" class="z-act">
+        <a class="btn ghost" href="?edit={{ r.id }}">Bearbeiten</a>
+      </span>
+    </div>
+    {% if r.beschreibung %}<div style="padding:8px 16px 0;font-size:13px;color:var(--muted)">{{ r.beschreibung|linebreaksbr }}</div>{% endif %}
+    {% for z in r.kinder %}
+    <div class="hz">
+      <span class="zst {{ z.status }}" style="margin-top:2px">{{ z.get_status_display }}</span>
+      <div class="zt">
+        <b>{{ z.titel }}</b>
+        {% if z.indikator %}<div class="ind">Indikator: {{ z.indikator }}</div>{% endif %}
+        {% if z.beschreibung %}<div class="ind">{{ z.beschreibung|truncatechars:160 }}</div>{% endif %}
+      </div>
+      <div class="verlauf">
+        {% if z.doku_anzahl %}<b>{{ z.doku_anzahl }}</b> Doku-Einträge<br>zuletzt {{ z.doku_zuletzt|date:"d.m.Y" }}
+        {% else %}<span class="warn">noch keine Doku</span>{% endif %}
+      </div>
+      <span class="z-act">
+        <a class="btn ghost" href="?edit={{ z.id }}">Bearbeiten</a>
+        {% if z.status == 'aktiv' %}
+        <form method="post" action="{% url 'nachweis:ziel_status' %}" style="display:inline">{% csrf_token %}
+          <input type="hidden" name="id" value="{{ z.id }}"><input type="hidden" name="status" value="erreicht">
+          <button class="btn ghost" style="color:var(--ok)" title="als erreicht markieren">✓ erreicht</button></form>
+        {% else %}
+        <form method="post" action="{% url 'nachweis:ziel_status' %}" style="display:inline">{% csrf_token %}
+          <input type="hidden" name="id" value="{{ z.id }}"><input type="hidden" name="status" value="aktiv">
+          <button class="btn ghost" title="wieder aktiv setzen">↻ aktiv</button></form>
+        {% endif %}
+        {% if ist_leitung %}
+        <form method="post" action="{% url 'nachweis:ziel_loeschen' %}" style="display:inline" onsubmit="return confirm('Ziel löschen? Fachlich korrekt ist meist der Status „nicht weiterverfolgt“.')">{% csrf_token %}
+          <input type="hidden" name="id" value="{{ z.id }}">
+          <button class="btn ghost" style="color:var(--bad)">✕</button></form>
+        {% endif %}
+      </span>
+    </div>
+    {% empty %}
+    <div class="hz muted" style="font-size:13px">Noch keine Handlungsziele zu diesem Richtungsziel.</div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  {% if freie_ziele %}
+  <div class="rz">
+    <div class="rz-head"><h3 class="muted" style="font-weight:600">Handlungsziele ohne Richtungsziel</h3></div>
+    {% for z in freie_ziele %}
+    <div class="hz">
+      <span class="zst {{ z.status }}" style="margin-top:2px">{{ z.get_status_display }}</span>
+      <div class="zt"><b>{{ z.titel }}</b>
+        {% if z.indikator %}<div class="ind">Indikator: {{ z.indikator }}</div>{% endif %}</div>
+      <div class="verlauf">{% if z.doku_anzahl %}<b>{{ z.doku_anzahl }}</b> Doku · zuletzt {{ z.doku_zuletzt|date:"d.m.Y" }}{% else %}<span class="warn">noch keine Doku</span>{% endif %}</div>
+      <span class="z-act"><a class="btn ghost" href="?edit={{ z.id }}">Bearbeiten</a></span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if not richtungsziele and not freie_ziele %}
+  <div class="panel"><div class="body" style="text-align:center;padding:26px" class="muted">
+    Noch keine Ziele vereinbart – unten das erste Richtungsziel anlegen.</div></div>
+  {% endif %}
+
+  <div class="panel" style="max-width:840px;margin-top:18px">
+    <div class="head"><h2>{% if bearbeiten %}Ziel bearbeiten{% else %}Neues Ziel{% endif %}</h2>
+      {% if bearbeiten %}<a class="btn ghost" href="{% url 'nachweis:ziele' klient.id %}">Abbrechen</a>{% endif %}</div>
+    <form method="post" action="{% url 'nachweis:ziel_speichern' %}">
+      {% csrf_token %}
+      <input type="hidden" name="klient" value="{{ klient.id }}">
+      {% if bearbeiten %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">{% endif %}
+      <div class="z-form">
+        <div class="full"><label class="fld">Ziel *</label><input type="text" name="titel" maxlength="200" value="{{ bearbeiten.titel|default:'' }}" required></div>
+        <div><label class="fld">Art</label>
+          <select name="art" id="z-art">{% for v,l in art_wahl %}<option value="{{ v }}" {% if bearbeiten.art == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+        <div><label class="fld">gehört zu (Richtungsziel)</label>
+          <select name="uebergeordnet"><option value="">—</option>
+            {% for r in richtungsziele %}<option value="{{ r.id }}" {% if bearbeiten.uebergeordnet_id == r.id %}selected{% endif %}>{{ r.titel|truncatechars:60 }}</option>{% endfor %}</select></div>
+        <div class="full"><label class="fld">Beschreibung / Handlungsschritte</label><textarea name="beschreibung">{{ bearbeiten.beschreibung|default:'' }}</textarea></div>
+        <div class="full"><label class="fld">Indikator der Zielerreichung <span class="muted" style="font-weight:400">(woran erkennen wir, dass es erreicht ist?)</span></label>
+          <textarea name="indikator">{{ bearbeiten.indikator|default:'' }}</textarea></div>
+        <div><label class="fld">vereinbart am</label><input type="date" name="gueltig_von" value="{{ bearbeiten.gueltig_von|date:'Y-m-d'|default:heute }}"></div>
+        <div><label class="fld">Zielhorizont</label><input type="date" name="gueltig_bis" value="{{ bearbeiten.gueltig_bis|date:'Y-m-d' }}"></div>
+        {% if bearbeiten %}
+        <div><label class="fld">Status</label>
+          <select name="status">{% for v,l in status_wahl %}<option value="{{ v }}" {% if bearbeiten.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+        <div><label class="fld">Reihenfolge</label><input type="number" name="reihenfolge" min="0" max="999" value="{{ bearbeiten.reihenfolge }}"></div>
+        {% endif %}
+        <div class="full" style="margin-top:4px">
+          <button class="btn" type="submit">Speichern</button>
+        </div>
+      </div>
+    </form>
+  </div>
+  <p class="note" style="max-width:840px">Grundlage: Ziel- und Leistungsplanung der Berliner EGH (§ 11 BRV, Gesamtplan §§ 117 ff. SGB IX).
+    Änderungen an Zielen sind versioniert; statt Löschen bitte den Status setzen (erreicht / angepasst / nicht weiterverfolgt).</p>
+{% endblock %}
