@@ -29,6 +29,20 @@ def _int(val, default):
         return default
 
 
+def ueber(request):
+    """Über diese App / Impressum – bewusst OHNE Login erreichbar (Impressumspflicht).
+    Betreiber-Angaben kommen aus den Rechnungssteller-Stammdaten der Instanz (DB) –
+    der Trägername steht damit nie im Code/Repo. Zeigt nur Kontaktdaten, keine Bankdaten."""
+    from .models import Rechnungssteller
+    s = Rechnungssteller.objects.first()
+    betreiber = None
+    if s and s.name:
+        betreiber = {"name": s.name, "strasse": s.strasse, "plz": s.plz, "ort": s.ort,
+                     "kontakt_name": s.kontakt_name, "kontakt_tel": s.kontakt_tel,
+                     "kontakt_mail": s.kontakt_mail}
+    return render(request, "nachweis/ueber.html", {"betreiber": betreiber, "jahr": date.today().year})
+
+
 def _jahr(request):
     return _int(request.GET.get("jahr"), date.today().year)
 

@@ -212,6 +212,12 @@
     /* Mobile: Sidebar als Off-Canvas-Drawer + Hamburger (app-weit) */
     .navtoggle{display:none;background:transparent;border:0;color:#fff;padding:6px;margin:0 6px 0 -2px;cursor:pointer}
     .navtoggle svg{width:24px;height:24px;fill:currentColor;display:block}
+    /* Zurück-Button: Browser-History innerhalb der App (z. B. Rechnung → Rechnungsliste) */
+    .backbtn{display:none;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);
+      border-radius:8px;color:#fff;padding:5px 7px;margin-right:10px;cursor:pointer;align-items:center}
+    .backbtn svg{width:18px;height:18px;fill:currentColor;display:block}
+    .backbtn:hover{background:rgba(255,255,255,.24)}
+    .backbtn.show{display:inline-flex}
     .nav-overlay{display:none;position:fixed;inset:58px 0 0 0;background:rgba(10,25,40,.42);z-index:25}
     @media(max-width:760px){
       .navtoggle{display:inline-flex;align-items:center}
@@ -305,6 +311,7 @@
 <body>
   <header class="top">
     <button type="button" class="navtoggle" id="navtoggle" aria-label="Menü" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M3 5h18v2H3zM3 11h18v2H3zM3 17h18v2H3z"/></svg></button>
+    <button type="button" class="backbtn" id="backBtn" aria-label="Zurück" title="Zurück (Alt+←)"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
     <div class="brand"><img class="logo" src="{% static 'nachweis/logo.svg' %}" alt=""> FEGH-Leistungsnachweis</div>
     {% if user.is_authenticated %}
     <div class="searchbar" id="searchbar">
@@ -400,6 +407,8 @@
       <div class="grp">Hilfe</div>
       <a href="{{ WIKI_URL }}" target="_blank" rel="noopener" title="Wiki / Handbuch (GitHub)">
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg></span> Wiki&nbsp;↗</a>
+      <a href="{% url 'nachweis:ueber' %}" class="{% if aktiv == 'ueber' %}active{% endif %}" title="Über diese App / Impressum">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></span> Über diese App</a>
     </nav>
     <main>
       {% block content %}{% endblock %}
@@ -419,6 +428,21 @@
     if(o) o.addEventListener('click', close);
     document.querySelectorAll('nav.side a').forEach(function(a){ a.addEventListener('click', close); });
     document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
+  })();
+  </script>
+
+  <script>
+  // Zurück-Button (Topbar): Browser-History innerhalb der App, z. B. Rechnung → Rechnungsliste.
+  // Erscheint nur, wenn die vorige Seite aus derselben App kam (same-origin Referrer) –
+  // so führt er nie aus der App heraus oder auf die Login-Seite zurück.
+  (function(){
+    var b = document.getElementById('backBtn');
+    if(!b) return;
+    var ref = document.referrer;
+    var same = ref && ref.indexOf(location.origin + '/') === 0;
+    var vonLogin = same && ref.indexOf('/login') !== -1;
+    if(same && !vonLogin && history.length > 1) b.classList.add('show');
+    b.addEventListener('click', function(){ history.back(); });
   })();
   </script>
 
