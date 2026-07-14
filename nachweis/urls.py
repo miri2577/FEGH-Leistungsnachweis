@@ -3,7 +3,7 @@ from django.urls import path
 
 from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse,
                views_abrechnung, views_feld, views_ziele, views_berichte,
-               views_controlling, views_belegung, views_qm)
+               views_controlling, views_belegung, views_qm, views_dienstplan)
 
 app_name = "nachweis"
 
@@ -87,6 +87,11 @@ urlpatterns = [
     path("vorkommnisse/", views_qm.vorkommnisse, name="vorkommnisse"),
     path("vorkommnisse/speichern/", views_qm.vorkommnis_speichern, name="vorkommnis_speichern"),
     path("vorkommnisse/status/", views_qm.vorkommnis_status, name="vorkommnis_status"),
+
+    # Dienstplanung (P5)
+    path("dienstplan/", views_dienstplan.dienstplan, name="dienstplan"),
+    path("dienstplan/setzen/", views_dienstplan.dienst_setzen, name="dienst_setzen"),
+    path("schichtarten/", views_dienstplan.schichtarten, name="schichtarten"),
     path("rechnungen/<int:pk>/zahlung/", views_abrechnung.zahlung_erfassen, name="zahlung_erfassen"),
     path("zahlung/loeschen/", views_abrechnung.zahlung_loeschen, name="zahlung_loeschen"),
     path("rechnungen/<int:pk>/mahnung/", views_abrechnung.mahnung_erstellen, name="mahnung_erstellen"),

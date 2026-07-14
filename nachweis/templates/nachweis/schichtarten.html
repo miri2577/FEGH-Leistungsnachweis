@@ -1,0 +1,59 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Schichtarten · FEGH{% endblock %}
+{% block extrastyle %}
+  .sa-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px 16px;padding:18px}
+  .sa-form input,.sa-form select{width:100%}
+  .sa-form .full{grid-column:1 / -1}
+  .chip{display:inline-block;width:26px;height:20px;border-radius:5px;color:#fff;text-align:center;font-weight:700;font-size:11px;line-height:20px}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Schichtarten</h1>
+  <p class="sub">Schichtmodelle als Stammdaten – Zeiten trägerindividuell anpassbar. Ende vor Beginn = Nachtschicht über Mitternacht.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div style="margin-bottom:12px"><a class="btn ghost" href="{% url 'nachweis:dienstplan' %}">← Dienstplan</a></div>
+
+  <div class="panel">
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Kürzel</th><th>Name</th><th>Zeit</th><th class="num">Std</th><th>Nacht?</th><th></th></tr></thead>
+        <tbody>
+          {% for sa in schichtarten %}
+          <tr>
+            <td><span class="chip" style="background:{{ sa.farbe }}">{{ sa.kuerzel }}</span></td>
+            <td><b>{{ sa.name }}</b>{% if not sa.aktiv %} <span class="muted">(inaktiv)</span>{% endif %}</td>
+            <td>{{ sa.beginn|time:"H:i" }}–{{ sa.ende|time:"H:i" }}</td>
+            <td class="num">{{ sa.dauer_stunden|floatformat:1 }}</td>
+            <td>{% if sa.ist_nachtdienst %}✓{% else %}—{% endif %}</td>
+            <td><a class="btn ghost" style="padding:4px 10px;font-size:12px" href="?edit={{ sa.id }}">Bearbeiten</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="muted" style="text-align:center;padding:16px">Keine Schichtarten.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" style="max-width:760px;margin-top:16px">
+    <div class="head"><h2>{% if bearbeiten %}Schichtart bearbeiten{% else %}Neue Schichtart{% endif %}</h2>
+      {% if bearbeiten %}<a class="btn ghost" href="{% url 'nachweis:schichtarten' %}">Abbrechen</a>{% endif %}</div>
+    <form method="post">
+      {% csrf_token %}
+      {% if bearbeiten %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">{% endif %}
+      <div class="sa-form">
+        <div><label class="fld">Name *</label><input type="text" name="name" maxlength="60" value="{{ bearbeiten.name|default:'' }}" required></div>
+        <div><label class="fld">Kürzel</label><input type="text" name="kuerzel" maxlength="3" value="{{ bearbeiten.kuerzel|default:'' }}"></div>
+        <div><label class="fld">Beginn *</label><input type="time" name="beginn" value="{{ bearbeiten.beginn|time:'H:i' }}" required></div>
+        <div><label class="fld">Ende *</label><input type="time" name="ende" value="{{ bearbeiten.ende|time:'H:i' }}" required></div>
+        <div><label class="fld">Farbe</label><input type="color" name="farbe" value="{{ bearbeiten.farbe|default:'#0e7490' }}" style="height:38px;padding:2px"></div>
+        <div class="full" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><input type="checkbox" name="ist_nachtdienst" style="width:auto" {% if bearbeiten.ist_nachtdienst %}checked{% endif %}> Nachtdienst (zählt für die Nachtbesetzung)</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><input type="checkbox" name="aktiv" style="width:auto" {% if bearbeiten.aktiv or not bearbeiten %}checked{% endif %}> aktiv</label>
+        </div>
+        <div class="full"><button class="btn" type="submit">Speichern</button></div>
+      </div>
+    </form>
+  </div>
+{% endblock %}

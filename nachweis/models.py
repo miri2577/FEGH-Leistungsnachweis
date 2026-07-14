@@ -1634,3 +1634,62 @@ class Vorkommnis(models.Model):
         return (self.kategorie in self.MELDEPFLICHTIG
                 and self.gemeldet_am is None
                 and self.status != VorkommnisStatus.ABGESCHLOSSEN)
+
+
+# ==========================================================================
+#  P5: Dienstplanung (Vivendi-PEP-Kern) — Schichtarten als Daten, Dienste je Tag
+# ==========================================================================
+class Schichtart(models.Model):
+    """Schicht als Stammdatum: Kürzel fürs Planraster, Zeiten (auch über Mitternacht),
+    Farbe. Trägerindividuelle Schichtmodelle = Datensätze, keine Programmierung."""
+    name = models.CharField(max_length=60, unique=True)
+    kuerzel = models.CharField(max_length=3)
+    beginn = models.TimeField()
+    ende = models.TimeField(help_text="vor `beginn` = Schicht über Mitternacht")
+    farbe = models.CharField(max_length=7, default="#0e7490",
+                             help_text="Hex-Farbe fürs Planraster")
+    ist_nachtdienst = models.BooleanField(default=False,
+                                          help_text="zählt für die Nachtbesetzungs-Prüfung")
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Schichtart"
+        verbose_name_plural = "Schichtarten"
+        ordering = ["beginn", "name"]
+
+    def __str__(self):
+        return f"{self.kuerzel} – {self.name}"
+
+    @property
+    def dauer_stunden(self) -> Decimal:
+        """Dauer in Stunden; ende < beginn = über Mitternacht."""
+        b = self.beginn.hour * 60 + self.beginn.minute
+        e = self.ende.hour * 60 + self.ende.minute
+        minuten = e - b if e > b else (24 * 60 - b) + e
+        return (Decimal(minuten) / 60).quantize(Q3, ROUND_HALF_UP)
+
+
+class Dienst(models.Model):
+    """Geplanter Dienst: Mitarbeiter*in × Tag × Schichtart (optional je Angebot).
+    Der Plan ist SOLL — das Ist bleibt die Arbeitszeit-Erfassung."""
+    mitarbeiter = models.ForeignKey(Mitarbeiter, on_delete=models.CASCADE,
+                                    related_name="dienste")
+    datum = models.DateField()
+    schichtart = models.ForeignKey(Schichtart, on_delete=models.PROTECT,
+                                   related_name="dienste")
+    angebot = models.ForeignKey(Angebot, on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name="dienste")
+    notiz = models.CharField(max_length=120, blank=True)
+    erstellt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Dienst"
+        verbose_name_plural = "Dienste"
+        ordering = ["datum"]
+        constraints = [models.UniqueConstraint(
+            fields=["mitarbeiter", "datum", "schichtart"],
+            name="ein_dienst_je_ma_tag_schicht")]
+        indexes = [models.Index(fields=["datum"])]
+
+    def __str__(self):
+        return f"{self.mitarbeiter} · {self.datum} · {self.schichtart.kuerzel}"
