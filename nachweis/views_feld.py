@@ -95,6 +95,13 @@ def feld_speichern(request):
         beginn=beginn, ende=ende, termin=termin,
         taetigkeit=(request.POST.get("taetigkeit") or "").strip()[:120],
         dokumentation=(request.POST.get("dokumentation") or "").strip())
+    # Optionale Unterschrift (Canvas-PNG als Data-URL) – quittiert den Besuch auf dem
+    # Gerät. Strikt validiert: nur PNG-Data-URL, max. ~200 KB (gegen Missbrauch als Speicher).
+    sig = (request.POST.get("unterschrift") or "").strip()
+    if sig.startswith("data:image/png;base64,") and len(sig) <= 200_000:
+        leistung.unterschrift = sig
+        leistung.unterschrieben_am = timezone.now()
+        leistung.save(update_fields=["unterschrift", "unterschrieben_am"])
     # 2) Die Doku-Zeit als SEPARATER WFS-Eintrag, direkt im Anschluss (Default 15 Min).
     doku_min = max(0, _int(request.POST.get("doku_minuten"), 15))
     extra = ""

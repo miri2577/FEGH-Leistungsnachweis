@@ -784,7 +784,8 @@ def druck_nachweis(klient, jahr: int, monat: int):
     for l in klient.leistungen.filter(datum__year=jahr, datum__month=monat).exclude(auto=True):
         eintraege.append({
             "datum": l.datum, "leistungsart": l.leistungsart, "bezeichnung": l.taetigkeit,
-            "beginn": l.beginn, "ende": l.ende, "stunden": l.dauer_stunden, "auto": False})
+            "beginn": l.beginn, "ende": l.ende, "stunden": l.dauer_stunden, "auto": False,
+            "unterschrift": l.unterschrift})   # mobile Quittierung (falls eingeholt)
 
     for g in klient.gruppen.filter(datum__year=jahr, datum__month=monat):
         eintraege.append({

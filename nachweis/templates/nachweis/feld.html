@@ -92,6 +92,21 @@
       <textarea name="dokumentation" placeholder="Verlauf des Besuchs …"></textarea></label>
     <label>Doku-Zeit als separater WFS-Eintrag
       <input type="number" name="doku_minuten" value="15" min="0" max="240" step="5"> <span class="hint" style="font-weight:400">Minuten · 0 = keine</span></label>
+
+    <!-- Mobile Unterschrift (optional): quittiert den Besuch direkt auf dem Gerät -->
+    <details id="sig-box" style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:4px 0">
+      <summary style="cursor:pointer;font-weight:600;font-size:14px">✍️ Unterschrift einholen (optional)</summary>
+      <p class="hint" style="margin:8px 0 6px;font-weight:400">Klient*in bzw. Sorgeberechtigte unterschreiben mit dem Finger –
+        die Unterschrift wird am Besuch gespeichert und erscheint auf dem Nachweis.</p>
+      <canvas id="sig-pad" width="600" height="180"
+        style="width:100%;height:150px;border:1px dashed var(--border);border-radius:8px;background:#fff;touch-action:none;display:block"></canvas>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="btn ghost" type="button" id="sig-clear" style="font-size:13px;padding:5px 12px">Löschen</button>
+        <span class="hint" id="sig-state" style="align-self:center;font-weight:400">noch leer</span>
+      </div>
+      <input type="hidden" name="unterschrift" id="sig-data">
+    </details>
+
     <button class="btn-big" type="submit">Besuch speichern</button>
     <p class="hint">Wird sofort als Leistung(en) im Leistungsnachweis sichtbar. Es werden keine Daten auf dem Gerät gespeichert.</p>
   </form>
@@ -129,5 +144,41 @@
   // Klient*in von Hand geändert -> Termin-Bezug passt nicht mehr, leeren.
   var ksel = document.querySelector('#feldform [name=klient]');
   if(ksel) ksel.addEventListener('change', function(){ document.getElementById('fld-termin').value = ''; });
+
+  // --- Unterschrift-Pad (Canvas, Touch + Maus, ohne Bibliothek) ---
+  (function(){
+    var pad = document.getElementById('sig-pad');
+    if(!pad) return;
+    var ctx = pad.getContext('2d'), zeichnet = false, leer = true;
+    ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#16212c';
+    function pos(e){
+      var r = pad.getBoundingClientRect();
+      var p = (e.touches && e.touches[0]) || e;
+      return { x: (p.clientX - r.left) * (pad.width / r.width),
+               y: (p.clientY - r.top) * (pad.height / r.height) };
+    }
+    function start(e){ zeichnet = true; var p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); }
+    function move(e){
+      if(!zeichnet) return;
+      var p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); leer = false;
+      document.getElementById('sig-state').textContent = 'Unterschrift wird beim Speichern übernommen';
+      e.preventDefault();
+    }
+    function end(){
+      zeichnet = false;
+      // beim Loslassen direkt ins Hidden-Feld übernehmen (kein Extra-Klick nötig)
+      document.getElementById('sig-data').value = leer ? '' : pad.toDataURL('image/png');
+    }
+    pad.addEventListener('mousedown', start); pad.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    pad.addEventListener('touchstart', start, {passive:false});
+    pad.addEventListener('touchmove', move, {passive:false});
+    pad.addEventListener('touchend', end);
+    document.getElementById('sig-clear').addEventListener('click', function(){
+      ctx.clearRect(0, 0, pad.width, pad.height); leer = true;
+      document.getElementById('sig-data').value = '';
+      document.getElementById('sig-state').textContent = 'noch leer';
+    });
+  })();
 </script>
 {% endblock %}

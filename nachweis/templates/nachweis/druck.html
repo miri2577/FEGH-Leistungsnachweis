@@ -79,7 +79,8 @@
     <h3 style="font-size:14px;margin:22px 0 6px">Einzelnachweis der Leistungen</h3>
     <table class="doc">
       <thead><tr><th style="width:92px">Datum</th><th style="width:60px">Art</th><th>Bezeichnung</th>
-        <th style="width:60px">Beginn</th><th style="width:60px">Ende</th><th class="num" style="width:80px">Std</th></tr></thead>
+        <th style="width:60px">Beginn</th><th style="width:60px">Ende</th><th class="num" style="width:80px">Std</th>
+        <th style="width:105px" title="mobil eingeholte Quittierung">Unterschrift</th></tr></thead>
       <tbody>
         {% for e in daten.eintraege %}
         <tr>
@@ -89,9 +90,10 @@
           <td>{{ e.beginn|time:"H:i"|default:"—" }}</td>
           <td>{{ e.ende|time:"H:i"|default:"—" }}</td>
           <td class="num">{{ e.stunden|floatformat:2 }}</td>
+          <td style="text-align:center">{% if e.unterschrift %}<img src="{{ e.unterschrift }}" alt="unterschrieben" style="max-height:26px;max-width:95px">{% endif %}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="6" style="text-align:center;color:#697786">Keine Einträge in diesem Monat.</td></tr>
+        <tr><td colspan="7" style="text-align:center;color:#697786">Keine Einträge in diesem Monat.</td></tr>
         {% endfor %}
       </tbody>
     </table>

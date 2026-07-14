@@ -222,7 +222,7 @@ AUDITLOG_INCLUDE_TRACKING_MODELS = (
     # Auditlog gespeichert (Datenminimierung, ISO A.8.11). exclude_fields hält den Inhalt
     # aus auditlog_logentry heraus; die Timeline-Wiederherstellung lässt diese Felder dann
     # unangetastet (kein Überschreiben mit Log-Werten). Wer/Wann/Was-Trail bleibt erhalten.
-    {"model": "nachweis.Leistung", "exclude_fields": ["dokumentation", "notiz"]},
+    {"model": "nachweis.Leistung", "exclude_fields": ["dokumentation", "notiz", "unterschrift"]},
     {"model": "nachweis.Klient", "exclude_fields": ["kommentar"]},
     {"model": "nachweis.Termin", "exclude_fields": ["notiz"]},
     {"model": "nachweis.Abwesenheit", "exclude_fields": ["kommentar"]},

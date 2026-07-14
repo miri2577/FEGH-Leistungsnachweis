@@ -276,6 +276,11 @@ class Leistung(models.Model):
     # Zielbezug der Verlaufsdoku (Phase 2/ZLP): auf welche vereinbarten Ziele bezieht
     # sich dieser Eintrag? Optional – Doku ohne Zielbezug bleibt möglich.
     ziele = models.ManyToManyField("Ziel", blank=True, related_name="leistungen")
+    # Mobile Unterschrift (Phase 3): Klient*in/Sorgeberechtigte quittieren den Besuch
+    # direkt auf dem Gerät (Unterwegs-Modus). PNG als Data-URL; v. a. für Kostenträger,
+    # die gegengezeichnete Stundennachweise verlangen (z. B. Jugendämter bezirksabhängig).
+    unterschrift = models.TextField(blank=True, editable=False)
+    unterschrieben_am = models.DateTimeField(null=True, blank=True)
     # Ursprungs-Termin (nur bei Doku über den Unterwegs-Modus) – macht sichtbar,
     # welche Kalender-Termine bereits dokumentiert sind (Erinnerung an offene).
     termin = models.ForeignKey("Termin", on_delete=models.SET_NULL, null=True, blank=True,
