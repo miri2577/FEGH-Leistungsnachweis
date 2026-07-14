@@ -196,10 +196,13 @@ def rechnung_neu(request):
 
 
 def _positionen(r):
-    """Reduzierte Positions-Projektion (nur Abrechnungsdaten, § 18-Struktur)."""
+    """Reduzierte Positions-Projektion (nur Abrechnungsdaten, § 18-Struktur).
+    Tagessatz-Positionen (M3) tragen art/tage/verguetet statt der FLS-Spalten."""
     return [{"name": p.klient.name, "az": p.klient.person_id,
              "soll": p.soll_fls, "einzeln": p.fls_einzeln, "gruppe": p.fls_gruppe,
              "fls": p.fls_summe, "kle": p.kle_summe, "vorschuss": p.vorschuss,
+             "art": p.abrechnungsart, "tage": p.belegungstage,
+             "verguetet": p.verguetet_tage,
              "betrag": p.betrag}
             for p in r.positionen.select_related("klient")]
 

@@ -42,9 +42,14 @@
     <tbody>
       {% for p in positionen %}
       <tr><td>{{ p.name }}</td><td>{{ p.az|default:"—" }}</td>
+        {% if p.art == 'tagessatz' %}
+        <td colspan="5" style="color:#555">Tagessatz-Abrechnung: {{ p.tage }} Belegungstag(e) · {{ p.verguetet|floatformat:1 }} vergütet</td>
+        {% else %}
         <td class="num">{{ p.soll|floatformat:2 }}</td><td class="num">{{ p.einzeln|floatformat:2 }}</td>
         <td class="num">{{ p.gruppe|floatformat:2 }}</td><td class="num">{{ p.kle|floatformat:2 }}</td>
-        <td class="num">{{ p.vorschuss|floatformat:2 }} €</td><td class="num">{{ p.betrag|floatformat:2 }} €</td></tr>
+        <td class="num">{{ p.vorschuss|floatformat:2 }} €</td>
+        {% endif %}
+        <td class="num">{{ p.betrag|floatformat:2 }} €</td></tr>
       {% empty %}<tr><td colspan="8" style="text-align:center">Keine Positionen.</td></tr>{% endfor %}
       <tr class="sum"><td colspan="7">Gesamtbetrag</td><td class="num">{{ r.betrag|floatformat:2 }} €</td></tr>
     </tbody>

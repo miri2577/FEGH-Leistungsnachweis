@@ -281,6 +281,82 @@ class BelegungViewTests(BelegungBasis):
         self.assertEqual(self.client.get(reverse("nachweis:angebote")).status_code, 403)
 
 
+class TagessatzAbrechnungTests(BelegungBasis):
+    """M3: Tagessatz-Monate laufen durch Monatsfreigabe -> Rechnung."""
+
+    def setUp(self):
+        super().setUp()
+        from . import services
+        p = services.get_parameter(2026)
+        p.fls_preis = Decimal("45.4568")
+        p.save()
+
+    def test_tagessatz_monat_service(self):
+        from . import services_belegung
+        self._belegung(einzug=date(2026, 6, 1))
+        ts = services_belegung.tagessatz_monat(self.k, 2026, 6)
+        self.assertIsNotNone(ts)
+        self.assertEqual(ts["belegungstage"], 30)
+        self.assertEqual(ts["betrag"], Decimal("4500.00"))      # 30 × 150
+
+    def test_fls_klient_bleibt_fls(self):
+        """Regression: Klient OHNE Tagessatz-Belegung läuft unverändert über FLS+kLE."""
+        from . import services, services_belegung
+        k2 = Klient.objects.create(nachname="Ambulant", team=self.team,
+                                   bezugsbetreuer=self.betr, status=Status.BETREUUNG)
+        self.assertIsNone(services_belegung.tagessatz_monat(k2, 2026, 6))
+        zeile = services.abrechnungsuebersicht(
+            Klient.objects.filter(pk=k2.pk), 2026, 6)[0]
+        self.assertEqual(zeile["art"], "fls")
+
+    def test_uebersicht_zeigt_tagessatz(self):
+        from . import services
+        self._belegung(einzug=date(2026, 6, 1))
+        zeile = services.abrechnungsuebersicht(
+            Klient.objects.filter(pk=self.k.pk), 2026, 6)[0]
+        self.assertEqual(zeile["art"], "tagessatz")
+        self.assertEqual(zeile["tage"], 30)
+        self.assertEqual(zeile["betrag"], Decimal("4500.00"))
+        self.assertFalse(zeile["ueber_kontingent"])             # FLS-Plausi greift nicht
+
+    def test_snapshot_und_rechnung(self):
+        """End-to-End: fertig melden -> freigeben -> Rechnung mit Tagessatz-Position."""
+        from . import services
+        from .models import Monatsfreigabe, Freigabestatus, Rechnungstyp
+        self._belegung(einzug=date(2026, 6, 1))
+        mf = Monatsfreigabe.objects.create(klient=self.k, jahr=2026, monat=6)
+        services.freigabe_snapshot(mf)
+        mf.status = Freigabestatus.FREIGEGEBEN
+        mf.save()
+        self.assertEqual(mf.abrechnungsart, "tagessatz")
+        self.assertEqual(mf.belegungstage, 30)
+        self.assertEqual(mf.betrag, Decimal("4500.00"))
+        self.assertEqual(mf.fls_summe, Decimal("0"))
+        r = services.rechnung_erstellen([mf], "Jugendamt Test", 2026, 6,
+                                        date(2026, 7, 1), None)
+        self.assertEqual(r.betrag, Decimal("4500.00"))
+        mf.refresh_from_db()
+        self.assertEqual(mf.status, Freigabestatus.ABGERECHNET)
+        # Positions-Projektion trägt die Tagessatz-Kennzeichnung
+        from .views_abrechnung import _positionen
+        pos = _positionen(r)[0]
+        self.assertEqual(pos["art"], "tagessatz")
+        self.assertEqual(pos["tage"], 30)
+
+    def test_snapshot_mit_abwesenheit(self):
+        from . import services
+        from .models import Monatsfreigabe
+        b = self._belegung(einzug=date(2026, 6, 1))
+        ent = AbwesenheitsartKlient.objects.get(kuerzel="ENT")   # 14 Tage Grenze
+        KlientAbwesenheit.objects.create(belegung=b, art=ent,
+                                         von=date(2026, 6, 1), bis=date(2026, 6, 20))
+        mf = Monatsfreigabe.objects.create(klient=self.k, jahr=2026, monat=6)
+        services.freigabe_snapshot(mf)
+        # 14 vergütete Abwesenheitstage + 10 Anwesenheit = 24 × 150 = 3600
+        self.assertEqual(mf.verguetet_tage, Decimal("24.00"))
+        self.assertEqual(mf.betrag, Decimal("3600.00"))
+
+
 class AbwesenheitsartenDefaultTests(TestCase):
     def test_regeln_aus_migration(self):
         arten = {a.name: a for a in AbwesenheitsartKlient.objects.all()}

@@ -126,6 +126,37 @@ def satz_fuer_belegung(belegung, stichtag):
     return services.entgeltsatz_fuer(katalog, kostentraeger=kt, stichtag=stichtag)
 
 
+def tagessatz_monat(klient, jahr: int, monat: int):
+    """M3: Tagessatz-Abrechnung eines Klienten für den Monat — None, wenn der Monat
+    NICHT über Tagessätze läuft (dann gilt der bisherige FLS+kLE-Weg). Trigger ist
+    eine Belegung im Monat, deren aufgelöster Katalog nach Tagen abrechnet.
+    Rückgabe: {betrag, belegungstage, verguetet, teile:[(belegung, kalender), …]}."""
+    from .models import Abrechnungseinheit
+    n_tage = monthrange(jahr, monat)[1]
+    monatsanfang, monatsende = date(jahr, monat, 1), date(jahr, monat, n_tage)
+    belegungen = (klient.belegungen.select_related("angebot__katalog")
+                  .filter(einzug__lte=monatsende)
+                  .exclude(auszug__lt=monatsanfang))
+    teile, betrag = [], Decimal("0")
+    tage_gesamt, verguetet = 0, Decimal("0")
+    for b in belegungen:
+        satz = satz_fuer_belegung(b, monatsende)
+        katalog = (satz.katalog if satz else b.angebot.katalog)
+        if katalog is None or katalog.einheit not in (Abrechnungseinheit.TAGESSATZ,
+                                                      Abrechnungseinheit.OEFFNUNGSTAG):
+            continue
+        kal = monatskalender(b, jahr, monat, satz=satz)
+        teile.append((b, kal))
+        tage_gesamt += kal["summen"]["belegt"]
+        verguetet += kal["summen"]["verguetet_aequiv"]
+        betrag += kal["betrag"] if kal["betrag"] is not None else Decimal("0")
+    if not teile:
+        return None
+    return {"betrag": betrag.quantize(E2, ROUND_HALF_UP), "belegungstage": tage_gesamt,
+            "verguetet": verguetet, "teile": teile,
+            "ohne_satz": any(k["betrag"] is None for _b, k in teile)}
+
+
 def melde_warnungen(belegungen, stichtag=None):
     """Abwesenheiten, deren Meldefrist überschritten und die nicht gemeldet sind
     (BRV Jug: Meldung ans Jugendamt ab dem 4. Abwesenheitstag; BAO: sofort)."""

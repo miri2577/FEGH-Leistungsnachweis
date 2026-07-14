@@ -50,12 +50,13 @@
         <td>
           <a href="{% url 'nachweis:druck' %}?klient={{ z.klient.id }}&monat={{ monat }}&jahr={{ jahr }}" title="Einzelnachweis ansehen">{{ z.klient.name }}</a>
           {% if z.status == 'offen' and z.hinweis %}<div class="hint-back">↩ zurückgewiesen: {{ z.hinweis }}</div>{% endif %}
+          {% if z.art == 'tagessatz' %}<div style="font-size:11.5px;color:var(--brand-d);margin-top:2px" title="Abrechnung über den Belegungskalender (Tage × Entgeltsatz)">📅 Tagessatz · {{ z.tage }} Belegungstag(e), {{ z.verguetet|floatformat:1 }} vergütet</div>{% endif %}
           {% if z.ohne_bewilligung %}<div style="font-size:11.5px;color:var(--bad);margin-top:2px" title="Keine gültige Kostenzusage – Abrechnung nicht rechtssicher">⚠ keine aktive Bewilligung</div>{% endif %}
           {% if z.ueber_kontingent %}<div style="font-size:11.5px;color:var(--warn);margin-top:2px" title="Dokumentierte FLS über dem bewilligten Kontingent – über den Bescheid nicht abrechenbar">⚠ Ist {{ z.fls|floatformat:2 }} über Kontingent {{ z.soll|floatformat:2 }}</div>{% endif %}
         </td>
         <td>{{ z.betreuer.name|default:"—" }}</td>
-        <td class="num">{{ z.fls|floatformat:2 }}</td>
-        <td class="num">{{ z.kle|floatformat:2 }}</td>
+        <td class="num">{% if z.art == 'tagessatz' %}<span class="muted">—</span>{% else %}{{ z.fls|floatformat:2 }}{% endif %}</td>
+        <td class="num">{% if z.art == 'tagessatz' %}<span class="muted">—</span>{% else %}{{ z.kle|floatformat:2 }}{% endif %}</td>
         <td class="num">{{ z.betrag|floatformat:2 }} €</td>
         <td>
           {% if z.status == 'offen' %}<span class="st st-offen">offen</span>

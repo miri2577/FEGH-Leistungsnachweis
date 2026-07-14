@@ -993,6 +993,13 @@ class Monatsfreigabe(models.Model):
                                     help_text="(Soll-FLS + Ø-kLE/Monat) × FLS-Satz (§ 18 Abs. 2)")
     kle_summe = models.DecimalField("Σ kLE (festgeschrieben, Std)", max_digits=8, decimal_places=3, default=0,
                                     help_text="kLE je Tag × Kalendertage des Monats (pauschal, § 18 Abs. 1 b)")
+    # M3: Abrechnungsart des Monats. 'fls' = Berliner BEW (FLS+kLE, wie bisher);
+    # 'tagessatz' = (teil-)stationär über den Belegungskalender (Tage × Entgeltsatz).
+    abrechnungsart = models.CharField(max_length=12, default="fls",
+                                      choices=[("fls", "FLS + kLE"), ("tagessatz", "Tagessatz")])
+    belegungstage = models.PositiveSmallIntegerField("Belegungstage (festgeschrieben)", default=0)
+    verguetet_tage = models.DecimalField("vergütete Tage (Äquivalent)", max_digits=6,
+                                         decimal_places=2, default=0)
     betrag = models.DecimalField("Betrag € (festgeschrieben)", max_digits=12, decimal_places=2, default=0)
     hinweis = models.CharField("Hinweis (Rückweisung)", max_length=255, blank=True)
     eingereicht_am = models.DateTimeField(null=True, blank=True)

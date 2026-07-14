@@ -172,7 +172,11 @@ def build_ubl(rechnung) -> bytes:
         _sub(line, CBC, "InvoicedQuantity", "1", unitCode="C62")        # BT-129/130 (C62 = Stück)
         _sub(line, CBC, "LineExtensionAmount", _q2(betrag), currencyID="EUR")  # BT-131
         item = _sub(line, CAC, "Item")
-        bez = f"Eingliederungshilfe {rechnung.monat:02d}/{rechnung.jahr}"
+        if getattr(p, "abrechnungsart", "fls") == "tagessatz":
+            bez = (f"Betreuung (Tagessatz) {rechnung.monat:02d}/{rechnung.jahr} · "
+                   f"{p.belegungstage} Belegungstag(e)")
+        else:
+            bez = f"Eingliederungshilfe {rechnung.monat:02d}/{rechnung.jahr}"
         if p.klient.person_id:
             bez += f" · Az {p.klient.person_id}"                        # Fall-Referenz (Kostenträger-Sicht)
         _sub(item, CBC, "Name", bez)                                    # BT-153

@@ -955,9 +955,21 @@ def vorschuss_monat(klient, jahr: int) -> Decimal:
 
 
 def freigabe_snapshot(mf) -> None:
-    """Monatswerte festschreiben (beim Einreichen/Freigeben) – § 18-Struktur:
-    Ist-FLS (einzeln/Gruppe), Soll nach Bescheid, kLE-Pauschale, Vorschuss, Betrag.
-    kLE = Tagespauschale × Kalendertage (nur für Klient*innen in Betreuung)."""
+    """Monatswerte festschreiben (beim Einreichen/Freigeben).
+    Tagessatz-Monate (M3, Belegungskalender) schreiben Tage × Entgeltsatz fest;
+    sonst die § 18-Struktur des Berliner BEW: Ist-FLS (einzeln/Gruppe), Soll nach
+    Bescheid, kLE-Pauschale (× Kalendertage, nur in Betreuung), Vorschuss, Betrag."""
+    from . import services_belegung
+    ts = services_belegung.tagessatz_monat(mf.klient, mf.jahr, mf.monat)
+    if ts is not None:
+        mf.abrechnungsart = "tagessatz"
+        mf.belegungstage = ts["belegungstage"]
+        mf.verguetet_tage = ts["verguetet"].quantize(E2, ROUND_HALF_UP)
+        mf.betrag = ts["betrag"]
+        mf.fls_einzeln = mf.fls_gruppe = mf.fls_summe = Decimal("0")
+        mf.soll_fls = mf.kle_summe = mf.vorschuss = Decimal("0")
+        return
+    mf.abrechnungsart = "fls"
     mf.fls_einzeln, mf.fls_gruppe = fls_ist_split(mf.klient, mf.jahr, mf.monat)
     mf.fls_summe = mf.fls_einzeln + mf.fls_gruppe
     mf.soll_fls = mf.klient.al or Decimal("0")
@@ -971,6 +983,7 @@ def abrechnungsuebersicht(klienten, jahr: int, monat: int):
     """Zeilen für die Freigabe-Übersicht (MA/Leitung): je Klient*in FLS, kLE, Betrag,
     Status. Für offene Monate live berechnet, ab 'eingereicht' die festgeschriebenen
     Werte. kLE = Tagespauschale × Kalendertage (Senats-Systematik)."""
+    from . import services_belegung
     fmap = freigaben_map(klienten, jahr, monat)
     preis = fls_preis(jahr)
     kle_pauschale = kle_monat_stunden(jahr, monat)
@@ -978,21 +991,31 @@ def abrechnungsuebersicht(klienten, jahr: int, monat: int):
     zeilen = []
     for k in klienten.select_related("bezugsbetreuer"):
         mf = fmap.get(k.id)
+        art, tage, verguetet = "fls", 0, Decimal("0")
         if mf and mf.status != Freigabestatus.OFFEN:
             fls, kle, betrag = mf.fls_summe, mf.kle_summe, mf.betrag
             soll = mf.soll_fls or (k.al or Decimal("0"))
+            art, tage, verguetet = mf.abrechnungsart, mf.belegungstage, mf.verguetet_tage
         else:
-            fls = druck_nachweis(k, jahr, monat)["fls_summe"]
-            kle = kle_pauschale if k.status == Status.BETREUUNG else Decimal("0")
-            betrag = ((fls + kle) * preis).quantize(E2, ROUND_HALF_UP)
-            soll = k.al or Decimal("0")
-        # Kontingent-Plausibilität (Slice 1b, nicht-blockierend): Ist über bewilligtem
-        # Kontingent (nicht abrechenbar über den Bescheid) bzw. gar keine aktive Bewilligung.
+            # M3: Monate mit Tagessatz-Belegung laufen über den Belegungskalender –
+            # sonst der bisherige Berliner FLS+kLE-Weg (unverändert).
+            ts = services_belegung.tagessatz_monat(k, jahr, monat)
+            if ts is not None:
+                art, tage, verguetet = "tagessatz", ts["belegungstage"], ts["verguetet"]
+                fls, kle = Decimal("0"), Decimal("0")
+                betrag, soll = ts["betrag"], Decimal("0")
+            else:
+                fls = druck_nachweis(k, jahr, monat)["fls_summe"]
+                kle = kle_pauschale if k.status == Status.BETREUUNG else Decimal("0")
+                betrag = ((fls + kle) * preis).quantize(E2, ROUND_HALF_UP)
+                soll = k.al or Decimal("0")
+        # Kontingent-Plausibilität (Slice 1b, nicht-blockierend, nur FLS-Weg)
         ohne_bew = k.aktive_bewilligung() is None
-        ueber = bool(soll) and (Decimal(fls) > Decimal(soll) + TOL)
+        ueber = art == "fls" and bool(soll) and (Decimal(fls) > Decimal(soll) + TOL)
         zeilen.append({
             "klient": k, "betreuer": k.bezugsbetreuer, "fls": fls, "kle": kle,
             "betrag": betrag, "soll": soll,
+            "art": art, "tage": tage, "verguetet": verguetet,
             "ueber_kontingent": ueber, "ohne_bewilligung": ohne_bew,
             "status": mf.status if mf else Freigabestatus.OFFEN,
             "mf": mf, "hinweis": mf.hinweis if mf else "",
