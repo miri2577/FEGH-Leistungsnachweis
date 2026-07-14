@@ -21,6 +21,7 @@
   <div class="fa-subnav">
     <a href="{% url 'nachweis:ziele' klient.id %}">Ziele (ZLP)</a>
     <a class="on" href="{% url 'nachweis:wirkung' klient.id %}">Wirkung</a>
+    <a href="{% url 'nachweis:bedarf' klient.id %}">Bedarf (ICF/TIB)</a>
   </div>
   <p class="sub" style="margin-top:0">Wirkungsdimensionen nach dem Berliner Fachkonzept: Ist-/Soll-Einstufung auf der 7er-Skala
     (<b>1 = keine/geringe Problemstellung … 7 = sehr stark erhöhte</b> — niedriger ist besser),

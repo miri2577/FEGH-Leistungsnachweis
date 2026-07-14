@@ -1,0 +1,79 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Bedarf (ICF/TIB) · {{ klient.name }} · FEGH{% endblock %}
+{% block extrastyle %}
+  .lb-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+  .lb-card.rel{border-left:4px solid var(--brand)}
+  .lb-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .lb-head .icf{font-size:11px;font-weight:700;color:var(--muted);background:var(--bg-2);border-radius:6px;padding:1px 7px}
+  .lb-head h3{margin:0;font-size:15px}
+  .lb-head label.rel{margin-left:auto;font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
+  .lb-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  .lb-grid .full{grid-column:1/-1}
+  .lb-grid label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);font-weight:600}
+  .lb-grid textarea{min-height:56px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13.5px;resize:vertical}
+  .lb-grid input,.lb-grid select{padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13.5px}
+  @media(max-width:700px){.lb-grid{grid-template-columns:1fr}}
+{% endblock %}
+{% block content %}
+  {% include "nachweis/_fallakte_kopf.html" with fa_tab="teilhabe" %}
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div class="fa-subnav">
+    <a href="{% url 'nachweis:ziele' klient.id %}">Ziele (ZLP)</a>
+    <a href="{% url 'nachweis:wirkung' klient.id %}">Wirkung</a>
+    <a class="on" href="{% url 'nachweis:bedarf' klient.id %}">Bedarf (ICF/TIB)</a>
+  </div>
+  <p class="sub" style="margin-top:0">ICF-Bedarfsermittlung nach dem Teilhabeinstrument Berlin (TIB, § 118 SGB IX):
+    je Lebensbereich vier narrative Leitfragen (Ressourcen/Förderfaktoren · Barrieren · personbezogene Faktoren)
+    und die Teilhabe-Einschätzung. Bewusst ohne Punkte-Skala. Grundlage für die Ziel- und Leistungsplanung.</p>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+    <form method="get" style="display:flex;gap:8px;align-items:center">
+      {% if erhebungen %}<label class="muted" style="font-size:12.5px">Erhebung
+        <select name="erhebung" onchange="this.form.submit()" style="margin-left:6px;padding:6px 9px;border:1px solid var(--border);border-radius:8px">
+          {% for b in erhebungen %}<option value="{{ b.id }}" {% if aktuell.id == b.id %}selected{% endif %}>{{ b.datum|date:"d.m.Y" }} · {{ b.get_anlass_display }}</option>{% endfor %}
+        </select></label>{% endif %}
+    </form>
+    <form method="post" action="{% url 'nachweis:bedarf_neu' %}" style="display:flex;gap:6px;align-items:center">
+      {% csrf_token %}<input type="hidden" name="klient" value="{{ klient.id }}">
+      <input type="date" name="datum" value="{{ heute }}" style="padding:6px 9px;border:1px solid var(--border);border-radius:8px">
+      <select name="anlass" style="padding:6px 9px;border:1px solid var(--border);border-radius:8px">
+        {% for v, l in anlass_wahl %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+      <button class="btn ghost" type="submit">+ Neue Erhebung</button>
+    </form>
+    {% if ist_leitung and aktuell %}
+    <form method="post" action="{% url 'nachweis:bedarf_loeschen' %}" onsubmit="return confirm('Diese Erhebung löschen?')">
+      {% csrf_token %}<input type="hidden" name="erhebung" value="{{ aktuell.id }}">
+      <button class="btn ghost" style="color:var(--bad)" type="submit">Erhebung löschen</button></form>
+    {% endif %}
+  </div>
+
+  {% if not aktuell %}
+  <div class="panel"><div class="body" style="padding:22px;text-align:center" class="muted">
+    Noch keine Bedarfsermittlung. Oben eine <b>Erst-Bedarfsermittlung</b> anlegen.
+  </div></div>
+  {% else %}
+  <form method="post" action="{% url 'nachweis:bedarf_speichern' %}">
+    {% csrf_token %}<input type="hidden" name="erhebung" value="{{ aktuell.id }}">
+    {% for z in zeilen %}
+    <div class="lb-card{% if z.e.relevant %} rel{% endif %}">
+      <div class="lb-head">
+        <span class="icf">{{ z.lb.icf_code }}</span>
+        <h3>{{ z.lb.name }}</h3>
+        <label class="rel"><input type="checkbox" name="lb_{{ z.lb.id }}_relevant" {% if z.e.relevant %}checked{% endif %}> relevant</label>
+      </div>
+      <div class="lb-grid">
+        <label>Ressourcen &amp; Förderfaktoren<textarea name="lb_{{ z.lb.id }}_gelingt">{{ z.e.gelingt }}</textarea></label>
+        <label>Barrieren / was nicht gelingt<textarea name="lb_{{ z.lb.id }}_barrieren">{{ z.e.barrieren }}</textarea></label>
+        <label class="full">Personbezogene Faktoren / weiteres<textarea name="lb_{{ z.lb.id }}_person">{{ z.e.personfaktoren }}</textarea></label>
+        <label>Teilhabe-Einschätzung
+          <select name="lb_{{ z.lb.id }}_status">{% for v, l in status_wahl %}<option value="{{ v }}" {% if z.e.teilhabe_status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></label>
+        <label>Unterstützungsbedarf (Art/Umfang, vorläufig)<input type="text" name="lb_{{ z.lb.id }}_unterst" maxlength="255" value="{{ z.e.unterstuetzung }}"></label>
+      </div>
+    </div>
+    {% endfor %}
+    <div style="position:sticky;bottom:0;background:var(--bg);padding:10px 0"><button class="btn" type="submit">Speichern</button></div>
+  </form>
+  {% endif %}
+{% endblock %}

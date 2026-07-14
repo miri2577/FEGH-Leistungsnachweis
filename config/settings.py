@@ -261,6 +261,10 @@ AUDITLOG_INCLUDE_TRACKING_MODELS = (
     {"model": "nachweis.Wohnkostenvereinbarung", "exclude_fields": ["notiz"]},
     "nachweis.Wohnkostenposition",
     {"model": "nachweis.SelbstzahlerRechnung", "exclude_fields": ["notiz"]},
+    "nachweis.TibLebensbereich",
+    {"model": "nachweis.Bedarfsermittlung", "exclude_fields": ["notiz"]},
+    {"model": "nachweis.BedarfsEinschaetzung",
+     "exclude_fields": ["gelingt", "barrieren", "personfaktoren", "unterstuetzung"]},
 )
 
 # =====================================================================

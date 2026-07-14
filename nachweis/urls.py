@@ -4,7 +4,8 @@ from django.urls import path
 from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse,
                views_abrechnung, views_feld, views_ziele, views_berichte,
                views_controlling, views_belegung, views_qm, views_dienstplan,
-               views_dokumente, views_loeschfristen, views_fallakte, views_wohnkosten)
+               views_dokumente, views_loeschfristen, views_fallakte, views_wohnkosten,
+               views_bedarf)
 
 app_name = "nachweis"
 
@@ -30,6 +31,12 @@ urlpatterns = [
     path("ziele/status/", views_ziele.ziel_status, name="ziel_status"),
     path("ziele/loeschen/", views_ziele.ziel_loeschen, name="ziel_loeschen"),
     path("api/ziele/", views_ziele.api_ziele, name="api_ziele"),
+
+    # ICF-Bedarfsermittlung (Teilhabeinstrument Berlin, TIB)
+    path("bedarf/<int:pk>/", views_bedarf.bedarf, name="bedarf"),
+    path("bedarf/neu/", views_bedarf.bedarf_neu, name="bedarf_neu"),
+    path("bedarf/speichern/", views_bedarf.bedarf_speichern, name="bedarf_speichern"),
+    path("bedarf/loeschen/", views_bedarf.bedarf_loeschen, name="bedarf_loeschen"),
 
     # Wirkungsmessung (Berliner Wirkungsdimensionen, Ist/Soll 7er-Skala)
     path("wirkung/<int:pk>/", views_ziele.wirkung, name="wirkung"),

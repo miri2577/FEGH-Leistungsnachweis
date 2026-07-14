@@ -32,6 +32,7 @@
   <div class="fa-subnav">
     <a class="on" href="{% url 'nachweis:ziele' klient.id %}">Ziele (ZLP)</a>
     <a href="{% url 'nachweis:wirkung' klient.id %}">Wirkung</a>
+    <a href="{% url 'nachweis:bedarf' klient.id %}">Bedarf (ICF/TIB)</a>
     <span class="muted" style="align-self:center;margin-left:auto">{{ n_aktiv }} aktive Ziel(e)</span>
   </div>
   <p class="sub" style="margin-top:0">Ziel- und Leistungsplanung (ZLP): Leitziele mit Teilhabezielen und Indikatoren der Zielerreichung.

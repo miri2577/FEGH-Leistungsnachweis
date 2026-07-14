@@ -2074,3 +2074,93 @@ class SelbstzahlerPosition(models.Model):
 
     def __str__(self):
         return f"{self.bezeichnung}: {self.betrag} €"
+
+
+# ==========================================================================
+#  ICF-Bedarfsermittlung (Teilhabeinstrument Berlin, TIB — § 118 SGB IX).
+#  BEWUSST OHNE numerische Skala: das TIB ist narrativ-dialogisch. Je
+#  Lebensbereich (12 Berliner, aus den 9 ICF-Domänen d1–d9) vier Freitext-
+#  Leitfragen (Ressourcen/Förderfaktoren, Barrieren, personbezogene Faktoren)
+#  + kategoriale Teilhabe-Einschätzung. Erhebungen sind versioniert
+#  (Erst-/Folge-Bedarfsermittlung). Ergebnis speist die ZLP (Teilhabeziele).
+#  Hinweis: Das TIB füllt eigentlich der Teilhabefachdienst im Bezirksamt aus;
+#  hier dient es der fachlichen Teilhabe-Ausgangslage des Leistungserbringers.
+# ==========================================================================
+class TibLebensbereich(models.Model):
+    """Einer der 12 Berliner Lebensbereiche (ICF-Aktivitäten/Teilhabe d1–d9).
+    Als Stammdatum per Migration; eigene ergänzbar."""
+    name = models.CharField(max_length=120, unique=True)
+    icf_code = models.CharField("ICF-Domäne", max_length=6, blank=True)
+    reihenfolge = models.PositiveSmallIntegerField(default=0)
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "TIB-Lebensbereich"
+        verbose_name_plural = "TIB-Lebensbereiche"
+        ordering = ["reihenfolge", "name"]
+
+    def __str__(self):
+        return f"{self.icf_code} {self.name}".strip()
+
+
+class TibAnlass(models.TextChoices):
+    ERST = "erst", "Erst-Bedarfsermittlung"
+    FORTSCHREIBUNG = "fortschreibung", "Folge-Bedarfsermittlung (Fortschreibung)"
+
+
+class Bedarfsermittlung(models.Model):
+    """Eine (versionierte) ICF-Bedarfsermittlung je Klient*in – Erst- oder Folge-
+    erhebung. Bündelt die Einschätzungen je Lebensbereich zu einem Stichtag."""
+    klient = models.ForeignKey(Klient, on_delete=models.CASCADE, related_name="bedarfsermittlungen")
+    anlass = models.CharField(max_length=16, choices=TibAnlass.choices, default=TibAnlass.ERST)
+    datum = models.DateField()
+    erhoben_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="+")
+    notiz = models.CharField(max_length=200, blank=True)
+    erstellt = models.DateTimeField(auto_now_add=True)
+    history = HistoricalRecords(excluded_fields=["notiz"])
+
+    class Meta:
+        verbose_name = "Bedarfsermittlung (ICF/TIB)"
+        verbose_name_plural = "Bedarfsermittlungen (ICF/TIB)"
+        ordering = ["-datum", "-id"]
+
+    def __str__(self):
+        return f"Bedarfsermittlung {self.klient} · {self.datum}"
+
+
+class TeilhabeStatus(models.TextChoices):
+    OFFEN = "offen", "noch offen"
+    LIEGT_VOR = "liegt_vor", "Beeinträchtigung liegt vor"
+    DROHT = "droht", "Beeinträchtigung droht"
+    KEINE = "keine", "keine Beeinträchtigung"
+
+
+class BedarfsEinschaetzung(models.Model):
+    """Einschätzung eines Lebensbereichs innerhalb einer Bedarfsermittlung. Die vier
+    TIB-Leitfragen als Freitext + kategoriale Teilhabe-Einschätzung + (vorläufiger)
+    Unterstützungshinweis für die ZLP. Die Freitexte sind Art-9-Daten (History-exkl.)."""
+    bedarfsermittlung = models.ForeignKey(Bedarfsermittlung, on_delete=models.CASCADE,
+                                          related_name="einschaetzungen")
+    lebensbereich = models.ForeignKey(TibLebensbereich, on_delete=models.PROTECT,
+                                      related_name="einschaetzungen")
+    relevant = models.BooleanField("für diesen Fall relevant", default=False)
+    gelingt = models.TextField("Was gelingt / Ressourcen & Förderfaktoren", blank=True)
+    barrieren = models.TextField("Was nicht gelingt / Barrieren", blank=True)
+    personfaktoren = models.TextField("Personbezogene Faktoren / weiteres", blank=True)
+    teilhabe_status = models.CharField(max_length=12, choices=TeilhabeStatus.choices,
+                                       default=TeilhabeStatus.OFFEN)
+    unterstuetzung = models.CharField("Unterstützungsbedarf (Art/Umfang, vorläufig)",
+                                      max_length=255, blank=True)
+    history = HistoricalRecords(excluded_fields=["gelingt", "barrieren", "personfaktoren"])
+
+    class Meta:
+        verbose_name = "Bedarfs-Einschätzung"
+        verbose_name_plural = "Bedarfs-Einschätzungen"
+        ordering = ["lebensbereich__reihenfolge"]
+        constraints = [models.UniqueConstraint(
+            fields=["bedarfsermittlung", "lebensbereich"],
+            name="ein_lebensbereich_je_bedarfsermittlung")]
+
+    def __str__(self):
+        return f"{self.lebensbereich} · {self.get_teilhabe_status_display()}"
