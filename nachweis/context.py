@@ -25,6 +25,18 @@ def globale(request):
         abr_offen = Monatsfreigabe.objects.filter(
             status=Freigabestatus.EINGEREICHT,
             klient__team__in=services.teams_fuer(request.user)).count()
+    # Offene meldepflichtige Vorkommnisse (Meldung noch nicht dokumentiert) – rotes
+    # Signal im Nav (WTG: unverzüglich melden). Scoping wie die Vorkommnis-Seite:
+    # Leitung = Team, sonst selbst erfasste; Verwaltung/Admin sehen keine.
+    vork_meldung = 0
+    if me and not services.ohne_klientenarbeit(request.user):
+        from .models import Vorkommnis, VorkommnisStatus
+        q = (Vorkommnis.objects
+             .filter(kategorie__in=Vorkommnis.MELDEPFLICHTIG, gemeldet_am__isnull=True)
+             .exclude(status=VorkommnisStatus.ABGESCHLOSSEN))
+        q = (q.filter(team__in=services.teams_fuer(request.user)) if ist_leitung
+             else q.filter(erstellt_von=me))
+        vork_meldung = q.count()
     return {
         "WIKI_URL": getattr(settings, "WIKI_URL", ""),
         "nav_me": me,
@@ -33,6 +45,7 @@ def globale(request):
         "nav_ist_verwaltung": bool(me and me.ist_verwaltung),
         "nav_az_offen": az_offen,
         "nav_abr_offen": abr_offen,
+        "nav_vork_meldung": vork_meldung,
         "nav_hat_kasse": services.kassen_fuer(request.user).exists(),
         "IDLE_TIMEOUT_SEC": getattr(settings, "SESSION_IDLE_TIMEOUT", 0),
     }

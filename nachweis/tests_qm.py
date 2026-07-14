@@ -35,6 +35,22 @@ class VorkommnisTests(QMBasis):
         daten.update(extra)
         return client_obj.post(reverse("nachweis:vorkommnis_speichern"), daten)
 
+    def test_nav_badge_meldepflichtig(self):
+        """Roter Nav-Badge: meldepflichtiges Vorkommnis ohne dokumentierte Meldung."""
+        self.client.force_login(self.lu)
+        # noch nichts -> kein Badge
+        self.assertEqual(self.client.get(reverse("nachweis:start")).context["nav_vork_meldung"], 0)
+        v = Vorkommnis.objects.create(datum=date.today(), kategorie="gewalt", team=self.team,
+                                      beschreibung="x", erstellt_von=self.ma)
+        self.assertEqual(self.client.get(reverse("nachweis:start")).context["nav_vork_meldung"], 1)
+        # Meldung dokumentiert -> Badge weg
+        v.gemeldet_am = date.today(); v.gemeldet_an = "WTG-Aufsicht"; v.save()
+        self.assertEqual(self.client.get(reverse("nachweis:start")).context["nav_vork_meldung"], 0)
+        # nicht meldepflichtige Kategorie zählt nicht
+        Vorkommnis.objects.create(datum=date.today(), kategorie="beschwerde", team=self.team,
+                                  beschreibung="y", erstellt_von=self.ma)
+        self.assertEqual(self.client.get(reverse("nachweis:start")).context["nav_vork_meldung"], 0)
+
     def test_ma_erfasst_und_sieht_eigene(self):
         self.client.force_login(self.mu)
         resp = self._melden(self.client)
