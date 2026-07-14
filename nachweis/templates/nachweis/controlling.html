@@ -1,0 +1,96 @@
+{% extends "nachweis/base.html" %}
+{% load static %}
+{% block title %}Controlling · FEGH{% endblock %}
+{% block extrahead %}<script src="{% static 'nachweis/vendor/chartjs/chart.umd.min.js' %}"></script>{% endblock %}
+{% block extrastyle %}
+  .chartwrap{position:relative;height:280px}
+  .fun{display:flex;gap:10px;flex-wrap:wrap}
+  .fun .step{flex:1;min-width:120px;background:var(--bg-2,#f6f9fb);border:1px solid var(--border);
+    border-radius:10px;padding:10px 14px;text-align:center}
+  .fun .step .n{font-size:22px;font-weight:750;color:var(--brand-d)}
+  .fun .step.warn .n{color:var(--warn)}
+  .fun .step .l{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .quote-badge{display:inline-block;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:700}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Controlling {{ jahr }}</h1>
+  <p class="sub">Kennzahlen für Leitung und Verwaltung – nur Aggregate, keine Klientendaten.</p>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+    <form method="get" class="filter" style="display:flex;gap:8px">
+      <input type="number" name="jahr" value="{{ jahr }}" style="width:90px" title="Jahr">
+      <select name="monat" title="Monat für den Freigabe-Funnel">{% for m in monate %}<option value="{{ m }}" {% if m == monat %}selected{% endif %}>{{ m }}</option>{% endfor %}</select>
+      <button class="btn" type="submit">Anzeigen</button>
+    </form>
+    <a class="btn ghost" href="{% url 'nachweis:controlling_csv' %}?jahr={{ jahr }}">CSV-Export</a>
+  </div>
+
+  <div class="cards" style="margin-bottom:14px">
+    <div class="kpi"><div class="n">{{ summe_fakturiert|floatformat:0 }} €</div><div class="l">fakturiert {{ jahr }}</div></div>
+    <div class="kpi"><div class="n">{{ summe_eingang|floatformat:0 }} €</div><div class="l">Zahlungseingang {{ jahr }}</div></div>
+    <div class="kpi {% if op.n_ueberfaellig %}k-orange{% endif %}"><div class="n">{{ op.summe|floatformat:0 }} €</div>
+      <div class="l">offene Posten ({{ op.anzahl }}){% if op.n_ueberfaellig %} · {{ op.ueberfaellig|floatformat:0 }} € überfällig{% endif %}</div></div>
+    <div class="kpi {% if fristen.bew_fehlt or fristen.berichte_ueberfaellig %}k-orange{% endif %}">
+      <div class="n">{{ fristen.bew_fehlt|add:fristen.berichte_ueberfaellig }}</div>
+      <div class="l">kritische Fristen<br>{{ fristen.bew_fehlt }} ohne Bewilligung · {{ fristen.berichte_ueberfaellig }} Berichte überfällig</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="head"><h2>Erlöse je Monat</h2><span class="muted">fakturiert (Rechnungen inkl. Gutschriften) vs. Zahlungseingang</span></div>
+    <div class="body" style="padding:16px 18px"><div class="chartwrap"><canvas id="c-erloese"></canvas></div></div>
+  </div>
+
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-top:16px">
+    <div class="panel" style="flex:1 1 420px">
+      <div class="head"><h2>FLS-Erbringungsquote je Team</h2><span class="muted">Ist vs. Jahres-Kontingent</span></div>
+      <div class="body">
+        <table class="grid">
+          <thead><tr><th>Team</th><th class="num">Klient*innen</th><th class="num">Kontingent (Std/Jahr)</th><th class="num">Ist</th><th class="num">Quote</th></tr></thead>
+          <tbody>
+            {% for t in teams %}
+            <tr><td><b>{{ t.team }}</b></td>
+              <td class="num">{{ t.n_klienten }}</td>
+              <td class="num">{{ t.kontingent|floatformat:0 }}</td>
+              <td class="num">{{ t.ist|floatformat:0 }}</td>
+              <td class="num"><span class="quote-badge {% if t.quote > 105 %}b-bad{% elif t.quote >= 85 %}b-ok{% else %}b-warn{% endif %}"
+                style="{% if t.quote > 105 %}background:var(--badbg);color:var(--bad){% elif t.quote >= 85 %}background:var(--okbg);color:var(--ok){% else %}background:var(--warnbg);color:var(--warn){% endif %}">{{ t.quote }} %</span></td></tr>
+            {% empty %}
+            <tr><td colspan="5" class="muted" style="text-align:center;padding:16px">Keine Teams mit Klient*innen.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="note">Unter 85 % = Erlösrisiko (Erbringungsfiktion greift nur bei organisatorischem Versagen NICHT –
+          dokumentierte Minderleistung fällt bei der Jahres-Spitzabrechnung auf) · über 105 % = über Kontingent (nicht abrechenbar).</p>
+      </div>
+    </div>
+
+    <div class="panel" style="flex:1 1 380px">
+      <div class="head"><h2>Abrechnungs-Funnel {{ monat }}/{{ jahr }}</h2><span class="muted">Monatsnachweise nach Status</span></div>
+      <div class="body" style="padding:14px 16px">
+        <div class="fun">
+          {% for s in funnel %}
+          <div class="step {% if s.warn %}warn{% endif %}"><div class="n">{{ s.n }}</div><div class="l">{{ s.label }}</div></div>
+          {% endfor %}
+        </div>
+        <p class="note" style="margin-top:10px">Fristen gesamt: {{ fristen.bew_auslaufend }} Bewilligung(en) laufen aus ·
+          {{ fristen.berichte_faellig }} Entwicklungsbericht(e) im 10-Wochen-Fenster.</p>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block extrajs %}
+{{ chart|json_script:"ctr-data" }}
+<script>
+  const D = JSON.parse(document.getElementById('ctr-data').textContent);
+  new Chart(document.getElementById('c-erloese'), {
+    type: 'bar',
+    data: { labels: D.labels, datasets: [
+      { label: 'fakturiert €', data: D.fakturiert, backgroundColor: 'rgba(14,116,144,.75)', borderRadius: 4 },
+      { label: 'Zahlungseingang €', data: D.eingang, backgroundColor: 'rgba(217,119,6,.65)', borderRadius: 4 },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } },
+      scales: { y: { beginAtZero: true } } }
+  });
+</script>
+{% endblock %}

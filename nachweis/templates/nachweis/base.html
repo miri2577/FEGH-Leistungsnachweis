@@ -342,6 +342,10 @@
       <a href="{% url 'nachweis:dashboard' %}" class="{% if aktiv == 'dashboard' %}active{% endif %}">
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M4 9h4v11H4zM10 4h4v16h-4zM16 13h4v7h-4z"/></svg></span> Fachleistungsstunden</a>
       {% endif %}
+      {% if nav_ist_leitung or nav_ist_verwaltung %}
+      <a href="{% url 'nachweis:controlling' %}" class="{% if aktiv == 'controlling' %}active{% endif %}">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4L22 7.92 20.59 6.5l-7.09 8-4-4L2 18l1.5.5z"/></svg></span> Controlling</a>
+      {% endif %}
       {% if not nav_ist_admin and not nav_ist_verwaltung %}
       <div class="grp">Erfassung</div>
       <a href="{% url 'nachweis:feld_heute' %}" class="{% if aktiv == 'feld' %}active{% endif %}">

@@ -2,13 +2,16 @@ from django.contrib.auth import views as auth_views
 from django.urls import path
 
 from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse,
-               views_abrechnung, views_feld, views_ziele, views_berichte)
+               views_abrechnung, views_feld, views_ziele, views_berichte,
+               views_controlling)
 
 app_name = "nachweis"
 
 urlpatterns = [
     path("", views.mein_ueberblick, name="start"),
     path("fachleistungsstunden/", views.dashboard, name="dashboard"),
+    path("controlling/", views_controlling.controlling, name="controlling"),
+    path("controlling/csv/", views_controlling.controlling_csv, name="controlling_csv"),
     path("erfassung/", views.erfassung, name="erfassung"),
     path("druck/", views.druck, name="druck"),
     path("druck/pdf/", views.druck_pdf, name="druck_pdf"),
