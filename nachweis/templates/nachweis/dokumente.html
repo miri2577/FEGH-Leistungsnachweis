@@ -27,7 +27,7 @@
         <tbody>
           {% for d in dokumente %}
           <tr>
-            <td><a href="{% url 'nachweis:dokument_download' d.id %}"><b>{{ d.name }}</b></a>
+            <td><a href="{% url 'nachweis:dokument_ansicht' d.id %}"><b>{{ d.name }}</b></a>
               {% if d.notiz %}<div class="muted" style="font-size:12px">{{ d.notiz }}</div>{% endif %}</td>
             <td><span class="kat {{ d.kategorie }}">{{ d.get_kategorie_display }}</span></td>
             <td class="muted">{% if d.bewilligung %}{{ d.bewilligung.aktenzeichen|default:"Bewilligung" }}
@@ -36,6 +36,7 @@
             <td class="muted">{{ d.hochgeladen_am|date:"d.m.y H:i" }}{% if d.hochgeladen_von %} · {{ d.hochgeladen_von.kuerzel|default:d.hochgeladen_von.name }}{% endif %}</td>
             <td>
               <span style="display:flex;gap:6px">
+                {% if d.vorschau_typ %}<a class="btn ghost" style="padding:3px 9px;font-size:12px" href="{% url 'nachweis:dokument_ansicht' d.id %}">👁 Ansehen</a>{% endif %}
                 <a class="btn ghost" style="padding:3px 9px;font-size:12px" href="{% url 'nachweis:dokument_download' d.id %}">↓ Download</a>
                 {% if d.darf_loeschen %}
                 <form method="post" action="{% url 'nachweis:dokument_loeschen' %}" onsubmit="return confirm('Dokument löschen?')">{% csrf_token %}

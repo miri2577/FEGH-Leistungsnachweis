@@ -1858,6 +1858,30 @@ class Dokument(models.Model):
     def __str__(self):
         return f"{self.name} ({self.klient})"
 
+    # Endung -> (Vorschau-Typ für die Inline-Ansicht, MIME-Typ fürs Ausliefern).
+    # Office-Formate haben keine Browser-Vorschau (nur Download).
+    VORSCHAU = {
+        ".pdf": ("pdf", "application/pdf"),
+        ".png": ("bild", "image/png"),
+        ".jpg": ("bild", "image/jpeg"), ".jpeg": ("bild", "image/jpeg"),
+        ".txt": ("text", "text/plain; charset=utf-8"),
+    }
+
+    @property
+    def endung(self) -> str:
+        return os.path.splitext(self.datei.name)[1].lower()
+
+    @property
+    def vorschau_typ(self):
+        """'pdf' | 'bild' | 'text' für die Inline-Ansicht, sonst None (nur Download)."""
+        v = self.VORSCHAU.get(self.endung)
+        return v[0] if v else None
+
+    @property
+    def mime(self) -> str:
+        v = self.VORSCHAU.get(self.endung)
+        return v[1] if v else "application/octet-stream"
+
     @property
     def groesse_anzeige(self) -> str:
         kb = self.groesse / 1024

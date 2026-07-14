@@ -93,20 +93,57 @@ def dokument_hochladen(request):
     return redirect("nachweis:dokumente", pk=klient.pk)
 
 
-@login_required
-def dokument_download(request, pk):
-    d = get_object_or_404(Dokument.objects.filter(
-        klient__in=services.klienten_fuer(request.user)), pk=pk)
+def _saubere_datei(d, request, *, inline):
+    """FileResponse für ein Dokument (Download oder Inline). Team-Scoping über die
+    Query. Setzt bewusst den erwarteten MIME-Typ + nosniff (kein Content-Sniffing)."""
     try:
         handle = d.datei.open("rb")
     except (FileNotFoundError, ValueError):
         raise Http404("Datei nicht mehr vorhanden.")
-    # Download-Name aus dem Anzeigenamen, auf sichere Zeichen reduziert; die
-    # Original-Endung der gespeicherten Datei bleibt maßgeblich.
     ext = os.path.splitext(d.datei.name)[1]
     stamm = "".join(c for c in os.path.splitext(d.name)[0]
                     if c.isalnum() or c in "._- ")[:80].strip() or "dokument"
-    return FileResponse(handle, as_attachment=True, filename=f"{stamm}{ext}")
+    resp = FileResponse(handle, as_attachment=not inline, filename=f"{stamm}{ext}",
+                        content_type=d.mime if inline else None)
+    # Content-Sniffing verhindern (Datei wird nur als der deklarierte Typ interpretiert)
+    resp["X-Content-Type-Options"] = "nosniff"
+    if inline:
+        # Eigene CSP für die Inline-Datei: die globale Policy setzt frame-ancestors 'none'
+        # (blockte das Einbetten ins eigene iframe). Hier: nur die eigene Origin darf
+        # framen, die Datei selbst lädt nichts nach. Middleware überschreibt nicht,
+        # wenn der Header bereits gesetzt ist.
+        resp["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'self'"
+    return resp
+
+
+@login_required
+def dokument_download(request, pk):
+    d = get_object_or_404(Dokument.objects.filter(
+        klient__in=services.klienten_fuer(request.user)), pk=pk)
+    return _saubere_datei(d, request, inline=False)
+
+
+@login_required
+def dokument_inline(request, pk):
+    """Liefert die Datei zur Inline-Anzeige (Content-Disposition: inline) – Quelle
+    für iframe/img in der Ansichtsseite. Nur vorschaubare Typen (PDF/Bild/Text)."""
+    d = get_object_or_404(Dokument.objects.filter(
+        klient__in=services.klienten_fuer(request.user)), pk=pk)
+    if not d.vorschau_typ:
+        raise Http404("Für diesen Dateityp gibt es keine Inline-Vorschau.")
+    return _saubere_datei(d, request, inline=True)
+
+
+@login_required
+def dokument_ansicht(request, pk):
+    """Ansichtsseite: bettet PDF (iframe), Bild (img) oder Text (iframe) direkt in
+    die App ein; Office-Formate bekommen einen Download-Hinweis."""
+    d = get_object_or_404(Dokument.objects.select_related("klient").filter(
+        klient__in=services.klienten_fuer(request.user)), pk=pk)
+    return render(request, "nachweis/dokument_ansicht.html", {
+        "aktiv": "belegungsliste" if services.ist_leitung(request.user) else "start",
+        "dok": d, "klient": d.klient,
+    })
 
 
 @require_POST

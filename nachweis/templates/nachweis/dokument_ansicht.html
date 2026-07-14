@@ -1,0 +1,44 @@
+{% extends "nachweis/base.html" %}
+{% block title %}{{ dok.name }} · Dokument · FEGH{% endblock %}
+{% block extrastyle %}
+  .dv-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .dv-bar h1{margin:0;font-size:19px}
+  .dv-meta{font-size:12.5px;color:var(--muted)}
+  .dv-stage{background:#333a42;border:1px solid var(--border);border-radius:12px;overflow:hidden;
+    display:flex;justify-content:center;align-items:flex-start;min-height:60vh}
+  .dv-stage iframe{width:100%;height:82vh;border:0;background:#fff}
+  .dv-stage img{max-width:100%;height:auto;display:block;background:#fff}
+  .dv-fallback{background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:34px;text-align:center;color:var(--muted);line-height:1.6}
+  .dv-fallback .ico{font-size:44px;display:block;margin-bottom:10px}
+{% endblock %}
+{% block content %}
+  {% include "nachweis/_fallakte_kopf.html" with fa_tab="dokumente" %}
+
+  <div class="dv-bar">
+    <a class="btn ghost" href="{% url 'nachweis:dokumente' klient.id %}">← Dokumente</a>
+    <div>
+      <h1>{{ dok.name }}</h1>
+      <div class="dv-meta">{{ dok.get_kategorie_display }} · {{ dok.groesse_anzeige }} ·
+        abgelegt {{ dok.hochgeladen_am|date:"d.m.Y" }}{% if dok.hochgeladen_von %} · {{ dok.hochgeladen_von.kuerzel|default:dok.hochgeladen_von.name }}{% endif %}</div>
+    </div>
+    <a class="btn" style="margin-left:auto" href="{% url 'nachweis:dokument_download' dok.id %}">↓ Herunterladen</a>
+  </div>
+
+  {% if dok.vorschau_typ == 'pdf' or dok.vorschau_typ == 'text' %}
+  <div class="dv-stage">
+    <iframe src="{% url 'nachweis:dokument_inline' dok.id %}" title="{{ dok.name }}"></iframe>
+  </div>
+  {% elif dok.vorschau_typ == 'bild' %}
+  <div class="dv-stage">
+    <img src="{% url 'nachweis:dokument_inline' dok.id %}" alt="{{ dok.name }}">
+  </div>
+  {% else %}
+  <div class="dv-fallback">
+    <span class="ico">📄</span>
+    <p>Für <b>{{ dok.endung }}</b>-Dateien gibt es keine Vorschau im Browser.<br>
+      Bitte das Dokument herunterladen und lokal öffnen.</p>
+    <a class="btn" href="{% url 'nachweis:dokument_download' dok.id %}" style="margin-top:8px">↓ Herunterladen</a>
+  </div>
+  {% endif %}
+{% endblock %}

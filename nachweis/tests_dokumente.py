@@ -83,6 +83,57 @@ class DokumenteTests(TestCase):
         self.assertEqual(self.client.get(
             reverse("nachweis:dokument_download", args=[d.id])).status_code, 404)
 
+    def test_inline_pdf_eingebettet(self):
+        self._upload(_pdf(), name="Bescheid")
+        d = Dokument.objects.get()
+        self.assertEqual(d.vorschau_typ, "pdf")
+        r = self.client.get(reverse("nachweis:dokument_inline", args=[d.id]))
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("inline", r["Content-Disposition"])         # kein attachment
+        self.assertEqual(r["Content-Type"], "application/pdf")
+        self.assertEqual(r["X-Content-Type-Options"], "nosniff")
+        # eigene CSP erlaubt Einbetten ins app-eigene iframe (global wäre frame-ancestors 'none')
+        self.assertIn("frame-ancestors 'self'", r["Content-Security-Policy"])
+
+    def test_ansicht_pdf_zeigt_iframe(self):
+        self._upload(_pdf())
+        d = Dokument.objects.get()
+        r = self.client.get(reverse("nachweis:dokument_ansicht", args=[d.id]))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "<iframe")
+
+    def test_bild_inline_und_ansicht(self):
+        png = SimpleUploadedFile("foto.png", b"\x89PNG\r\n\x1a\n abc", content_type="image/png")
+        self._upload(png, kategorie="sonstig")
+        d = Dokument.objects.get()
+        self.assertEqual(d.vorschau_typ, "bild")
+        self.assertEqual(self.client.get(
+            reverse("nachweis:dokument_inline", args=[d.id]))["Content-Type"], "image/png")
+        self.assertContains(self.client.get(
+            reverse("nachweis:dokument_ansicht", args=[d.id])), "<img")
+
+    def test_office_keine_inline_vorschau(self):
+        self._upload(SimpleUploadedFile("brief.docx", b"PK\x03\x04 docx"))
+        d = Dokument.objects.get()
+        self.assertIsNone(d.vorschau_typ)
+        self.assertEqual(self.client.get(
+            reverse("nachweis:dokument_inline", args=[d.id])).status_code, 404)
+        self.assertContains(self.client.get(
+            reverse("nachweis:dokument_ansicht", args=[d.id])), "keine Vorschau")
+
+    def test_inline_fremdes_team_404(self):
+        self._upload(_pdf())
+        d = Dokument.objects.get()
+        fu = User.objects.create_user("fremd2", password="x")
+        Mitarbeiter.objects.create(user=fu, name="F", rolle=Rolle.USER,
+                                   team=Team.objects.create(name="Y", typ=Teamtyp.values[0]),
+                                   kuerzel="f2")
+        self.client.force_login(fu)
+        self.assertEqual(self.client.get(
+            reverse("nachweis:dokument_inline", args=[d.id])).status_code, 404)
+        self.assertEqual(self.client.get(
+            reverse("nachweis:dokument_ansicht", args=[d.id])).status_code, 404)
+
     def test_loeschen_nur_leitung_oder_uploader(self):
         self._upload(_pdf())
         d = Dokument.objects.get()

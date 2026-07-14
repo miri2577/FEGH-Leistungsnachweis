@@ -45,6 +45,8 @@ urlpatterns = [
     path("dokumente/<int:pk>/", views_dokumente.dokumente, name="dokumente"),
     path("dokumente/hochladen/", views_dokumente.dokument_hochladen, name="dokument_hochladen"),
     path("dokument/<int:pk>/download/", views_dokumente.dokument_download, name="dokument_download"),
+    path("dokument/<int:pk>/inline/", views_dokumente.dokument_inline, name="dokument_inline"),
+    path("dokument/<int:pk>/ansehen/", views_dokumente.dokument_ansicht, name="dokument_ansicht"),
     path("dokumente/loeschen/", views_dokumente.dokument_loeschen, name="dokument_loeschen"),
 
     # Berichte (Phase 2)
