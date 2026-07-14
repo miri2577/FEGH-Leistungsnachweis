@@ -199,7 +199,7 @@
           <td class="maz">{{ row.m.name }}{% if row.m.vorname %}, {{ row.m.vorname }}{% endif %}{% if row.ich %} <span class="muted" style="font-weight:400">(ich)</span>{% endif %}</td>
           {% for z in row.zellen %}
           <td class="day {% if z.we %}we{% endif %}"{% if row.ich or kann_alle %} data-datum="{{ z.datum|date:'Y-m-d' }}" data-drop="1" data-ma="{{ row.m.id }}"{% endif %}>
-            {% for t in z.termine %}{% if row.ich or kann_alle %}<a class="ev" draggable="true" data-termin="{{ t.id }}" data-ma="{{ row.m.id }}" style="background:{{ t.farbe }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form" title="{{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}{% if t.ort %} · {{ t.ort }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</a>{% else %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.zeit }}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endif %}{% endfor %}
+            {% for t in z.termine %}{% if row.ich or kann_alle %}<a class="ev" draggable="true" data-termin="{{ t.id }}" data-ma="{{ row.m.id }}" style="background:{{ t.farbe }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form" title="{{ t.zeit }} · {{ t.voll_anzeige }}{% if t.ort %} · {{ t.ort }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</a>{% else %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.zeit }} · {{ t.voll_anzeige }}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endif %}{% endfor %}
             {% if row.ich or kann_alle %}<a class="addcell" href="?{{ nav_self }}{{ filter_qs }}&tag={{ z.datum|date:'Y-m-d' }}&ma={{ row.m.id }}#form" title="Termin eintragen">＋</a>{% endif %}
           </td>
           {% endfor %}
@@ -234,7 +234,7 @@
           <div class="dg-ev{% if s.ich or kann_alle %} drag{% endif %}" data-termin="{{ e.t.id }}"
                style="top:{{ e.top }}px;height:{{ e.h }}px;background:{{ e.t.farbe }}"
                {% if s.ich or kann_alle %}data-edit="?{{ nav_self }}{{ filter_qs }}&edit={{ e.t.id }}#form"{% endif %}
-               title="{{ e.t.zeit }} · {% if e.t.klient %}{{ e.t.klient.name }}{% else %}{{ e.t.titel }}{% endif %}{% if e.t.ort %} · {{ e.t.ort }}{% endif %}">
+               title="{{ e.t.zeit }} · {{ e.t.voll_anzeige }}{% if e.t.ort %} · {{ e.t.ort }}{% endif %}">
             <div class="dg-ev-time">{{ e.t.beginn|time:'H:i' }}{% if e.t.ende %}–{{ e.t.ende|time:'H:i' }}{% endif %}</div>
             <div class="dg-ev-name">{% if e.t.klient %}{{ e.t.klient.kuerzel_anzeige }}{% else %}{{ e.t.titel }}{% endif %}</div>
             {% if s.ich or kann_alle %}<div class="dg-resize" title="Dauer ziehen"></div>{% endif %}
@@ -276,9 +276,9 @@
               {% if f.abw %}data-abw="{{ f.abw }}"{% endif %}>
             {% if f.dienst %}<span class="mxd" style="background:{{ f.dienst.schichtart.farbe }}" title="{{ f.dienst.schichtart.name }}{% if f.dienst.angebot %} · {{ f.dienst.angebot.name }}{% endif %}">{{ f.dienst.schichtart.kuerzel }}</span>{% endif %}
             {% for t in f.termine %}<span class="mxev{% if forloop.counter > 2 %} hid{% endif %}" style="background:{{ t.farbe }}"
-              data-label="{{ t.zeit }} · {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel|default:'Termin' }}{% endif %}"
+              data-label="{{ t.zeit }} · {{ t.voll_anzeige }}"
               {% if z.ich or kann_alle %}data-edit="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form"{% endif %}
-              title="{{ t.zeit }} {{ t.anzeige }}">{{ t.anzeige }}</span>{% endfor %}
+              title="{{ t.zeit }} · {{ t.voll_anzeige }}">{{ t.anzeige }}</span>{% endfor %}
             {% if f.termine|length > 2 %}<span class="mxmore">+{{ f.termine|length|add:"-2" }}</span>{% endif %}
             {% if f.abw and not f.dienst and not f.termine %}<span class="mxabw">{{ f.abw }}</span>{% endif %}
           </td>

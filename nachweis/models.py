@@ -382,7 +382,19 @@ class Termin(models.Model):
 
     @property
     def anzeige(self) -> str:
+        """Kompakt für enge Zellen (Matrix/Woche): Kürzel bzw. Titel."""
         return self.klient.kuerzel_anzeige if self.klient_id else (self.titel or "Termin")
+
+    @property
+    def voll_anzeige(self) -> str:
+        """Volle Bezeichnung für Popover/Tooltip: Klient*in UND Titel, soweit vorhanden –
+        damit ein Titel nicht verschwindet, wenn zusätzlich eine Klient*in gesetzt ist."""
+        teile = []
+        if self.klient_id:
+            teile.append(self.klient.name)
+        if self.titel:
+            teile.append(self.titel)
+        return " · ".join(teile) or "Termin"
 
     @property
     def farbe(self) -> str:

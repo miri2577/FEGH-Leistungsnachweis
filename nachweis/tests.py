@@ -133,6 +133,14 @@ class TeamIsolationTests(TestCase):
             r = self.cl(self.uA).get(f"/kalender/?ansicht={ansicht}")
             self.assertEqual(r.status_code, 200, ansicht)
 
+    def test_kalender_titel_neben_klient_sichtbar(self):
+        """Ein Termin mit Klient*in UND Titel darf den Titel nicht verschlucken –
+        das Popover-Label zeigt beides (voll_anzeige)."""
+        Termin.objects.create(mitarbeiter=self.mA, klient=self.kA, datum=date(2026, 7, 2),
+                              beginn=time(20, 12), titel="Hausbesuch")
+        r = self.cl(self.uA).get("/kalender/?ansicht=monat&jahr=2026&monat=7")
+        self.assertContains(r, "Alpha · Hausbesuch")        # Klient + Titel im data-label
+
     def test_kalender_druck_ohne_ansicht_zeigt_woche(self):
         """Review-Regression: Standard-Ansicht ist jetzt der Monat, das Druck-Template
         kennt aber nur die Woche -> der Druck muss die Woche erzwingen (sonst leer)."""
