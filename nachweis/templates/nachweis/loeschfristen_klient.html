@@ -1,0 +1,59 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Anonymisieren · {{ klient.name }} · FEGH{% endblock %}
+{% block extrastyle %}
+  .warnbox{background:var(--badbg);color:var(--bad);border:1px solid var(--bad);border-radius:11px;padding:14px 16px;margin:12px 0;line-height:1.55}
+  .meta{display:flex;flex-wrap:wrap;gap:6px 26px;margin:10px 0;font-size:13.5px}
+  .meta b{color:var(--muted);font-weight:600;margin-right:5px}
+  .aktionen{list-style:none;padding:0;margin:8px 0}
+  .aktionen li{padding:7px 12px;border:1px solid var(--line);border-radius:9px;margin-bottom:6px;
+    background:var(--bg-2);font-size:13.5px}
+  .aktionen li::before{content:"✕ ";color:var(--bad);font-weight:800}
+  .conf{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:14px;max-width:560px}
+  .conf input[type=text]{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-size:15px;margin-top:6px}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Anonymisierung prüfen · {{ klient.name }}</h1>
+  <p class="sub">Trockenlauf-Vorschau. Es wird <b>nichts</b> geändert, bis du unten ausdrücklich bestätigst.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <a class="btn ghost" href="{% url 'nachweis:loeschfristen' %}">← Übersicht</a>
+
+  <div class="meta">
+    <span><b>Betreuungsende:</b> {{ status.betreuungsende|date:"d.m.Y"|default:"unbekannt" }}</span>
+    <span><b>Fachdaten frei ab:</b> {{ status.fach_frei_ab|date:"d.m.Y"|default:"—" }}</span>
+    <span><b>Voll frei ab:</b> {{ status.voll_frei_ab|date:"d.m.Y"|default:"—" }}</span>
+    <span><b>Stufe:</b> {% if stufe == 'voll' %}Voll-Anonymisierung (inkl. Stammdaten){% else %}Fachdaten-Löschung{% endif %}</span>
+  </div>
+
+  {% if stufe == 'voll' %}
+  <div class="warnbox"><b>Voll-Anonymisierung:</b> Auch die Abrechnungsfrist ist abgelaufen –
+    zusätzlich zu den Fachdaten werden die <b>Stammdaten</b> pseudonymisiert (Name → „Gelöscht #{{ klient.id }}“,
+    Geburtsdatum/Person-ID/Kürzel entfernt). Das Abrechnungsgerüst (Leistungszeiten, Freigaben,
+    Rechnungen) bleibt als anonymes Skelett bestehen. <b>Unumkehrbar.</b></div>
+  {% else %}
+  <div class="warnbox"><b>Fachdaten-Löschung:</b> Die Fachakte-Frist ist abgelaufen. Ziele, Berichte,
+    Wirkung, Dokumente und Termine werden gelöscht, Art-9-Freitexte an verbleibenden Belegen geleert.
+    Stammdaten &amp; Abrechnung bleiben (Abrechnungsfrist läuft noch). <b>Unumkehrbar.</b></div>
+  {% endif %}
+
+  <h3 style="margin:16px 0 4px">Diese {{ vorschau.aktionen|length }} Aktion(en) würden ausgeführt:</h3>
+  {% if vorschau.aktionen %}
+  <ul class="aktionen">
+    {% for a in vorschau.aktionen %}<li>{{ a }}</li>{% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">Keine personenbezogenen Fachdaten mehr vorhanden – nichts zu tun.</p>
+  {% endif %}
+
+  {% if vorschau.aktionen %}
+  <form class="conf" method="post" action="{% url 'nachweis:loeschfristen_anonymisieren' %}"
+        onsubmit="return confirm('Anonymisierung unwiderruflich ausführen?');">
+    {% csrf_token %}
+    <input type="hidden" name="klient" value="{{ klient.id }}">
+    <label style="font-size:13.5px;color:var(--muted);font-weight:600">Zur Bestätigung den Nachnamen „<b>{{ klient.nachname }}</b>“ eingeben:
+      <input type="text" name="bestaetigung" autocomplete="off" placeholder="{{ klient.nachname }}" required></label>
+    <button class="btn" style="margin-top:12px;background:var(--bad)" type="submit">Jetzt anonymisieren</button>
+  </form>
+  {% endif %}
+{% endblock %}

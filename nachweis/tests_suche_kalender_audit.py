@@ -71,18 +71,20 @@ class AuditlogMaskierungTests(TestCase):
         _u, m = _mk("betr", Rolle.USER, team=team)
         k = Klient.objects.create(nachname="Galow", team=team, bezugsbetreuer=m, status=Status.BETREUUNG)
         l = Leistung.objects.create(klient=k, betreuer=m, datum=date(2026, 6, 3),
-                                    leistungsart=Leistungsart.values[0], dokumentation="")
+                                    leistungsart="FS", dokumentation="")
         l.dokumentation = "Sensibler Verlaufstext mit Diagnose."
         l.notiz = "geheime Notiz"
-        l.taetigkeit = "Hausbesuch"
+        l.taetigkeit = "Hausbesuch"      # potenziell Art-9 -> ebenfalls ausgeschlossen
+        l.leistungsart = "WFS"
         l.save()
         eintraege = LogEntry.objects.filter(object_pk=str(l.pk))
         blob = " ".join(json.dumps(e.changes) if isinstance(e.changes, (dict, list))
                         else str(e.changes) for e in eintraege)
         self.assertNotIn("Sensibler Verlaufstext", blob)
         self.assertNotIn("geheime Notiz", blob)
+        self.assertNotIn("Hausbesuch", blob)     # Tätigkeit jetzt auch ausgeschlossen
         # unkritische Felder dürfen weiter protokolliert werden
-        self.assertIn("Hausbesuch", blob)
+        self.assertIn("WFS", blob)
 
     def test_klient_kommentar_nicht_im_auditlog(self):
         from auditlog.models import LogEntry

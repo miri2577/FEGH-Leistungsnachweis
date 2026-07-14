@@ -4,7 +4,7 @@ from django.urls import path
 from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse,
                views_abrechnung, views_feld, views_ziele, views_berichte,
                views_controlling, views_belegung, views_qm, views_dienstplan,
-               views_dokumente)
+               views_dokumente, views_loeschfristen)
 
 app_name = "nachweis"
 
@@ -31,6 +31,11 @@ urlpatterns = [
     path("wirkung/<int:pk>/", views_ziele.wirkung, name="wirkung"),
     path("wirkung/speichern/", views_ziele.wirkung_speichern, name="wirkung_speichern"),
     path("wirkung/loeschen/", views_ziele.wirkung_loeschen, name="wirkung_loeschen"),
+
+    # Löschkonzept / Aufbewahrungsfristen (DSGVO)
+    path("loeschfristen/", views_loeschfristen.loeschfristen, name="loeschfristen"),
+    path("loeschfristen/<int:pk>/", views_loeschfristen.loeschfristen_klient, name="loeschfristen_klient"),
+    path("loeschfristen/anonymisieren/", views_loeschfristen.loeschfristen_anonymisieren, name="loeschfristen_anonymisieren"),
 
     # Dokumentenablage (DMS light)
     path("dokumente/<int:pk>/", views_dokumente.dokumente, name="dokumente"),

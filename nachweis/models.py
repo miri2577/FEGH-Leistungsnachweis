@@ -175,6 +175,9 @@ class Klient(models.Model):
     kostentraeger = models.CharField("Kostenträger", max_length=120, blank=True,
                                      help_text="Bezirksamt / überörtlicher Träger – Rechnungsempfänger für die Abrechnung")
     kommentar = models.TextField(blank=True)
+    # Löschkonzept: gesetzt, sobald der Datensatz voll-anonymisiert wurde – schließt ihn
+    # aus der Fälligkeits-/Anonymisierungs-Logik aus (keine Re-Anonymisierung).
+    anonymisiert_am = models.DateTimeField("anonymisiert am", null=True, blank=True, editable=False)
 
     class Meta:
         verbose_name = "Klient*in"
@@ -1178,7 +1181,8 @@ class Bewilligung(models.Model):
     kommentar = models.CharField(max_length=200, blank=True)
     erstellt = models.DateTimeField(auto_now_add=True)
     # Versionshistorie: jede Änderung an einer Kostenzusage nachvollziehbar (Snapshots).
-    history = HistoricalRecords()
+    # Freitext/Aktenzeichen bleiben aus der History (personenbeziehbar; Löschkonzept).
+    history = HistoricalRecords(excluded_fields=["aktenzeichen", "kommentar"])
 
     class Meta:
         verbose_name = "Bewilligung"
@@ -1273,8 +1277,10 @@ class Ziel(models.Model):
     reihenfolge = models.PositiveSmallIntegerField(default=0)
     erstellt = models.DateTimeField(auto_now_add=True)
     geaendert = models.DateTimeField(auto_now=True)
-    # Fortschreibungen/Anpassungen nachvollziehbar (wie Bewilligung/Rechnung)
-    history = HistoricalRecords()
+    # Fortschreibungen/Anpassungen nachvollziehbar (wie Bewilligung/Rechnung). Die
+    # personenbezogenen ZLP-Freitexte bleiben aus der History (Datenminimierung, damit
+    # das Löschkonzept sie nicht in der Historientabelle überdauern lässt).
+    history = HistoricalRecords(excluded_fields=["titel", "beschreibung", "indikator"])
 
     class Meta:
         verbose_name = "Ziel"
@@ -1497,7 +1503,7 @@ class Belegung(models.Model):
     einzug = models.DateField()
     auszug = models.DateField(null=True, blank=True)
     kommentar = models.CharField(max_length=200, blank=True)
-    history = HistoricalRecords()
+    history = HistoricalRecords(excluded_fields=["kommentar"])
 
     class Meta:
         verbose_name = "Belegung"
@@ -1864,3 +1870,42 @@ class Dokument(models.Model):
         super().delete(*args, **kwargs)
         if datei:
             datei.delete(save=False)
+
+
+# ==========================================================================
+#  Löschkonzept (DSGVO Art. 5/17, § 84 SGB X): Aufbewahrungsfristen als DATEN
+#  (nicht hartkodiert) — der/die Datenschutzbeauftragte pflegt sie je Instanz.
+#  Nach Ende der Betreuung laufen die Fristen; abgelaufene Fachdaten werden
+#  gelöscht, personenbezogene Stammdaten anonymisiert. Abrechnungsbelege
+#  bleiben die steuerrechtliche Frist erhalten (Skelett ohne Klartext).
+# ==========================================================================
+class AufbewahrungsKategorie(models.TextChoices):
+    ABRECHNUNG = "abrechnung", "Abrechnung & Buchungsbelege"
+    LEISTUNGSNACHWEIS = "leistungsnachweis", "Leistungsnachweise"
+    KASSE = "kasse", "Kassenbuch & Zählprotokolle"
+    FACHDOKU_EGH = "fachdoku_egh", "Fachakte Eingliederungshilfe (SGB IX)"
+    FACHDOKU_JUG = "fachdoku_jug", "Fachakte Jugendhilfe (SGB VIII)"
+    WTG = "wtg", "Dokumentation stationär (WTG Berlin)"
+    DOKUMENT = "dokument", "Abgelegte Dokumente"
+    PERSONAL = "personal", "Arbeitszeit & Dienstplan"
+
+
+class Aufbewahrungsregel(models.Model):
+    """Eine Aufbewahrungsfrist je Datenkategorie (als Datensatz konfigurierbar).
+    `jahre` = Aufbewahrungsdauer ab Fristbeginn (i. d. R. Ende der Betreuung bzw.
+    Ende des Kalenderjahres des Belegs). Defaults kommen per Migration; anpassbar."""
+    kategorie = models.CharField(max_length=20, choices=AufbewahrungsKategorie.choices,
+                                 unique=True)
+    bezeichnung = models.CharField(max_length=120)
+    jahre = models.PositiveSmallIntegerField("Aufbewahrung (Jahre)")
+    rechtsgrundlage = models.CharField(max_length=160, blank=True)
+    hinweis = models.CharField(max_length=255, blank=True)
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Aufbewahrungsregel"
+        verbose_name_plural = "Aufbewahrungsregeln (Löschkonzept)"
+        ordering = ["kategorie"]
+
+    def __str__(self):
+        return f"{self.get_kategorie_display()}: {self.jahre} J."

@@ -44,10 +44,14 @@ class ZielModellTests(ZieleBasis):
 
     def test_ziel_versioniert(self):
         z = self._hz()
-        z.titel = "Wocheneinkauf mit Begleitung"
+        z.status = ZielStatus.ERREICHT
         z.save()
         self.assertEqual(z.history.count(), 2)
-        self.assertEqual(z.history.last().titel, "Wocheneinkauf selbst erledigen")
+        # Der Ziel-Freitext (titel/beschreibung/indikator) ist bewusst NICHT in der
+        # History (Datenminimierung fürs Löschkonzept); nachvollziehbar bleiben die
+        # übrigen Felder wie der Status.
+        self.assertEqual(z.history.last().status, ZielStatus.AKTIV)
+        self.assertFalse(hasattr(z.history.last(), "titel"))
 
     def test_doku_zielbezug(self):
         z = self._hz()
