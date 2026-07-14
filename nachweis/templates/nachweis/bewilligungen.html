@@ -72,6 +72,9 @@
         <div><label class="fld">bewilligt bis</label><input type="date" name="gueltig_bis" value="{{ b.gueltig_bis|date:'Y-m-d' }}"></div>
         <div><label class="fld">Leistungstyp</label>
           <select name="leistungstyp">{% for v,l in typ_wahl %}<option value="{{ v }}" {% if b.leistungstyp == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+        <div><label class="fld">Leistungskatalog <span class="muted" style="font-weight:400">(leer = Berliner BEW)</span></label>
+          <select name="katalog"><option value="">—</option>
+            {% for k in katalog_liste %}<option value="{{ k.id }}" {% if b.katalog_id == k.id %}selected{% endif %}>{{ k.name|truncatechars:50 }}</option>{% endfor %}</select></div>
         <div><label class="fld">Status</label>
           <select name="status">{% for v,l in status_wahl %}<option value="{{ v }}" {% if b.status == v or not b %}{% if not b and v == 'aktiv' %}selected{% elif b.status == v %}selected{% endif %}{% endif %}>{{ l }}</option>{% endfor %}</select></div>
 

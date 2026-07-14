@@ -1087,6 +1087,22 @@ def gutschrift_erstellen(rechnung, ersteller):
     return g, None
 
 
+def entgeltsatz_fuer(katalog, kostentraeger=None, stichtag=None, variante=""):
+    """Gültigen Entgeltsatz eines Katalogeintrags zum Stichtag auflösen (M1):
+    ein trägerspezifischer Satz gewinnt vor dem landeseinheitlichen (kostentraeger=None);
+    bei mehreren gilt der mit dem jüngsten Beginn. Fortschreibungen sind damit nur
+    neue Zeitscheiben — laufende Fälle preisen automatisch um."""
+    from .models import Entgeltsatz
+    stichtag = stichtag or date.today()
+    qs = (Entgeltsatz.objects.filter(katalog=katalog, gueltig_von__lte=stichtag)
+          .filter(Q(gueltig_bis__gte=stichtag) | Q(gueltig_bis__isnull=True)))
+    if variante:
+        qs = qs.filter(variante=variante)
+    spezifisch = (qs.filter(kostentraeger=kostentraeger).order_by("-gueltig_von").first()
+                  if kostentraeger else None)
+    return spezifisch or qs.filter(kostentraeger__isnull=True).order_by("-gueltig_von").first()
+
+
 def kostentraeger_liste():
     """Vorhandene Kostenträger (für Auswahl bei der Rechnungserstellung)."""
     return sorted({k for k in Klient.objects.exclude(kostentraeger="")

@@ -1132,6 +1132,11 @@ class Bewilligung(models.Model):
     aktenzeichen = models.CharField("Aktenzeichen", max_length=60, blank=True)
     leistungstyp = models.CharField(max_length=8, choices=Leistungstyp.choices,
                                     default=Leistungstyp.FLS_KLE)
+    # Mehr-Bereichs-Fundament (M1): optionaler Bezug auf den Leistungskatalog.
+    # Leer = bisheriges Berliner BEW-Verhalten (FLS+kLE); gesetzt = der Katalogeintrag
+    # bestimmt Einheit/Entgelt (Jugendhilfe-FLS, Tagessatz …) für künftige Rechnungsläufe.
+    katalog = models.ForeignKey("Leistungskatalog", on_delete=models.PROTECT,
+                                null=True, blank=True, related_name="bewilligungen")
     gueltig_von = models.DateField("bewilligt ab", null=True, blank=True)
     gueltig_bis = models.DateField("bewilligt bis", null=True, blank=True)
     fls_woche = models.DecimalField("FLS/Woche (bewilligt)", max_digits=7, decimal_places=4,
@@ -1323,3 +1328,79 @@ class Bericht(models.Model):
     def ueberfaellig(self) -> bool:
         return (self.status != BerichtsStatus.VERSENDET and self.faellig_am is not None
                 and self.faellig_am < date.today())
+
+
+# ==========================================================================
+#  Mehr-Bereichs-Fundament (M1): Leistungskatalog + Entgeltsätze als DATEN
+#  (Vivendi-Prinzip: Leistungsarten/Preise sind konfigurierbar, kein Code-Fork)
+# ==========================================================================
+class Abrechnungseinheit(models.TextChoices):
+    FLS_STUNDE = "fls_stunde", "Fachleistungsstunde (dokumentiert)"
+    KLE_TAG = "kle_tag", "kLE je Kalendertag (pauschal)"
+    TAGESSATZ = "tagessatz", "Tagessatz je Belegungstag"
+    OEFFNUNGSTAG = "oeffnungstag", "Tagessatz je Öffnungstag (teilstationär)"
+    PAUSCHALE = "pauschale", "Pauschale (je Monat/Ereignis)"
+
+
+class Leistungskatalog(models.Model):
+    """Abrechenbarer Leistungstyp als Datensatz: WAS wird nach WELCHER Einheit und
+    Rechtsgrundlage vergütet. Berliner BEW-FLS, kLE, Jugendhilfe-FLS und Tagessätze
+    sind Katalogeinträge — neue Bereiche (Wohnheim, Tagesgruppe …) kommen als Daten
+    dazu, nicht als Code."""
+    name = models.CharField(max_length=120, unique=True)
+    rechtsgrundlage = models.CharField(max_length=80, blank=True,
+                                       help_text="z. B. SGB IX §§ 113 ff. / SGB VIII § 31")
+    einheit = models.CharField(max_length=16, choices=Abrechnungseinheit.choices,
+                               default=Abrechnungseinheit.FLS_STUNDE)
+    beschreibung = models.CharField(max_length=255, blank=True)
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Leistungskatalog-Eintrag"
+        verbose_name_plural = "Leistungskatalog"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class Entgeltsatz(models.Model):
+    """Preis eines Katalogeintrags als ZEITSCHEIBE: Fortschreibungen (jährliche
+    VK-/Kommissions-Beschlüsse) werden als neuer Satz ab Stichtag angelegt und
+    preisen laufende Fälle um — ohne neue Bewilligung. `kostentraeger` leer =
+    landeseinheitlich/für alle (z. B. Berliner Jugendhilfe-FLS); gesetzt =
+    trägerindividuell verhandelter Satz. Tagessätze weisen die drei Entgelt-
+    bestandteile getrennt aus (BRV Jug: Leistungsentgelt/Nebenkosten § 39/Invest)."""
+    katalog = models.ForeignKey(Leistungskatalog, on_delete=models.CASCADE,
+                                related_name="saetze")
+    kostentraeger = models.ForeignKey(Kostentraeger, on_delete=models.CASCADE,
+                                      null=True, blank=True, related_name="entgeltsaetze",
+                                      verbose_name="Kostenträger (leer = alle)")
+    variante = models.CharField(max_length=60, blank=True,
+                                help_text="z. B. „mit Leitungsanteil“ / „ohne“")
+    gueltig_von = models.DateField("gültig ab")
+    gueltig_bis = models.DateField("gültig bis", null=True, blank=True)
+    betrag = models.DecimalField("Betrag €", max_digits=9, decimal_places=4,
+                                 validators=[MinValueValidator(Decimal("0"))])
+    betrag_nebenkosten = models.DecimalField("davon Nebenkosten €", max_digits=9,
+                                             decimal_places=4, default=0)
+    betrag_investition = models.DecimalField("davon Investition €", max_digits=9,
+                                             decimal_places=4, default=0)
+    kommentar = models.CharField(max_length=200, blank=True,
+                                 help_text="z. B. Beschluss-Nr. der Fortschreibung")
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = "Entgeltsatz"
+        verbose_name_plural = "Entgeltsätze"
+        ordering = ["katalog", "-gueltig_von"]
+        indexes = [models.Index(fields=["katalog", "gueltig_von"])]
+
+    def __str__(self):
+        kt = self.kostentraeger.name if self.kostentraeger else "alle"
+        return f"{self.katalog} · {self.betrag} € ab {self.gueltig_von} ({kt})"
+
+    def gilt_am(self, stichtag) -> bool:
+        if self.gueltig_von > stichtag:
+            return False
+        return self.gueltig_bis is None or self.gueltig_bis >= stichtag

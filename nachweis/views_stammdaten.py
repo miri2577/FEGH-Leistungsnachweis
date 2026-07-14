@@ -180,6 +180,63 @@ def kostentraeger_speichern(request):
     return redirect("nachweis:kostentraeger_liste")
 
 
+@login_required
+def leistungskatalog(request):
+    """M1: Leistungskatalog + Entgeltsatz-Zeitscheiben pflegen (Leitung).
+    Fortschreibungen = neuer Satz ab Stichtag; laufende Fälle preisen automatisch um."""
+    from .models import Leistungskatalog, Entgeltsatz, Abrechnungseinheit
+    if not _nur_leitung(request):
+        return HttpResponseForbidden()
+    if request.method == "POST":
+        aktion = request.POST.get("aktion")
+        if aktion == "eintrag":
+            name = (request.POST.get("name") or "").strip()
+            einheit = request.POST.get("einheit")
+            if name and einheit in Abrechnungseinheit.values:
+                Leistungskatalog.objects.get_or_create(name=name[:120], defaults={
+                    "einheit": einheit,
+                    "rechtsgrundlage": (request.POST.get("rechtsgrundlage") or "").strip()[:80],
+                    "beschreibung": (request.POST.get("beschreibung") or "").strip()[:255]})
+                messages.success(request, f"Katalogeintrag „{name}“ angelegt.")
+            else:
+                messages.error(request, "Bitte Name und Abrechnungseinheit angeben.")
+        elif aktion == "satz":
+            k = Leistungskatalog.objects.filter(pk=_int_or_none(request.POST.get("katalog"))).first()
+            von = _datum(request.POST.get("gueltig_von"))
+            betrag = _dec(request.POST.get("betrag"))
+            if k and von and betrag > 0:
+                Entgeltsatz.objects.create(
+                    katalog=k, gueltig_von=von, betrag=betrag,
+                    gueltig_bis=_datum(request.POST.get("gueltig_bis")),
+                    kostentraeger=Kostentraeger.objects.filter(
+                        pk=_int_or_none(request.POST.get("kostentraeger"))).first(),
+                    variante=(request.POST.get("variante") or "").strip()[:60],
+                    betrag_nebenkosten=_dec(request.POST.get("betrag_nebenkosten")),
+                    betrag_investition=_dec(request.POST.get("betrag_investition")),
+                    kommentar=(request.POST.get("kommentar") or "").strip()[:200])
+                messages.success(request, f"Entgeltsatz {betrag} € ab {von:%d.%m.%Y} angelegt.")
+            else:
+                messages.error(request, "Bitte Katalogeintrag, Gültig-ab und Betrag > 0 angeben.")
+        elif aktion == "satz_loeschen":
+            s = Entgeltsatz.objects.filter(pk=_int_or_none(request.POST.get("id"))).first()
+            if s:
+                s.delete()
+                messages.success(request, "Entgeltsatz gelöscht.")
+        return redirect("nachweis:leistungskatalog")
+    eintraege = list(Leistungskatalog.objects.prefetch_related("saetze__kostentraeger"))
+    heute = date.today()
+    for e in eintraege:
+        e.satz_liste = list(e.saetze.all())
+        for s in e.satz_liste:
+            s.aktuell = s.gilt_am(heute)
+    return render(request, "nachweis/leistungskatalog.html", {
+        "aktiv": "parameter", "eintraege": eintraege,
+        "einheiten": Abrechnungseinheit.choices,
+        "kostentraeger": Kostentraeger.objects.filter(aktiv=True),
+        "heute": heute.isoformat(),
+    })
+
+
 @require_POST
 @login_required
 def kostentraeger_bezirke(request):
@@ -211,10 +268,12 @@ def bewilligungen(request, pk):
     hbg_json = {str(h): {"fls_woche": str(w),
                          "kle_tag": str(services.get_parameter(date.today().year).kle_je_tag or 0)}
                 for h, w in hbg_map.items()}
+    from .models import Leistungskatalog
     return render(request, "nachweis/bewilligungen.html", {
         "aktiv": "belegungsliste", "klient": klient, "bewilligungen": liste,
         "aktive": klient.aktive_bewilligung(),
         "kostentraeger": Kostentraeger.objects.filter(aktiv=True),
+        "katalog_liste": Leistungskatalog.objects.filter(aktiv=True),
         "status_wahl": BewilligungStatus.choices, "typ_wahl": Leistungstyp.choices,
         "bearbeiten": bearbeiten, "fortschreibung": fortschreibung,
         "hbg_json": json.dumps(hbg_json),
@@ -237,6 +296,11 @@ def bewilligung_speichern(request):
     b.aktenzeichen = (request.POST.get("aktenzeichen") or "").strip()
     typ = request.POST.get("leistungstyp")
     b.leistungstyp = typ if typ in Leistungstyp.values else Leistungstyp.FLS_KLE
+    # M1: optionaler Katalog-Bezug (leer = klassisches Berliner BEW-Verhalten)
+    from .models import Leistungskatalog
+    _kat = request.POST.get("katalog")
+    b.katalog = (Leistungskatalog.objects.filter(pk=_kat, aktiv=True).first()
+                 if (_kat or "").isdigit() else None)
     b.gueltig_von = _datum(request.POST.get("gueltig_von"))
     b.gueltig_bis = _datum(request.POST.get("gueltig_bis"))
     b.fls_woche = _dec(request.POST.get("fls_woche"))

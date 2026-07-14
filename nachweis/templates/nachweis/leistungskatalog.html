@@ -1,0 +1,92 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Leistungskatalog · FEGH{% endblock %}
+{% block extrastyle %}
+  .lk{border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden}
+  .lk>.head2{padding:11px 16px;background:var(--bg-2,#f6f9fb);display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+  .lk>.head2 h3{margin:0;font-size:14.5px}
+  .lk .einheit{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;
+    background:var(--brand-soft);color:var(--brand-d)}
+  .satz{display:flex;gap:12px;align-items:center;padding:8px 16px;border-top:1px solid var(--line);font-size:13px;flex-wrap:wrap}
+  .satz .b{font-weight:700;min-width:100px}
+  .satz.alt{opacity:.55}
+  .satz .jetzt{background:var(--okbg);color:var(--ok);border-radius:999px;padding:0 8px;font-size:10.5px;font-weight:700}
+  .kform2{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px 14px;padding:16px}
+  .kform2 input,.kform2 select{width:100%}
+  .kform2 .full{grid-column:1 / -1}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Leistungskatalog &amp; Entgeltsätze</h1>
+  <p class="sub">Vergütung als Daten (Mehr-Bereichs-Fundament): Was wird nach welcher Einheit vergütet, zu welchem Satz,
+    ab wann. Jährliche Fortschreibungen = neuer Satz ab Stichtag – laufende Fälle preisen automatisch um.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div style="margin-bottom:12px"><a class="btn ghost" href="{% url 'nachweis:parameter' %}">← Team-Parameter</a>
+    <a class="btn ghost" href="{% url 'nachweis:kostentraeger_liste' %}">Kostenträger</a></div>
+
+  {% for e in eintraege %}
+  <div class="lk">
+    <div class="head2">
+      <h3>{{ e.name }}</h3>
+      <span class="einheit">{{ e.get_einheit_display }}</span>
+      {% if e.rechtsgrundlage %}<span class="muted" style="font-size:12px">{{ e.rechtsgrundlage }}</span>{% endif %}
+    </div>
+    {% if e.beschreibung %}<div class="muted" style="padding:6px 16px 0;font-size:12.5px">{{ e.beschreibung }}</div>{% endif %}
+    {% for s in e.satz_liste %}
+    <div class="satz {% if not s.aktuell %}alt{% endif %}">
+      <span class="b">{{ s.betrag|floatformat:4 }} €</span>
+      {% if s.aktuell %}<span class="jetzt">aktuell</span>{% endif %}
+      <span class="muted">ab {{ s.gueltig_von|date:"d.m.Y" }}{% if s.gueltig_bis %} bis {{ s.gueltig_bis|date:"d.m.Y" }}{% endif %}</span>
+      <span class="muted">{{ s.kostentraeger.name|default:"landeseinheitlich / alle" }}</span>
+      {% if s.variante %}<span class="muted">· {{ s.variante }}</span>{% endif %}
+      {% if s.betrag_nebenkosten or s.betrag_investition %}<span class="muted">· NK {{ s.betrag_nebenkosten|floatformat:2 }} / Invest {{ s.betrag_investition|floatformat:2 }}</span>{% endif %}
+      {% if s.kommentar %}<span class="muted" style="font-size:11.5px">({{ s.kommentar }})</span>{% endif %}
+      <form method="post" style="margin-left:auto" onsubmit="return confirm('Entgeltsatz löschen? Fortschreibungen besser mit gültig-bis beenden.')">
+        {% csrf_token %}<input type="hidden" name="aktion" value="satz_loeschen"><input type="hidden" name="id" value="{{ s.id }}">
+        <button class="btn ghost" style="padding:2px 8px;font-size:12px;color:var(--bad)">✕</button></form>
+    </div>
+    {% empty %}
+    <div class="satz muted">Noch kein Entgeltsatz hinterlegt.</div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+    <div class="panel" style="flex:1 1 420px">
+      <div class="head"><h2>Entgeltsatz anlegen / fortschreiben</h2></div>
+      <form method="post">{% csrf_token %}<input type="hidden" name="aktion" value="satz">
+        <div class="kform2">
+          <div class="full"><label class="fld">Katalogeintrag *</label>
+            <select name="katalog">{% for e in eintraege %}<option value="{{ e.id }}">{{ e.name }}</option>{% endfor %}</select></div>
+          <div><label class="fld">Betrag € *</label><input type="text" name="betrag" placeholder="86,44"></div>
+          <div><label class="fld">gültig ab *</label><input type="date" name="gueltig_von" value="{{ heute }}"></div>
+          <div><label class="fld">gültig bis</label><input type="date" name="gueltig_bis"></div>
+          <div><label class="fld">Kostenträger <span class="muted" style="font-weight:400">(leer = alle)</span></label>
+            <select name="kostentraeger"><option value="">— landeseinheitlich —</option>
+              {% for kt in kostentraeger %}<option value="{{ kt.id }}">{{ kt.name }}</option>{% endfor %}</select></div>
+          <div><label class="fld">Variante</label><input type="text" name="variante" placeholder="mit Leitungsanteil"></div>
+          <div><label class="fld">davon Nebenkosten €</label><input type="text" name="betrag_nebenkosten" placeholder="0"></div>
+          <div><label class="fld">davon Investition €</label><input type="text" name="betrag_investition" placeholder="0"></div>
+          <div class="full"><label class="fld">Kommentar (Beschluss-Nr.)</label><input type="text" name="kommentar" placeholder="z. B. VK Jugend Beschluss 02/2025"></div>
+          <div class="full"><button class="btn" type="submit">Satz speichern</button></div>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel" style="flex:1 1 360px">
+      <div class="head"><h2>Neuen Katalogeintrag anlegen</h2></div>
+      <form method="post">{% csrf_token %}<input type="hidden" name="aktion" value="eintrag">
+        <div class="kform2">
+          <div class="full"><label class="fld">Name *</label><input type="text" name="name" maxlength="120"></div>
+          <div class="full"><label class="fld">Abrechnungseinheit *</label>
+            <select name="einheit">{% for v,l in einheiten %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+          <div class="full"><label class="fld">Rechtsgrundlage</label><input type="text" name="rechtsgrundlage" maxlength="80" placeholder="SGB VIII § 32"></div>
+          <div class="full"><label class="fld">Beschreibung</label><input type="text" name="beschreibung" maxlength="255"></div>
+          <div class="full"><button class="btn" type="submit">Eintrag anlegen</button></div>
+        </div>
+      </form>
+    </div>
+  </div>
+  <p class="note">Die Berliner BEW-Abrechnung (FLS+kLE) läuft unverändert über die Team-Parameter — der Katalog ist das
+    Fundament für weitere Bereiche (Jugendhilfe-FLS ab 01.01.2026 bereits hinterlegt, Tagessätze folgen mit der Belegungsverwaltung).</p>
+{% endblock %}

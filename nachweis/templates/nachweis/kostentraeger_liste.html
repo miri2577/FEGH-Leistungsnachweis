@@ -21,6 +21,7 @@
                 title="Legt die 12 Berliner Bezirksämter idempotent an (vorhandene bleiben unangetastet)">
             {% csrf_token %}<button class="btn ghost" type="submit" style="font-size:12.5px">+ Alle Berliner Bezirke</button>
           </form>
+          <a class="btn ghost" href="{% url 'nachweis:leistungskatalog' %}" title="Leistungstypen + Entgeltsätze (Mehr-Bereichs-Fundament)">Leistungskatalog</a>
           <a class="btn ghost" href="{% url 'nachweis:belegungsliste' %}">← Belegungsliste</a>
         </span></div>
       <div class="body">
