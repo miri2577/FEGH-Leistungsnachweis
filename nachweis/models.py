@@ -1293,6 +1293,9 @@ class Bericht(models.Model):
                               help_text="entsteht i. d. R. KI-gestützt in FEGH-Bericht (TeilhabeAssist)")
     besprochen_am = models.DateField(null=True, blank=True)
     versendet_am = models.DateField(null=True, blank=True)
+    # Wann wurde zuletzt das Rohpaket für FEGH-Bericht (TeilhabeAssist) exportiert?
+    # Feld-Änderung landet im Auditlog -> Wer/Wann-Nachweis für den Art-9-Export.
+    exportiert_am = models.DateTimeField(null=True, blank=True)
     notiz = models.CharField(max_length=200, blank=True)
     erstellt_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL,
                                      null=True, blank=True, related_name="+")

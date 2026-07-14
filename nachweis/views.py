@@ -307,10 +307,18 @@ def api_leistung_save(request):
     l.betreuer = services.mitarbeiter_fuer(request.user) or klient.bezugsbetreuer
     l.save()
     if "ziele" in p:
-        # Zielbezug der Doku: nur Ziele DIESES Klienten zulässig (kein Cross-Klient-Bezug)
-        from .models import Ziel
+        # Zielbezug der Doku: nur Ziele DIESES Klienten zulässig (kein Cross-Klient-Bezug).
+        # Bestandsschutz: das Modal zeigt nur AKTIVE Ziele als Checkboxen – Bezüge zu
+        # inzwischen erreichten/abgeschlossenen Zielen dürfen beim Speichern nicht still
+        # verschwinden (Art-9-Verlaufsdoku würde rückwirkend verfälscht). Deshalb bleiben
+        # bestehende Bezüge auf NICHT-aktive Ziele immer erhalten.
+        from .models import Ziel, ZielStatus
         ids = [i for i in (p.get("ziele") or []) if isinstance(i, int)]
-        l.ziele.set(Ziel.objects.filter(klient=klient, pk__in=ids))
+        neue = set(Ziel.objects.filter(klient=klient, pk__in=ids)
+                   .values_list("pk", flat=True))
+        bestand_inaktiv = set(l.ziele.exclude(status=ZielStatus.AKTIV)
+                              .values_list("pk", flat=True)) if l.pk else set()
+        l.ziele.set(Ziel.objects.filter(pk__in=neue | bestand_inaktiv))
     return JsonResponse(_row(l))
 
 

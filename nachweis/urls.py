@@ -29,6 +29,7 @@ urlpatterns = [
     path("berichte/status/", views_berichte.bericht_status, name="bericht_status"),
     path("berichte/loeschen/", views_berichte.bericht_loeschen, name="bericht_loeschen"),
     path("bericht/<int:pk>/druck/", views_berichte.bericht_druck, name="bericht_druck"),
+    path("bericht/<int:pk>/rohpaket/", views_berichte.bericht_rohpaket, name="bericht_rohpaket"),
 
     # Unterwegs-Modus (mobile Vor-Ort-Doku)
     path("unterwegs/", views_feld.feld_heute, name="feld_heute"),

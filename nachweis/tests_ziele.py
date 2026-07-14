@@ -139,6 +139,58 @@ class DokuZielbezugAPITests(ZieleBasis):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()["ziele"], [eigen.id])   # fremdes gefiltert
 
+    # ---- Regressionstests aus dem adversarialen Review ----
+
+    def test_bezug_zu_inaktivem_ziel_bleibt_erhalten(self):
+        """HOCH-Befund: Modal zeigt nur aktive Ziele – Bezug zu erreichten darf beim
+        Speichern nicht still verschwinden (Verlaufsdoku würde rückwirkend verfälscht)."""
+        from .models import ZielStatus
+        erreicht = self._hz(titel="Altes erreichtes Ziel")
+        erreicht.status = ZielStatus.ERREICHT
+        erreicht.save()
+        aktiv = self._hz(titel="Aktives Ziel")
+        l = Leistung.objects.create(datum=date.today(), klient=self.k,
+                                    leistungsart=Leistungsart.FS, taetigkeit="x",
+                                    betreuer=self.betr, dokumentation="Text")
+        l.ziele.add(erreicht)
+        # Modal sendet nur die (aktiven) Checkbox-IDs -> erreichtes Ziel fehlt im Payload
+        resp = self._save({"id": l.id, "klient": self.k.id,
+                           "datum": date.today().isoformat(),
+                           "leistungsart": "FS", "taetigkeit": "x",
+                           "ziele": [aktiv.id]})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(set(l.ziele.all()), {erreicht, aktiv})   # Bestand geschützt
+        # sogar bei leerer Liste (fetch-Fehler-Fall) bleibt der inaktive Bezug
+        self._save({"id": l.id, "klient": self.k.id, "datum": date.today().isoformat(),
+                    "leistungsart": "FS", "taetigkeit": "x", "ziele": []})
+        self.assertEqual(set(l.ziele.all()), {erreicht})
+
+    def test_kein_selbstzyklus_beim_art_wechsel(self):
+        rz = self._rz()
+        resp = self.client.post(reverse("nachweis:ziel_speichern"), {
+            "klient": self.k.id, "id": rz.id, "titel": rz.titel,
+            "art": "handlungsziel", "uebergeordnet": rz.id})   # sich selbst als Parent
+        self.assertEqual(resp.status_code, 302)
+        rz.refresh_from_db()
+        self.assertIsNone(rz.uebergeordnet_id)                  # Selbstzyklus verhindert
+
+    def test_art_wechsel_stellt_unterziele_frei(self):
+        rz = self._rz()
+        h1 = self._hz(rz, titel="Kind 1")
+        self.client.post(reverse("nachweis:ziel_speichern"), {
+            "klient": self.k.id, "id": rz.id, "titel": rz.titel, "art": "handlungsziel"})
+        h1.refresh_from_db()
+        self.assertIsNone(h1.uebergeordnet_id)                  # freigestellt, bleibt sichtbar
+        resp = self.client.get(reverse("nachweis:ziele", args=[self.k.id]))
+        self.assertContains(resp, "Kind 1")
+
+    def test_kaputte_ids_kein_500(self):
+        resp = self.client.post(reverse("nachweis:ziel_status"), {"id": "abc", "status": "erreicht"})
+        self.assertEqual(resp.status_code, 404)
+        resp = self.client.get(reverse("nachweis:api_ziele"), {"klient": "abc"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["ziele"], [])
+
     def test_save_ohne_ziele_laesst_bezug_unveraendert(self):
         z = self._hz()
         l = Leistung.objects.create(datum=date.today(), klient=self.k,

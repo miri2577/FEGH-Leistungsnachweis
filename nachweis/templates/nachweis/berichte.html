@@ -46,6 +46,8 @@
               <span class="b-act">
                 <a class="btn ghost" href="?edit={{ b.id }}">Bearbeiten</a>
                 <a class="btn ghost" href="{% url 'nachweis:bericht_druck' b.id %}">Druck</a>
+                <a class="btn ghost" href="{% url 'nachweis:bericht_rohpaket' b.id %}" title="Strukturiertes Rohpaket (Ziele + Verlaufsdoku des Zeitraums + Rahmendaten) für die KI-gestützte Erstellung in FEGH-Bericht – Pseudonymisierung passiert lokal in der Desktop-App">Rohpaket ↓</a>
+                <a class="btn ghost" href="{% url 'nachweis:bericht_rohpaket' b.id %}?format=md" title="Markdown-Fassung – direkt als Vorbericht/Stichpunkte einfügbar">als Text ↓</a>
                 {% if b.status == 'offen' or b.status == 'in_arbeit' %}
                 <form method="post" action="{% url 'nachweis:bericht_status' %}">{% csrf_token %}
                   <input type="hidden" name="id" value="{{ b.id }}"><input type="hidden" name="status" value="besprochen">

@@ -102,7 +102,7 @@
   {% endif %}
 
   {% if not richtungsziele and not freie_ziele %}
-  <div class="panel"><div class="body" style="text-align:center;padding:26px" class="muted">
+  <div class="panel"><div class="body muted" style="text-align:center;padding:26px">
     Noch keine Ziele vereinbart – unten das erste Richtungsziel anlegen.</div></div>
   {% endif %}
 
@@ -119,7 +119,7 @@
           <select name="art" id="z-art">{% for v,l in art_wahl %}<option value="{{ v }}" {% if bearbeiten.art == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
         <div><label class="fld">gehört zu (Richtungsziel)</label>
           <select name="uebergeordnet"><option value="">—</option>
-            {% for r in richtungsziele %}<option value="{{ r.id }}" {% if bearbeiten.uebergeordnet_id == r.id %}selected{% endif %}>{{ r.titel|truncatechars:60 }}</option>{% endfor %}</select></div>
+            {% for r in richtungsziele %}{% if not bearbeiten or r.id != bearbeiten.id %}<option value="{{ r.id }}" {% if bearbeiten.uebergeordnet_id == r.id %}selected{% endif %}>{{ r.titel|truncatechars:60 }}</option>{% endif %}{% endfor %}</select></div>
         <div class="full"><label class="fld">Beschreibung / Handlungsschritte</label><textarea name="beschreibung">{{ bearbeiten.beschreibung|default:'' }}</textarea></div>
         <div class="full"><label class="fld">Indikator der Zielerreichung <span class="muted" style="font-weight:400">(woran erkennen wir, dass es erreicht ist?)</span></label>
           <textarea name="indikator">{{ bearbeiten.indikator|default:'' }}</textarea></div>

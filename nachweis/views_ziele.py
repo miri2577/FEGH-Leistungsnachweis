@@ -18,6 +18,13 @@ from . import services
 from .models import Klient, Ziel, ZielArt, ZielStatus, Leistung
 
 
+def _int0(val):
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return 0
+
+
 def _datum(s):
     try:
         return date.fromisoformat(s)
@@ -54,10 +61,10 @@ def ziele(request, pk):
 @login_required
 def ziel_speichern(request):
     klient = get_object_or_404(services.klienten_fuer(request.user),
-                               pk=request.POST.get("klient"))
+                               pk=_int0(request.POST.get("klient")))
     zid = request.POST.get("id")
     if zid:
-        z = get_object_or_404(Ziel, pk=zid, klient=klient)
+        z = get_object_or_404(Ziel, pk=_int0(zid), klient=klient)
     else:
         z = Ziel(klient=klient)
     titel = (request.POST.get("titel") or "").strip()
@@ -68,9 +75,20 @@ def ziel_speichern(request):
     art = request.POST.get("art")
     z.art = art if art in ZielArt.values else ZielArt.HANDLUNGSZIEL
     ueber = request.POST.get("uebergeordnet")
+    # .exclude(pk=z.pk): ein Ziel darf nie sein eigenes Übergeordnetes werden (beim
+    # Art-Wechsel trägt die DB-Zeile noch die alte Art -> ohne Exclude wäre ein
+    # Selbstzyklus möglich, das Ziel verschwände aus der Seite).
     z.uebergeordnet = (Ziel.objects.filter(pk=ueber, klient=klient,
-                                           art=ZielArt.RICHTUNGSZIEL).first()
+                                           art=ZielArt.RICHTUNGSZIEL)
+                       .exclude(pk=z.pk).first()
                        if (ueber or "").isdigit() and z.art == ZielArt.HANDLUNGSZIEL else None)
+    if z.pk and z.art == ZielArt.HANDLUNGSZIEL:
+        # Art-Wechsel Richtungsziel -> Handlungsziel: vorhandene Unterziele freistellen,
+        # sonst hängen sie an einem Nicht-Richtungsziel und verschwinden aus der Anzeige.
+        geloest = Ziel.objects.filter(uebergeordnet=z).update(uebergeordnet=None)
+        if geloest:
+            messages.info(request, f"{geloest} Handlungsziel(e) wurden vom bisherigen "
+                                   f"Richtungsziel gelöst und stehen jetzt unter „ohne Richtungsziel“.")
     z.beschreibung = (request.POST.get("beschreibung") or "").strip()
     z.indikator = (request.POST.get("indikator") or "").strip()
     st = request.POST.get("status")
@@ -92,7 +110,7 @@ def ziel_speichern(request):
 def ziel_status(request):
     """Schneller Status-Wechsel (erreicht / nicht weiterverfolgt / wieder aktiv)."""
     z = get_object_or_404(Ziel.objects.filter(
-        klient__in=services.klienten_fuer(request.user)), pk=request.POST.get("id"))
+        klient__in=services.klienten_fuer(request.user)), pk=_int0(request.POST.get("id")))
     st = request.POST.get("status")
     if st in ZielStatus.values:
         z.status = st
@@ -108,7 +126,7 @@ def ziel_loeschen(request):
     if not services.ist_leitung(request.user):
         return HttpResponseForbidden()
     z = get_object_or_404(Ziel.objects.filter(
-        klient__in=services.klienten_fuer(request.user)), pk=request.POST.get("id"))
+        klient__in=services.klienten_fuer(request.user)), pk=_int0(request.POST.get("id")))
     kpk = z.klient_id
     name = z.titel
     z.delete()
@@ -120,7 +138,7 @@ def ziel_loeschen(request):
 def api_ziele(request):
     """Aktive Ziele eines Klienten fürs Doku-Modal (id, titel, art)."""
     klient = services.klienten_fuer(request.user).filter(
-        pk=request.GET.get("klient") or 0).first()
+        pk=_int0(request.GET.get("klient"))).first()
     if not klient:
         return JsonResponse({"ziele": []})
     return JsonResponse({"ziele": [
