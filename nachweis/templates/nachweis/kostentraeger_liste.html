@@ -58,6 +58,7 @@
           <div class="full"><label class="fld">Anschrift</label><textarea name="adresse">{{ bearbeiten.adresse|default:'' }}</textarea></div>
           <div><label class="fld">Ansprechpartner*in</label><input type="text" name="ansprechpartner" value="{{ bearbeiten.ansprechpartner|default:'' }}"></div>
           <div><label class="fld">Leitweg-ID <span class="muted" style="font-weight:400">(für XRechnung)</span></label><input type="text" name="leitweg_id" value="{{ bearbeiten.leitweg_id|default:'' }}"></div>
+          <div><label class="fld">DATEV-Debitorenkonto <span class="muted" style="font-weight:400">(Steuerbüro)</span></label><input type="text" name="debitorenkonto" maxlength="9" value="{{ bearbeiten.debitorenkonto|default:'' }}"></div>
           <div class="full"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><input type="checkbox" name="aktiv" style="width:auto" {% if bearbeiten.aktiv or not bearbeiten %}checked{% endif %}> aktiv (wählbar bei Bewilligungen)</label></div>
           <div class="full">
             <button class="btn" type="submit">Speichern</button>

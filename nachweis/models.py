@@ -1059,6 +1059,8 @@ class Kostentraeger(models.Model):
     ansprechpartner = models.CharField(max_length=140, blank=True)
     leitweg_id = models.CharField("Leitweg-ID (XRechnung)", max_length=60, blank=True)
     zahlungsziel_tage = models.PositiveSmallIntegerField("Zahlungsziel (Tage)", default=30)
+    debitorenkonto = models.CharField("DATEV Debitorenkonto", max_length=9, blank=True,
+                                      help_text="für den Buchungsstapel-Export (P4b)")
     aktiv = models.BooleanField(default=True)
 
     class Meta:
@@ -1095,6 +1097,11 @@ class Rechnungssteller(models.Model):
     ust_befreit = models.BooleanField("umsatzsteuerbefreit", default=True)
     befreiungsgrund = models.CharField("Befreiungsgrund", max_length=200,
                                        default="Steuerfrei nach § 4 Nr. 16 UStG")
+    # DATEV-Export (P4b) – Werte kommen vom Steuerbüro
+    datev_berater = models.CharField("DATEV Berater-Nr.", max_length=7, blank=True)
+    datev_mandant = models.CharField("DATEV Mandanten-Nr.", max_length=5, blank=True)
+    datev_erloeskonto = models.CharField("DATEV Erlöskonto", max_length=8, blank=True,
+                                         help_text="z. B. steuerfreie Umsätze – mit dem Steuerbüro abstimmen")
 
     class Meta:
         verbose_name = "Rechnungssteller"
@@ -1555,3 +1562,75 @@ class KlientAbwesenheit(models.Model):
         if tag < self.von:
             return False
         return self.bis is None or tag <= self.bis
+
+
+# ==========================================================================
+#  P4a: QM-Pflichtkern — Vorkommnis-Meldewesen (§ 37a SGB IX Gewaltschutz,
+#  WTG Berlin § 19 f. besondere Vorkommnisse, § 8a SGB VIII Kindeswohl)
+# ==========================================================================
+class VorkommnisKategorie(models.TextChoices):
+    GEWALT = "gewalt", "Gewaltvorfall / Übergriff (§ 37a SGB IX)"
+    KINDESWOHL = "kindeswohl", "Gefährdungseinschätzung (§ 8a SGB VIII)"
+    UNFALL = "unfall", "Unfall / medizinischer Notfall"
+    MEDIKATION = "medikation", "Medikationsfehler"
+    BESCHWERDE = "beschwerde", "Beschwerde"
+    SONSTIG = "sonstig", "sonstiges besonderes Vorkommnis"
+
+
+class VorkommnisStatus(models.TextChoices):
+    OFFEN = "offen", "offen"
+    IN_BEARBEITUNG = "in_bearbeitung", "in Bearbeitung"
+    ABGESCHLOSSEN = "abgeschlossen", "abgeschlossen"
+
+
+class Vorkommnis(models.Model):
+    """Besonderes Vorkommnis mit Melde-Workflow: Erfassung → Sofortmaßnahmen →
+    Meldung an Aufsicht/Kostenträger (WTG: unverzüglich!) → Auswertung/Maßnahmen →
+    Abschluss durch die Leitung. Kernstück des QM-Pflichtteils (§ 37a Gewaltschutz);
+    die Auswertung („Was ändern wir?") ist bewusst Pflicht vor dem Abschluss."""
+    datum = models.DateField("Vorfallsdatum")
+    uhrzeit = models.TimeField(null=True, blank=True)
+    kategorie = models.CharField(max_length=12, choices=VorkommnisKategorie.choices)
+    klient = models.ForeignKey(Klient, on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name="vorkommnisse",
+                               verbose_name="betroffene Klient*in (optional)")
+    team = models.ForeignKey(Team, on_delete=models.PROTECT, related_name="vorkommnisse")
+    angebot = models.ForeignKey(Angebot, on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name="vorkommnisse")
+    beschreibung = models.TextField("Was ist passiert?")                # Art-9-Freitext
+    sofortmassnahmen = models.TextField("Sofortmaßnahmen", blank=True)  # Art-9-Freitext
+    massnahmen = models.TextField("Auswertung / abgeleitete Maßnahmen", blank=True,
+                                  help_text="Pflicht vor dem Abschluss")
+    gemeldet_an = models.CharField("gemeldet an", max_length=160, blank=True,
+                                   help_text="z. B. WTG-Aufsicht, Jugendamt, Kostenträger, Polizei")
+    gemeldet_am = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=16, choices=VorkommnisStatus.choices,
+                              default=VorkommnisStatus.OFFEN)
+    abgeschlossen_am = models.DateField(null=True, blank=True)
+    abgeschlossen_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL,
+                                          null=True, blank=True, related_name="+")
+    erstellt_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name="+")
+    erstellt = models.DateTimeField(auto_now_add=True)
+    geaendert = models.DateTimeField(auto_now=True)
+    # Workflow-Historie ohne die Art-9-Freitexte (Datenminimierung wie Bericht/Ziel)
+    history = HistoricalRecords(excluded_fields=["beschreibung", "sofortmassnahmen",
+                                                 "massnahmen"])
+
+    class Meta:
+        verbose_name = "Vorkommnis"
+        verbose_name_plural = "Vorkommnisse"
+        ordering = ["-datum", "-id"]
+        indexes = [models.Index(fields=["team", "status"])]
+
+    def __str__(self):
+        return f"{self.get_kategorie_display()} am {self.datum} ({self.team.name})"
+
+    MELDEPFLICHTIG = ("gewalt", "kindeswohl", "unfall", "medikation")
+
+    @property
+    def meldung_faellig(self) -> bool:
+        """Meldepflichtige Kategorie ohne dokumentierte Meldung (WTG: unverzüglich)."""
+        return (self.kategorie in self.MELDEPFLICHTIG
+                and self.gemeldet_am is None
+                and self.status != VorkommnisStatus.ABGESCHLOSSEN)

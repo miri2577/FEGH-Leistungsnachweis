@@ -3,7 +3,7 @@ from django.urls import path
 
 from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse,
                views_abrechnung, views_feld, views_ziele, views_berichte,
-               views_controlling, views_belegung)
+               views_controlling, views_belegung, views_qm)
 
 app_name = "nachweis"
 
@@ -81,6 +81,12 @@ urlpatterns = [
     path("rechnungen/<int:pk>/gutschrift/", views_abrechnung.rechnung_gutschrift, name="rechnung_gutschrift"),
     path("rechnungssteller/", views_abrechnung.rechnungssteller, name="rechnungssteller"),
     path("offene-posten/", views_abrechnung.offene_posten, name="offene_posten"),
+    path("datev/", views_abrechnung.datev_export, name="datev_export"),
+
+    # QM: Vorkommnis-Meldewesen (§ 37a SGB IX / WTG / § 8a SGB VIII)
+    path("vorkommnisse/", views_qm.vorkommnisse, name="vorkommnisse"),
+    path("vorkommnisse/speichern/", views_qm.vorkommnis_speichern, name="vorkommnis_speichern"),
+    path("vorkommnisse/status/", views_qm.vorkommnis_status, name="vorkommnis_status"),
     path("rechnungen/<int:pk>/zahlung/", views_abrechnung.zahlung_erfassen, name="zahlung_erfassen"),
     path("zahlung/loeschen/", views_abrechnung.zahlung_loeschen, name="zahlung_loeschen"),
     path("rechnungen/<int:pk>/mahnung/", views_abrechnung.mahnung_erstellen, name="mahnung_erstellen"),

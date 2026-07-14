@@ -173,6 +173,7 @@ def kostentraeger_speichern(request):
     kt.adresse = (request.POST.get("adresse") or "").strip()
     kt.ansprechpartner = (request.POST.get("ansprechpartner") or "").strip()
     kt.leitweg_id = (request.POST.get("leitweg_id") or "").strip()
+    kt.debitorenkonto = (request.POST.get("debitorenkonto") or "").strip()[:9]
     kt.zahlungsziel_tage = _int_or_none(request.POST.get("zahlungsziel_tage")) or 30
     kt.aktiv = request.POST.get("aktiv") == "on"
     kt.save()

@@ -50,6 +50,12 @@
         <div><label class="fld">Zahlungsziel (Tage)</label><input type="number" name="zahlungsziel_tage" min="0" value="{{ s.zahlungsziel_tage|default:'30' }}"></div>
         <div></div>
 
+        <div class="sec">DATEV (Werte vom Steuerbüro – für den Buchungsstapel-Export)</div>
+        <div><label class="fld">Berater-Nr.</label><input type="text" name="datev_berater" maxlength="7" value="{{ s.datev_berater }}"></div>
+        <div><label class="fld">Mandanten-Nr.</label><input type="text" name="datev_mandant" maxlength="5" value="{{ s.datev_mandant }}"></div>
+        <div><label class="fld">Erlöskonto</label><input type="text" name="datev_erloeskonto" maxlength="8" value="{{ s.datev_erloeskonto }}"></div>
+        <div></div>
+
         <div class="sec">Kontakt (BG-6 – für XRechnung Pflicht)</div>
         <div><label class="fld">Ansprechpartner*in *</label><input type="text" name="kontakt_name" value="{{ s.kontakt_name }}"></div>
         <div><label class="fld">Telefon *</label><input type="text" name="kontakt_tel" value="{{ s.kontakt_tel }}"></div>

@@ -245,6 +245,8 @@ AUDITLOG_INCLUDE_TRACKING_MODELS = (
     "nachweis.Belegung",
     "nachweis.AbwesenheitsartKlient",
     {"model": "nachweis.KlientAbwesenheit", "exclude_fields": ["kommentar"]},
+    {"model": "nachweis.Vorkommnis",
+     "exclude_fields": ["beschreibung", "sofortmassnahmen", "massnahmen"]},
 )
 
 # =====================================================================

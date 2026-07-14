@@ -356,6 +356,8 @@
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span> Gruppennachweise</a>
       <a href="{% url 'nachweis:kalender' %}" class="{% if aktiv == 'kalender' %}active{% endif %}">
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm0 16H5V9h14v11zM5 7V5h14v2H5zm2 4h5v5H7z"/></svg></span> Kalender</a>
+      <a href="{% url 'nachweis:vorkommnisse' %}" class="{% if aktiv == 'vorkommnisse' %}active{% endif %}" title="Besondere Vorkommnisse melden (§ 37a Gewaltschutz / § 8a)">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></span> Vorkommnisse</a>
       {% endif %}
       <div class="grp">Meine Zeit</div>
       <a href="{% url 'nachweis:arbeitszeit' %}" class="{% if aktiv == 'arbeitszeit' %}active{% endif %}">

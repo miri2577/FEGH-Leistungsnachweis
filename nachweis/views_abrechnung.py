@@ -339,6 +339,76 @@ def rechnung_status(request, pk):
     return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
 
 
+@login_required
+def datev_export(request):
+    """P4b: DATEV-Buchungsstapel (EXTF-CSV) der Ausgangsrechnungen eines Zeitraums.
+    Sollstellung: Debitor (Kostenträger) an Erlöskonto; Gutschriften mit umgekehrtem
+    SH-Kennzeichen. Zahlungen bucht das Steuerbüro über den Kontoauszug — bewusst
+    nicht exportiert. Vor dem ersten Echt-Import mit dem Steuerbüro testen!"""
+    if not services.darf_abrechnen(request.user):
+        return redirect("nachweis:start")
+    s = Rechnungssteller.load()
+    try:
+        von = date.fromisoformat(request.GET.get("von") or "")
+    except ValueError:
+        von = date.today().replace(day=1)
+    try:
+        bis = date.fromisoformat(request.GET.get("bis") or "")
+    except ValueError:
+        bis = date.today()
+    rechnungen = (Rechnung.objects
+                  .filter(datum__gte=von, datum__lte=bis,
+                          status__in=[Rechnungsstatus.GESTELLT, Rechnungsstatus.BEZAHLT])
+                  .select_related("kostentraeger").order_by("datum", "nummer"))
+    fehlend = [r.nummer for r in rechnungen
+               if not (r.kostentraeger and r.kostentraeger.debitorenkonto)]
+    if fehlend:
+        messages.error(request, "DATEV-Export nicht möglich – Debitorenkonto fehlt bei den "
+                                "Kostenträgern folgender Rechnungen: " + ", ".join(fehlend[:8])
+                                + (" …" if len(fehlend) > 8 else ""))
+        return redirect("nachweis:rechnungen")
+    if not s.datev_erloeskonto:
+        messages.error(request, "DATEV-Export nicht möglich – bitte das Erlöskonto beim "
+                                "Rechnungssteller pflegen (Wert vom Steuerbüro).")
+        return redirect("nachweis:rechnungssteller")
+
+    jetzt = timezone.localtime()
+    wj_beginn = date(von.year, 1, 1)
+    zeilen = []
+    # EXTF-700-Kopfzeile (Buchungsstapel, Kategorie 21) – Standardfelder.
+    # Bewusst OHNE csv.writer: die DATEV-Quotes setzen wir selbst (kein Escaping).
+    zeilen.append(";".join(map(str, [
+        '"EXTF"', 700, 21, '"Buchungsstapel"', 12,
+        jetzt.strftime("%Y%m%d%H%M%S000"), "", '"FE"', '""', '""',
+        s.datev_berater or 0, s.datev_mandant or 0,
+        wj_beginn.strftime("%Y%m%d"), 4,
+        von.strftime("%Y%m%d"), bis.strftime("%Y%m%d"),
+        '"FEGH Ausgangsrechnungen"', '""', 1, 0, 0, '"EUR"'])))
+    zeilen.append(";".join([
+        '"Umsatz (ohne Soll/Haben-Kz)"', '"Soll/Haben-Kennzeichen"',
+        '"WKZ Umsatz"', '"Kurs"', '"Basis-Umsatz"', '"WKZ Basis-Umsatz"',
+        '"Konto"', '"Gegenkonto (ohne BU-Schlüssel)"', '"BU-Schlüssel"',
+        '"Belegdatum"', '"Belegfeld 1"', '"Belegfeld 2"', '"Skonto"',
+        '"Buchungstext"']))
+    for r in rechnungen:
+        betrag = abs(r.betrag or Decimal("0"))
+        if betrag == 0:
+            continue
+        sh = "S" if (r.betrag or 0) > 0 else "H"        # Gutschrift = Haben auf Debitor
+        text = (f"{'Gutschrift' if r.typ == Rechnungstyp.GUTSCHRIFT else 'Rechnung'} "
+                f"{r.nummer} {r.monat_text}").replace('"', "'")
+        zeilen.append(";".join([
+            str(betrag).replace(".", ","), f'"{sh}"', '"EUR"', "", "", "",
+            r.kostentraeger.debitorenkonto, s.datev_erloeskonto, "",
+            r.datum.strftime("%d%m"), f'"{r.nummer[:36]}"', '""', "",
+            f'"{text[:60]}"']))
+    resp = HttpResponse("\r\n".join(zeilen) + "\r\n",
+                        content_type="text/csv; charset=cp1252")
+    resp["Content-Disposition"] = (f'attachment; filename="EXTF_Buchungsstapel_'
+                                   f'{von:%Y%m%d}-{bis:%Y%m%d}.csv"')
+    return resp
+
+
 @require_POST
 @login_required
 def rechnung_gutschrift(request, pk):
@@ -388,7 +458,7 @@ def rechnungssteller(request):
     if request.method == "POST":
         for f in ("name", "strasse", "plz", "ort", "land", "ust_id", "steuernummer",
                   "iban", "bic", "bank", "kontakt_name", "kontakt_tel", "kontakt_mail",
-                  "befreiungsgrund"):
+                  "befreiungsgrund", "datev_berater", "datev_mandant", "datev_erloeskonto"):
             setattr(s, f, (request.POST.get(f) or "").strip())
         s.land = s.land or "DE"
         s.zahlungsziel_tage = int(request.POST.get("zahlungsziel_tage") or 30)
