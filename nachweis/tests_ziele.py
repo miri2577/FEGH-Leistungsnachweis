@@ -165,6 +165,28 @@ class DokuZielbezugAPITests(ZieleBasis):
                     "leistungsart": "FS", "taetigkeit": "x", "ziele": []})
         self.assertEqual(set(l.ziele.all()), {erreicht})
 
+    def test_klient_wechsel_traegt_kein_fremdes_ziel_mit(self):
+        """HOCH-Befund (Review): Wird die Zeile beim Edit auf eine andere Klient*in
+        umgestellt, dürfen die (nicht-aktiven) Ziele der alten Klient*in nicht an die
+        neue gehängt werden – der Bestandsschutz muss auf den aktuellen Klienten scopen."""
+        from .models import ZielStatus
+        k2 = Klient.objects.create(nachname="Zweit", team=self.team,
+                                   bezugsbetreuer=self.betr, status=Status.BETREUUNG)
+        alt_inaktiv = self._hz(titel="Altes Ziel A")
+        alt_inaktiv.status = ZielStatus.ERREICHT
+        alt_inaktiv.save()
+        l = Leistung.objects.create(datum=date.today(), klient=self.k,
+                                    leistungsart=Leistungsart.FS, taetigkeit="x",
+                                    betreuer=self.betr, dokumentation="Text")
+        l.ziele.add(alt_inaktiv)
+        # Edit: Klient A -> B; das Frontend sendet die alten (A-)Ziel-IDs mit
+        resp = self._save({"id": l.id, "klient": k2.id,
+                           "datum": date.today().isoformat(),
+                           "leistungsart": "FS", "taetigkeit": "x",
+                           "ziele": [alt_inaktiv.id]})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(list(l.ziele.all()), [])            # kein fremdes Ziel an B
+
     def test_kein_selbstzyklus_beim_art_wechsel(self):
         rz = self._rz()
         resp = self.client.post(reverse("nachweis:ziel_speichern"), {

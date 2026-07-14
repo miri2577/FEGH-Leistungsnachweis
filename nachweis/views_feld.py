@@ -95,6 +95,13 @@ def feld_speichern(request):
         beginn=beginn, ende=ende, termin=termin,
         taetigkeit=(request.POST.get("taetigkeit") or "").strip()[:120],
         dokumentation=(request.POST.get("dokumentation") or "").strip())
+    # Optionaler Zielbezug der Verlaufsdoku (ZLP) – wie im Desktop-Doku-Modal, nur
+    # Ziele DIESER Klient*in (kein Cross-Klient-Bezug). Beim Feld-Besuch entsteht immer
+    # eine neue Leistung, daher kein Bestandsschutz nötig (nichts zu überschreiben).
+    ziel_ids = [int(i) for i in request.POST.getlist("ziele") if i.isdigit()]
+    if ziel_ids:
+        from .models import Ziel
+        leistung.ziele.set(Ziel.objects.filter(klient=klient, pk__in=ziel_ids))
     # Optionale Unterschrift (Canvas-PNG als Data-URL) – quittiert den Besuch auf dem
     # Gerät. Strikt validiert: nur PNG-Data-URL, max. ~200 KB (gegen Missbrauch als Speicher).
     sig = (request.POST.get("unterschrift") or "").strip()

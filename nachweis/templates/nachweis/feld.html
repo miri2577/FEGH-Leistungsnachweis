@@ -32,6 +32,10 @@
   .erf-item{display:flex;justify-content:space-between;gap:10px;padding:10px 13px;
     border:1px solid var(--line);border-radius:10px;background:var(--bg-2);font-size:14px}
   .erf-item .z{font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+  .ziel-list{display:flex;flex-direction:column;gap:7px;margin-top:6px}
+  .ziel-list label{flex-direction:row;align-items:flex-start;gap:9px;font-size:14.5px;color:var(--ink);font-weight:500;cursor:pointer}
+  .ziel-list input[type=checkbox]{width:20px;height:20px;margin-top:1px;flex:0 0 auto}
+  .ziel-list .zart{display:inline-block;font-size:11px;font-weight:700;color:var(--brand-d);background:var(--brand-soft);border-radius:6px;padding:0 6px;margin-left:2px}
   @media(min-width:560px){ nav.side{ } }
 {% endblock %}
 
@@ -90,6 +94,13 @@
       <input type="text" name="taetigkeit" maxlength="120" placeholder="Hausbesuch"></label>
     <label>Dokumentation
       <textarea name="dokumentation" placeholder="Verlauf des Besuchs …"></textarea></label>
+
+    <!-- Zielbezug der ZLP (optional): erscheint, sobald eine Klient*in gewählt ist -->
+    <div id="ziel-box" style="display:none;border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+      <div style="font-weight:600;font-size:14px;margin-bottom:2px">Zielbezug <span class="hint" style="font-weight:400">(optional — worauf zahlte der Besuch ein?)</span></div>
+      <div id="ziel-list" class="ziel-list"><span class="hint">…</span></div>
+    </div>
+
     <label>Doku-Zeit als separater WFS-Eintrag
       <input type="number" name="doku_minuten" value="15" min="0" max="240" step="5"> <span class="hint" style="font-weight:400">Minuten · 0 = keine</span></label>
 
@@ -137,13 +148,45 @@
       if(c.dataset.datum) f.datum.value = c.dataset.datum;
       if(c.dataset.von) f.beginn.value = c.dataset.von;
       if(c.dataset.bis) f.ende.value = c.dataset.bis;
+      ladeZiele(c.dataset.klient || '');
       f.scrollIntoView({behavior:'smooth', block:'start'});
       f.taetigkeit.focus({preventScroll:true});
     });
   });
-  // Klient*in von Hand geändert -> Termin-Bezug passt nicht mehr, leeren.
+  // Klient*in von Hand geändert -> Termin-Bezug passt nicht mehr; Ziele neu laden.
   var ksel = document.querySelector('#feldform [name=klient]');
-  if(ksel) ksel.addEventListener('change', function(){ document.getElementById('fld-termin').value = ''; });
+  if(ksel) ksel.addEventListener('change', function(){
+    document.getElementById('fld-termin').value = '';
+    ladeZiele(ksel.value);
+  });
+
+  // Aktive ZLP-Ziele der gewählten Klient*in laden und als Checkboxen anbieten.
+  // Gleiche Quelle wie das Desktop-Doku-Modal (api_ziele), streng team-gescopt.
+  var API_ZIELE = "{% url 'nachweis:api_ziele' %}";
+  function ladeZiele(kid){
+    var box = document.getElementById('ziel-box'), list = document.getElementById('ziel-list');
+    if(!box) return;
+    if(!kid){ box.style.display = 'none'; list.innerHTML = ''; return; }
+    box.style.display = 'block';
+    list.innerHTML = '<span class="hint">Ziele werden geladen …</span>';
+    fetch(API_ZIELE + '?klient=' + encodeURIComponent(kid), {headers:{'X-Requested-With':'fetch'}})
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        var z = (j && j.ziele) || [];
+        if(!z.length){ list.innerHTML = '<span class="hint">Keine aktiven Ziele hinterlegt.</span>'; return; }
+        list.innerHTML = '';
+        z.forEach(function(zi){
+          var lab = document.createElement('label');
+          var cb = document.createElement('input');
+          cb.type = 'checkbox'; cb.name = 'ziele'; cb.value = zi.id;
+          var txt = document.createElement('span');
+          txt.textContent = zi.titel;
+          if(zi.art){ var a = document.createElement('span'); a.className = 'zart'; a.textContent = zi.art; txt.appendChild(document.createTextNode(' ')); txt.appendChild(a); }
+          lab.appendChild(cb); lab.appendChild(txt); list.appendChild(lab);
+        });
+      })
+      .catch(function(){ list.innerHTML = '<span class="hint">Ziele konnten nicht geladen werden.</span>'; });
+  }
 
   // --- Unterschrift-Pad (Canvas, Touch + Maus, ohne Bibliothek) ---
   (function(){

@@ -45,7 +45,9 @@ def ueber(request):
 
 
 def _jahr(request):
-    return _int(request.GET.get("jahr"), date.today().year)
+    # Klemmen: date()/monthrange() im Monatskalender werfen sonst bei jahr<1 / >9999
+    # einen ungefangenen ValueError (500) über einen manipulierten URL-Parameter.
+    return min(2100, max(2000, _int(request.GET.get("jahr"), date.today().year)))
 
 
 def _monat(request):
@@ -317,7 +319,12 @@ def api_leistung_save(request):
         ids = [i for i in (p.get("ziele") or []) if isinstance(i, int)]
         neue = set(Ziel.objects.filter(klient=klient, pk__in=ids)
                    .values_list("pk", flat=True))
-        bestand_inaktiv = set(l.ziele.exclude(status=ZielStatus.AKTIV)
+        # Bestandsschutz NUR für nicht-aktive Ziele DIESES Klienten. Der filter(klient)
+        # ist zwingend: bei einem Klient-Wechsel der Zeile (Edit) hielte l.ziele sonst
+        # noch die Ziele des alten Klienten, und ohne Klient-Scoping würden sie an die
+        # jetzt fremde Klient*in gehängt (fremdes Ziel im Bericht/Verlauf).
+        bestand_inaktiv = set(l.ziele.filter(klient=klient)
+                              .exclude(status=ZielStatus.AKTIV)
                               .values_list("pk", flat=True)) if l.pk else set()
         l.ziele.set(Ziel.objects.filter(pk__in=neue | bestand_inaktiv))
     return JsonResponse(_row(l))
@@ -606,9 +613,10 @@ def _kalender_ziel(request):
     return z if z.startswith("/kalender/") else reverse("nachweis:kalender")
 
 
-def _kalender_kontext(request):
+def _kalender_kontext(request, ansicht=None):
     """Daten für Kalender-Ansicht + -Druck. Ansicht = tag | woche | monat, mit
-    Team-/Mitarbeiter-/Klient-Filter, Legende (Klient*innen mit Farbe/Kürzel)."""
+    Team-/Mitarbeiter-/Klient-Filter, Legende (Klient*innen mit Farbe/Kürzel).
+    `ansicht` erzwingbar (z. B. der Druck rendert nur die Wochen-Matrix)."""
     from collections import defaultdict
     from calendar import monthrange
     me = services.mitarbeiter_fuer(request.user)
@@ -616,7 +624,7 @@ def _kalender_kontext(request):
     jahr = _jahr(request)
     heute = date.today()
     # Monatsmatrix (Mitarbeiter × Tage, vereint Termine + Dienste) ist die Standard-Ansicht
-    ansicht = request.GET.get("ansicht") or "monat"
+    ansicht = ansicht or request.GET.get("ansicht") or "monat"
     if ansicht not in ("tag", "woche", "monat"):
         ansicht = "monat"
 
@@ -744,7 +752,7 @@ def _kalender_kontext(request):
                   for d in (von + timedelta(days=i) for i in range((bis - von).days + 1))]
         dienste = list(Dienst.objects.filter(mitarbeiter__in=mitarbeiter,
                                              datum__range=(von, bis))
-                       .select_related("schichtart", "angebot"))
+                       .select_related("schichtart", "angebot", "mitarbeiter"))
         plan = {(d.mitarbeiter_id, d.datum.day): d for d in dienste}
         # Genehmigte MA-Abwesenheiten als Schraffur (wie im bisherigen Dienstplan)
         abw_map = {}
@@ -918,7 +926,11 @@ def termin_zeit(request):
 def kalender_druck(request):
     if services.ohne_klientenarbeit(request.user):
         return redirect("nachweis:start")
-    return render(request, "nachweis/kalender_druck.html", _kalender_kontext(request))
+    # Das Druck-Template rendert ausschließlich die Wochen-Matrix (A4 quer). Die
+    # Standard-Ansicht der App ist der Monat, den das Druck-Layout nicht kennt, daher
+    # wird für den Druck immer die Woche erzwungen (ggf. ?kw= zur Auswahl).
+    return render(request, "nachweis/kalender_druck.html",
+                  _kalender_kontext(request, ansicht="woche"))
 
 
 # ---------------------------------------------------------------- Druck-Center (Sammelseite, unten in der Sidebar)

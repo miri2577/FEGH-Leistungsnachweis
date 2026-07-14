@@ -152,8 +152,6 @@ def wirkung(request, pk):
     for d in Wirkungsdimension.objects.filter(aktiv=True):
         werte = [e for e in einschaetzungen if e.dimension_id == d.id
                  and e.perspektive == WirkungsPerspektive.FACHKRAFT]
-        if not werte and not d.aktiv:
-            continue
         beginn = next((e for e in sorted(werte, key=lambda e: e.datum)
                        if e.anlass == WirkungsAnlass.BEGINN), None)
         letzte = max(werte, key=lambda e: e.datum, default=None)

@@ -133,6 +133,20 @@ class TeamIsolationTests(TestCase):
             r = self.cl(self.uA).get(f"/kalender/?ansicht={ansicht}")
             self.assertEqual(r.status_code, 200, ansicht)
 
+    def test_kalender_druck_ohne_ansicht_zeigt_woche(self):
+        """Review-Regression: Standard-Ansicht ist jetzt der Monat, das Druck-Template
+        kennt aber nur die Woche -> der Druck muss die Woche erzwingen (sonst leer)."""
+        r = self.cl(self.uA).get("/kalender/druck/")
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Kalenderwoche")            # Wochen-Layout gerendert
+        self.assertNotContains(r, "Keine Mitarbeiter*innen im Team.")
+
+    def test_kalender_extremes_jahr_kein_500(self):
+        """Review-Regression: _jahr klemmt jetzt -> kein ValueError-500 bei jahr<1/>9999."""
+        for jahr in ("0", "99999", "-5"):
+            r = self.cl(self.uA).get(f"/kalender/?ansicht=monat&jahr={jahr}")
+            self.assertEqual(r.status_code, 200, jahr)
+
     # --- Termin anlegen: Mitarbeiter-Zuweisung (Klick ins leere Feld) ---
     def test_leitung_legt_termin_fuer_teammitglied_an(self):
         r = self.cl(self.uLA).post("/kalender/save/", {

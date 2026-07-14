@@ -58,6 +58,30 @@ class FeldTests(TestCase):
         self.assertEqual(doku.dauer_stunden, Decimal("0.250"))
         self.assertEqual(doku.taetigkeit, "Dokumentation")
 
+    def test_zielbezug_wird_verknuepft(self):
+        """Unterwegs-Doku kann festgelegte ZLP-Ziele der Klient*in referenzieren."""
+        from .models import Ziel, ZielArt
+        z1 = Ziel.objects.create(klient=self.kA, art=ZielArt.HANDLUNGSZIEL, titel="Ziel A")
+        z2 = Ziel.objects.create(klient=self.kA, art=ZielArt.HANDLUNGSZIEL, titel="Ziel B")
+        fremd = Ziel.objects.create(klient=self.kB, art=ZielArt.HANDLUNGSZIEL, titel="Fremd")
+        self.cl(self.uA).post("/unterwegs/speichern/", {
+            "klient": self.kA.id, "datum": "2026-06-12", "beginn": "09:00", "ende": "10:00",
+            "leistungsart": "FS", "dokumentation": "Verlauf", "doku_minuten": "0",
+            "ziele": [z1.id, z2.id, fremd.id]})       # fremdes Ziel muss gefiltert werden
+        besuch = Leistung.objects.get(klient=self.kA, datum=date(2026, 6, 12), leistungsart="FS")
+        self.assertEqual(set(besuch.ziele.values_list("id", flat=True)), {z1.id, z2.id})
+
+    def test_api_ziele_liefert_aktive_ziele_fuer_feld(self):
+        """Die Ziel-Auswahl im Unterwegs-Modus speist sich aus api_ziele (nur aktive)."""
+        from .models import Ziel, ZielArt, ZielStatus
+        Ziel.objects.create(klient=self.kA, art=ZielArt.HANDLUNGSZIEL, titel="Aktiv")
+        Ziel.objects.create(klient=self.kA, art=ZielArt.HANDLUNGSZIEL, titel="Erledigt",
+                            status=ZielStatus.ERREICHT)
+        r = self.cl(self.uA).get("/api/ziele/", {"klient": self.kA.id})
+        titel = [z["titel"] for z in r.json()["ziele"]]
+        self.assertIn("Aktiv", titel)
+        self.assertNotIn("Erledigt", titel)
+
     def test_ohne_doku_zeit_nur_ein_eintrag(self):
         self.cl(self.uA).post("/unterwegs/speichern/", {
             "klient": self.kA.id, "datum": "2026-06-11", "beginn": "09:00", "ende": "10:00",
