@@ -16,7 +16,8 @@ from django.views.decorators.http import require_POST
 from . import services
 from .models import (Mitarbeiter, Team, Leistung, Gruppe, Klient, Leistungsart,
                      Arbeitszeit, Abwesenheit, AbwesenheitArt, AbwesenheitStatus,
-                     Genehmigungsstatus, Termin, WiederkehrendeLeistung)
+                     Genehmigungsstatus, Termin, WiederkehrendeLeistung,
+                     Dienst, Schichtart, Angebot, _stunden)
 
 MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
                "August", "September", "Oktober", "November", "Dezember"]
@@ -614,9 +615,10 @@ def _kalender_kontext(request):
     teams = services.teams_fuer(request.user)
     jahr = _jahr(request)
     heute = date.today()
-    ansicht = request.GET.get("ansicht") or "woche"
+    # Monatsmatrix (Mitarbeiter × Tage, vereint Termine + Dienste) ist die Standard-Ansicht
+    ansicht = request.GET.get("ansicht") or "monat"
     if ansicht not in ("tag", "woche", "monat"):
-        ansicht = "woche"
+        ansicht = "monat"
 
     # Filter (Team / Mitarbeiter / Klient)
     team_id = request.GET.get("team") or ""
@@ -637,11 +639,10 @@ def _kalender_kontext(request):
         von = bis = tag
         titel = f"{WOCHENTAGE[tag.weekday()]}, {tag:%d.%m.%Y}"
     elif ansicht == "monat":
+        # Matrix zeigt genau den Monat (keine Wochen-Ränder wie im alten Raster)
         monat = min(12, max(1, _int(request.GET.get("monat"), heute.month)))
-        erster = date(jahr, monat, 1)
-        letzter = date(jahr, monat, monthrange(jahr, monat)[1])
-        von = erster - timedelta(days=erster.weekday())
-        bis = letzter + timedelta(days=6 - letzter.weekday())
+        von = date(jahr, monat, 1)
+        bis = date(jahr, monat, monthrange(jahr, monat)[1])
         titel = f"{MONATSNAMEN[monat]} {jahr}"
     else:
         kw = min(53, max(1, _int(request.GET.get("kw"), 0) or services.aktuelle_kw(jahr)))
@@ -733,20 +734,63 @@ def _kalender_kontext(request):
                    nav_prev=f"ansicht=tag&tag={(von - timedelta(days=1)).isoformat()}",
                    nav_next=f"ansicht=tag&tag={(von + timedelta(days=1)).isoformat()}",
                    nav_heute="ansicht=tag")
-    else:  # monat
-        by_day = defaultdict(list)
-        for t in termine:
-            by_day[t.datum].append(t)
+    else:  # monat: Matrix Mitarbeiter × Tage — EIN Planungsbrett für ambulant
+        # (Klient-Termine) und stationär (Schichtdienste); Kalender und Dienstplan
+        # sind fachlich dasselbe Werkzeug, nur der Zellinhalt unterscheidet sich.
         monat = min(12, max(1, _int(request.GET.get("monat"), heute.month)))
-        wochen, d = [], von
-        while d <= bis:
-            wochen.append([{"datum": d, "im_monat": d.month == monat, "heute": d == heute,
-                            "termine": by_day.get(d, []), "serien": serien_by_date.get(d, [])}
-                           for d in (d + timedelta(days=i) for i in range(7))])
-            d += timedelta(days=7)
+        tage_m = [{"tag": d.day, "datum": d, "wd": WOCHENTAGE[d.weekday()][:2],
+                   "we": d.weekday() >= 5, "heute": d == heute,
+                   "serien": serien_by_date.get(d, [])}
+                  for d in (von + timedelta(days=i) for i in range((bis - von).days + 1))]
+        dienste = list(Dienst.objects.filter(mitarbeiter__in=mitarbeiter,
+                                             datum__range=(von, bis))
+                       .select_related("schichtart", "angebot"))
+        plan = {(d.mitarbeiter_id, d.datum.day): d for d in dienste}
+        # Genehmigte MA-Abwesenheiten als Schraffur (wie im bisherigen Dienstplan)
+        abw_map = {}
+        for a in Abwesenheit.objects.filter(mitarbeiter__in=mitarbeiter,
+                                            status=AbwesenheitStatus.GENEHMIGT,
+                                            von__lte=bis, bis__gte=von):
+            d = max(a.von, von)
+            while d <= min(a.bis, bis):
+                abw_map[(a.mitarbeiter_id, d.day)] = a.get_art_display()[:4]
+                d += timedelta(days=1)
+        by_ma_tag = defaultdict(lambda: defaultdict(list))
+        for t in termine:
+            by_ma_tag[t.mitarbeiter_id][t.datum.day].append(t)
+        matrix_zeilen = []
+        for m in mitarbeiter:
+            felder, std = [], Decimal("0")
+            for tg in tage_m:
+                d = plan.get((m.id, tg["tag"]))
+                ts = by_ma_tag[m.id].get(tg["tag"], [])
+                felder.append({"tag": tg["tag"], "datum": tg["datum"], "we": tg["we"],
+                               "heute": tg["heute"], "dienst": d, "termine": ts,
+                               "abw": abw_map.get((m.id, tg["tag"]))})
+                if d:
+                    std += Decimal(str(d.schichtart.dauer_stunden))
+                std += sum((_stunden(t.beginn, t.ende) for t in ts if t.ende),
+                           Decimal("0"))
+            matrix_zeilen.append({"m": m, "ich": bool(me and m.id == me.id),
+                                  "felder": felder, "summe": round(float(std), 1)})
+        # Nachtbesetzungs-Check (nur Leitung, nur wenn Nacht-Angebote existieren)
+        nacht_luecken = []
+        if services.ist_leitung(request.user):
+            from .views_dienstplan import _nacht_luecken
+            n_tage = (bis - von).days + 1
+            for tm in team_qs:
+                nacht_luecken += _nacht_luecken(tm, jahr, monat, n_tage,
+                                                [d for d in dienste
+                                                 if d.mitarbeiter.team_id == tm.id])
         pm = (jahr, monat - 1) if monat > 1 else (jahr - 1, 12)
         nm = (jahr, monat + 1) if monat < 12 else (jahr + 1, 1)
-        ctx.update(monat_wochen=wochen, monat=monat,
+        ctx.update(matrix_zeilen=matrix_zeilen, matrix_tage=tage_m, monat=monat,
+                   monat_hat_serien=any(t["serien"] for t in tage_m),
+                   schichtarten=(Schichtart.objects.filter(aktiv=True)
+                                 if services.ist_leitung(request.user) else []),
+                   plan_angebote=(Angebot.objects.filter(team__in=team_qs, aktiv=True)
+                                  if services.ist_leitung(request.user) else []),
+                   nacht_luecken=nacht_luecken,
                    nav_prev=f"ansicht=monat&jahr={pm[0]}&monat={pm[1]}",
                    nav_next=f"ansicht=monat&jahr={nm[0]}&monat={nm[1]}",
                    nav_heute="ansicht=monat")

@@ -47,14 +47,37 @@
   .tagcard .ev{font-size:12.5px}
   .tagcard .ev .ort{color:#5a6b7a;font-size:11px}
 
-  /* Monatsansicht */
-  table.month{border-collapse:collapse;width:100%;table-layout:fixed}
-  table.month th{background:var(--bg-2);padding:6px;font-size:12px;border:1px solid var(--line)}
-  table.month td{border:1px solid var(--line);height:104px;vertical-align:top;padding:4px}
-  table.month td.out{background:#fafbfc;color:#aab4bd}
-  table.month td.today{background:var(--brand-soft)}
-  table.month .mn{font-size:12.5px;font-weight:700;color:#3a4a58;display:block;margin-bottom:3px}
-  table.month .ev{font-size:11px;padding:2px 5px;margin-bottom:2px}
+  /* Monatsansicht: Matrix Mitarbeiter × Tage (Dienstplan-Optik) — Termine + Dienste */
+  table.mx{border-collapse:collapse;width:100%;font-size:11px}
+  .mx th,.mx td{border:1px solid var(--line);text-align:center;padding:1px;min-width:30px;vertical-align:top}
+  .mx thead th{background:var(--bg-2);font-size:11px;padding:3px 1px;font-weight:600}
+  .mx thead th .wd{font-weight:400;color:var(--muted)}
+  .mx th.we,.mx td.we{background:#f0f3f6}
+  .mx th.today,.mx td.today{background:var(--brand-soft)}
+  .mxname{text-align:left !important;white-space:nowrap;padding:4px 8px !important;font-weight:600;min-width:150px;font-size:12.5px}
+  .mx tr.ich .mxname{box-shadow:inset 3px 0 0 var(--brand)}
+  .mxcell{cursor:pointer;height:54px}
+  .mxcell:hover{outline:2px solid var(--brand);outline-offset:-2px}
+  .mxd{display:block;color:#fff;font-weight:700;border-radius:4px;font-size:10.5px;line-height:15px;margin:1px}
+  .mxev{display:block;border-radius:4px;font-size:10px;line-height:14px;margin:1px;color:#1f2d3a;
+    overflow:hidden;white-space:nowrap;border:1px solid rgba(0,0,0,.06)}
+  .mxev.hid{display:none}
+  .mxmore{font-size:10px;color:var(--muted);font-weight:700}
+  .mxsum{font-weight:700;font-variant-numeric:tabular-nums;font-size:12px;padding:4px !important}
+  .mxabw{font-size:9.5px;color:#8a97a6}
+  td.mxcell.abw{background:repeating-linear-gradient(45deg,#eef2f6,#eef2f6 4px,#e2e8ee 4px,#e2e8ee 8px)}
+  .mxdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin:1px}
+  .warnbox{background:var(--warnbg);color:var(--warn);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;line-height:1.6}
+  /* Tages-Popover der Matrix */
+  .pop{position:fixed;inset:0;background:rgba(15,30,50,.4);z-index:60;display:none;place-items:center}
+  .pop.on{display:grid}
+  .pop .box{background:var(--card,#fff);border-radius:12px;padding:18px;min-width:300px;max-width:420px;box-shadow:var(--shadow)}
+  .mxp-ev{display:block;padding:5px 9px;margin:4px 0;border-radius:7px;background:var(--bg-2);
+    font-size:12.5px;color:inherit;text-decoration:none;border-left:4px solid var(--border)}
+  a.mxp-ev:hover{background:var(--brand-soft);text-decoration:none}
+  .mxp-abw{font-size:12px;color:var(--muted);margin:6px 0}
+  .pop .sa{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .pop .sa button{border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;color:#fff;font-weight:700}
 
   .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:12px 2px 0;font-size:12.5px}
   .legend .li{display:inline-flex;align-items:center;gap:6px}
@@ -124,6 +147,7 @@
       <a class="btn ghost" href="?{{ nav_heute }}{{ filter_qs }}">Heute</a>
       <a class="btn ghost" href="?{{ nav_next }}{{ filter_qs }}" title="weiter">›</a>
       <button class="btn ghost" type="button" id="fs-toggle" title="Vollbild (Esc verlässt)">⛶ Vollbild</button>
+      {% if ansicht == 'monat' and schichtarten %}<a class="btn ghost" href="{% url 'nachweis:schichtarten' %}">Schichtarten</a>{% endif %}
     </div>
   </div>
 
@@ -223,26 +247,49 @@
   </div>
   {% if me %}<p class="drag-hint">Block <b>ziehen</b> = Uhrzeit (15-Min-Raster) · <b>untere Kante ziehen</b> = Dauer · <b>Doppelklick</b> = bearbeiten · auf <b>freie Fläche klicken</b> = neuer Termin (Uhrzeit wird übernommen).</p>{% endif %}
 
-  {# ---------------- MONAT ---------------- #}
+  {# ------- MONAT: Matrix Mitarbeiter × Tage (Termine + Dienste vereint) ------- #}
   {% else %}
+  {% if nacht_luecken %}
+  <div class="warnbox"><b>⚠ Nachtbesetzung unvollständig:</b>
+    {% for l in nacht_luecken %}<div>{{ l.angebot.name }} – {{ l.anzahl }} Nacht(-Dienst) offen (Tage {{ l.tage|join:", " }}{% if l.anzahl > 10 %} …{% endif %})</div>{% endfor %}
+  </div>
+  {% endif %}
   <div class="kal-wrap">
-    <table class="month">
-      <thead><tr><th>Mo</th><th>Di</th><th>Mi</th><th>Do</th><th>Fr</th><th class="we">Sa</th><th class="we">So</th></tr></thead>
+    <table class="mx">
+      <thead><tr><th class="mxname">Mitarbeiter*in</th>
+        {% for t in matrix_tage %}<th class="{% if t.we %}we{% endif %}{% if t.heute %} today{% endif %}">{{ t.tag }}<br><span class="wd">{{ t.wd }}</span></th>{% endfor %}
+        <th title="Dienst- + Termin-Stunden im Monat">Σ Std</th></tr></thead>
       <tbody>
-        {% for woche in monat_wochen %}
-        <tr>
-          {% for tag in woche %}
-          <td class="{% if not tag.im_monat %}out{% endif %}{% if tag.heute %} today{% endif %}" data-datum="{{ tag.datum|date:'Y-m-d' }}" data-drop="1"{% if me %} data-add="?{{ nav_self }}{{ filter_qs }}&tag={{ tag.datum|date:'Y-m-d' }}#form"{% endif %}>
-            <span class="mn">{{ tag.datum|date:"j" }}</span>
-            {% for t in tag.termine %}{% if kann_alle or me and t.mitarbeiter_id == me.id %}<a class="ev" draggable="true" data-termin="{{ t.id }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form" style="background:{{ t.farbe }}" title="{{ t.mitarbeiter.name }} · {{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</a>{% else %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.mitarbeiter.name }} · {{ t.zeit }} {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endif %}{% endfor %}
-            {% for s in tag.serien %}<span class="ev serie" style="background:{{ s.farbe }}" title="{{ s.bezeichnung }}">{{ s.bezeichnung }}</span>{% endfor %}
+        {% if monat_hat_serien %}
+        <tr class="serienrow"><td class="mxname" style="font-size:12px;color:var(--muted)">Serien</td>
+          {% for t in matrix_tage %}<td class="{% if t.we %}we{% endif %}">{% for s in t.serien %}<span class="mxdot" style="background:{{ s.farbe }}" title="{{ s.bezeichnung }} · {{ s.art }}"></span>{% endfor %}</td>{% endfor %}
+          <td></td></tr>
+        {% endif %}
+        {% for z in matrix_zeilen %}
+        <tr class="{% if z.ich %}ich{% endif %}">
+          <td class="mxname">{{ z.m.name }}{% if z.m.vorname %}, {{ z.m.vorname }}{% endif %}{% if z.ich %} <span class="muted" style="font-weight:400">(ich)</span>{% endif %}</td>
+          {% for f in z.felder %}
+          <td class="mxcell {% if f.we %}we{% endif %}{% if f.heute %} today{% endif %}{% if f.abw and not f.dienst and not f.termine %} abw{% endif %}"
+              data-ma="{{ z.m.id }}" data-datum="{{ f.datum|date:'Y-m-d' }}"
+              data-name="{{ z.m.name }} · {{ f.datum|date:'D d.m.Y' }}"
+              {% if z.ich or kann_alle %}data-add="1"{% endif %}
+              {% if f.abw %}data-abw="{{ f.abw }}"{% endif %}>
+            {% if f.dienst %}<span class="mxd" style="background:{{ f.dienst.schichtart.farbe }}" title="{{ f.dienst.schichtart.name }}{% if f.dienst.angebot %} · {{ f.dienst.angebot.name }}{% endif %}">{{ f.dienst.schichtart.kuerzel }}</span>{% endif %}
+            {% for t in f.termine %}<span class="mxev{% if forloop.counter > 2 %} hid{% endif %}" style="background:{{ t.farbe }}"
+              data-label="{{ t.zeit }} · {% if t.klient %}{{ t.klient.name }}{% else %}{{ t.titel|default:'Termin' }}{% endif %}"
+              {% if z.ich or kann_alle %}data-edit="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form"{% endif %}
+              title="{{ t.zeit }} {{ t.anzeige }}">{{ t.anzeige }}</span>{% endfor %}
+            {% if f.termine|length > 2 %}<span class="mxmore">+{{ f.termine|length|add:"-2" }}</span>{% endif %}
+            {% if f.abw and not f.dienst and not f.termine %}<span class="mxabw">{{ f.abw }}</span>{% endif %}
           </td>
           {% endfor %}
+          <td class="mxsum">{{ z.summe }}</td>
         </tr>
-        {% endfor %}
+        {% empty %}<tr><td colspan="33" class="muted" style="text-align:center;padding:22px">Keine Mitarbeiter*innen.</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
+  <p class="drag-hint">Zelle anklicken = Tag öffnen: Termine ansehen/anlegen{% if schichtarten %} · Dienst setzen (Leitung){% endif %}. Für Uhrzeiten-Feinschliff die <b>Tag</b>-Ansicht nutzen.</p>
   {% endif %}
 
   {% if legende %}
@@ -295,6 +342,45 @@
   </aside>
   {% endif %}
   </div>{# .kal-layout #}
+
+  {# Tages-Popover der Monatsmatrix: Termine des Tages + (Leitung) Dienst setzen #}
+  {% if ansicht == 'monat' %}
+  <div class="pop" id="mxpop" data-addbase="?{{ nav_self }}{{ filter_qs }}">
+    <div class="box">
+      <div style="font-weight:700;margin-bottom:6px" id="mxp-title">Tag</div>
+      <div id="mxp-list"></div>
+      {% if me %}<a class="btn ghost" id="mxp-add" href="#" style="margin-top:6px;display:none">＋ Termin anlegen</a>{% endif %}
+      {% if schichtarten %}
+      <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:10px">
+        <div style="font-size:12.5px;color:var(--muted);font-weight:600">Dienst (stationäre Planung)</div>
+        <form method="post" action="{% url 'nachweis:dienst_setzen' %}">
+          {% csrf_token %}
+          <input type="hidden" name="mitarbeiter" id="mxp-ma">
+          <input type="hidden" name="datum" id="mxp-datum">
+          <input type="hidden" name="schichtart" id="mxp-sa">
+          <input type="hidden" name="back" value="{{ request.get_full_path }}">
+          <div class="sa">
+            {% for sa in schichtarten %}
+            <button type="submit" style="background:{{ sa.farbe }}" title="{{ sa.name }} ({{ sa.beginn|time:'H:i' }}–{{ sa.ende|time:'H:i' }})"
+              onclick="document.getElementById('mxp-sa').value='{{ sa.id }}'">{{ sa.kuerzel }}</button>
+            {% endfor %}
+          </div>
+          {% if plan_angebote %}
+          <label style="font-size:12px;color:var(--muted)">Angebot (optional)
+            <select name="angebot" style="width:100%;margin-top:3px"><option value="">—</option>{% for a in plan_angebote %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></label>
+          {% endif %}
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="submit" class="btn ghost" style="color:var(--bad)" onclick="document.getElementById('mxp-sa').value=''">Dienst entfernen</button>
+          </div>
+        </form>
+      </div>
+      {% endif %}
+      <div style="margin-top:10px;text-align:right">
+        <button type="button" class="btn ghost" onclick="document.getElementById('mxpop').classList.remove('on')">Schließen</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 {% endblock %}
 
 {% block extrajs %}
@@ -344,13 +430,46 @@
           .catch(function(){ alert('Verschieben fehlgeschlagen – die Seite wird neu geladen.'); location.reload(); });
       });
     });
-    // Klick auf leere Zellenfläche (Woche/Monat) = neuen Termin an dem Tag anlegen
-    document.querySelectorAll('td[data-add]').forEach(function(cell){
-      cell.addEventListener('click', function(e){
-        if(e.target.closest('.ev') || e.target.closest('.addcell')) return;
-        location.href = cell.dataset.add;
+  })();
+
+  // Monatsmatrix: Zelle anklicken -> Tages-Popover (Termine + Dienst-Sektion)
+  (function(){
+    var pop = document.getElementById('mxpop'); if(!pop) return;
+    var list = document.getElementById('mxp-list'), title = document.getElementById('mxp-title');
+    var addA = document.getElementById('mxp-add');
+    var dma = document.getElementById('mxp-ma'), ddatum = document.getElementById('mxp-datum');
+    var addbase = pop.dataset.addbase;
+    document.querySelectorAll('.mxcell').forEach(function(cell){
+      cell.addEventListener('click', function(){
+        title.textContent = cell.dataset.name || '';
+        list.innerHTML = '';
+        cell.querySelectorAll('.mxev').forEach(function(ev){
+          var row = document.createElement(ev.dataset.edit ? 'a' : 'div');
+          row.className = 'mxp-ev';
+          row.textContent = ev.dataset.label || ev.textContent;
+          row.style.borderLeftColor = ev.style.background || 'var(--border)';
+          if(ev.dataset.edit) row.href = ev.dataset.edit;
+          list.appendChild(row);
+        });
+        if(cell.dataset.abw){
+          var ab = document.createElement('div'); ab.className = 'mxp-abw';
+          ab.textContent = 'Abwesenheit: ' + cell.dataset.abw; list.appendChild(ab);
+        }
+        if(!list.children.length){
+          var le = document.createElement('div'); le.className = 'mxp-abw';
+          le.textContent = 'Keine Termine an diesem Tag.'; list.appendChild(le);
+        }
+        if(addA){
+          var darf = cell.dataset.add === '1';
+          addA.style.display = darf ? 'inline-flex' : 'none';
+          if(darf) addA.href = addbase + '&tag=' + cell.dataset.datum + '&ma=' + cell.dataset.ma + '#form';
+        }
+        if(dma){ dma.value = cell.dataset.ma; ddatum.value = cell.dataset.datum; }
+        pop.classList.add('on');
       });
     });
+    pop.addEventListener('click', function(e){ if(e.target === pop) pop.classList.remove('on'); });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') pop.classList.remove('on'); });
   })();
 
   // Tag-Raster: Block ziehen = Startzeit, untere Kante = Dauer (15-Min-Raster)

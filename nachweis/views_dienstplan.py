@@ -2,7 +2,6 @@
 das IST bleibt die Arbeitszeit-Erfassung. Nachtbesetzungs-Check für Angebote mit
 Nacht-Erreichbarkeit (M2). Kein eAU – Krankmeldung läuft über Abwesenheit + Lohnbüro.
 """
-from calendar import monthrange
 from datetime import date
 
 from django.contrib import messages
@@ -10,11 +9,11 @@ from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from . import services
-from .models import (Dienst, Schichtart, Mitarbeiter, Team, Angebot, Abwesenheit,
-                     AbwesenheitStatus, Erreichbarkeit)
+from .models import (Dienst, Schichtart, Mitarbeiter, Angebot, Erreichbarkeit)
 
 WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 
@@ -28,57 +27,13 @@ def _int0(val):
 
 @login_required
 def dienstplan(request):
-    """Monats-Dienstplan eines Teams: Matrix Mitarbeiter*in × Tage."""
-    if not services.ist_leitung(request.user):
-        return HttpResponseForbidden()
-    teams = list(services.teams_fuer(request.user))
-    if not teams:
-        return render(request, "nachweis/dienstplan.html", {"aktiv": "dienstplan", "kein_team": True})
-    team = next((t for t in teams if t.id == _int0(request.GET.get("team"))), teams[0])
-    jahr = min(2100, max(2000, _int0(request.GET.get("jahr")) or date.today().year))
-    monat = min(12, max(1, _int0(request.GET.get("monat")) or date.today().month))
-    n_tage = monthrange(jahr, monat)[1]
-    von, bis = date(jahr, monat, 1), date(jahr, monat, n_tage)
-    tage = [{"tag": t, "datum": date(jahr, monat, t),
-             "wd": WOCHENTAGE[date(jahr, monat, t).weekday()],
-             "we": date(jahr, monat, t).weekday() >= 5} for t in range(1, n_tage + 1)]
-
-    mitarbeitende = list(Mitarbeiter.objects.filter(team=team, aktiv=True).order_by("name"))
-    dienste = (Dienst.objects.filter(mitarbeiter__in=mitarbeitende,
-                                     datum__gte=von, datum__lte=bis)
-               .select_related("schichtart", "angebot"))
-    plan = {(d.mitarbeiter_id, d.datum.day): d for d in dienste}
-    # Genehmigte Abwesenheiten als Hintergrund (Urlaub/Krank) einblenden
-    abw = Abwesenheit.objects.filter(mitarbeiter__in=mitarbeitende,
-                                     status=AbwesenheitStatus.GENEHMIGT,
-                                     von__lte=bis, bis__gte=von)
-    abw_map = {}
-    for a in abw:
-        for t in range(1, n_tage + 1):
-            d = date(jahr, monat, t)
-            if a.von <= d <= a.bis:
-                abw_map[(a.mitarbeiter_id, t)] = a.get_art_display()[:4]
-    zeilen = []
-    for m in mitarbeitende:
-        felder, std = [], 0
-        for t in tage:
-            d = plan.get((m.id, t["tag"]))
-            felder.append({"tag": t["tag"], "dienst": d,
-                           "abw": abw_map.get((m.id, t["tag"]))})
-            if d:
-                std += float(d.schichtart.dauer_stunden)
-        zeilen.append({"ma": m, "felder": felder, "summe": round(std, 1)})
-
-    # Nachtbesetzungs-Lücken: Angebote mit Nacht-Erreichbarkeit ohne Nachtdienst am Tag
-    nacht_luecken = _nacht_luecken(team, jahr, monat, n_tage, dienste)
-    return render(request, "nachweis/dienstplan.html", {
-        "aktiv": "dienstplan", "team": team, "teams": teams,
-        "jahr": jahr, "monat": monat, "monate": list(range(1, 13)),
-        "tage": tage, "zeilen": zeilen,
-        "schichtarten": Schichtart.objects.filter(aktiv=True),
-        "angebote": Angebot.objects.filter(team=team, aktiv=True),
-        "nacht_luecken": nacht_luecken,
-    })
+    """Der separate Dienstplan ist in die Kalender-Monatsmatrix aufgegangen —
+    Kalender und Dienstplan sind dasselbe Planungsbrett (ambulant plant Termine,
+    stationär Schichtdienste). Alte URL/Lesezeichen leiten dorthin um."""
+    params = "&".join(f"{k}={request.GET.get(k)}" for k in ("team", "jahr", "monat")
+                      if request.GET.get(k))
+    return redirect(f"{reverse('nachweis:kalender')}?ansicht=monat"
+                    + (f"&{params}" if params else ""))
 
 
 def _nacht_luecken(team, jahr, monat, n_tage, dienste):
@@ -110,7 +65,7 @@ def dienst_setzen(request):
         d = date.fromisoformat(request.POST.get("datum"))
     except (TypeError, ValueError):
         messages.error(request, "Ungültiges Datum.")
-        return redirect("nachweis:dienstplan")
+        return redirect("nachweis:kalender")
     zurueck = f"{request.POST.get('back') or ''}"
     sa_pk = _int0(request.POST.get("schichtart"))
     ang = Angebot.objects.filter(pk=_int0(request.POST.get("angebot")), team=m.team).first()
@@ -126,7 +81,7 @@ def dienst_setzen(request):
                 defaults={"angebot": ang, "notiz": (request.POST.get("notiz") or "").strip()[:120]})
         except IntegrityError:
             pass
-    return redirect(zurueck or "nachweis:dienstplan")
+    return redirect(zurueck or "nachweis:kalender")
 
 
 @login_required
@@ -160,6 +115,6 @@ def schichtarten(request):
     bearbeiten = Schichtart.objects.filter(pk=_int0(request.GET.get("edit"))).first() \
         if request.GET.get("edit") else None
     return render(request, "nachweis/schichtarten.html", {
-        "aktiv": "dienstplan", "schichtarten": Schichtart.objects.all(),
+        "aktiv": "kalender", "schichtarten": Schichtart.objects.all(),
         "bearbeiten": bearbeiten,
     })
