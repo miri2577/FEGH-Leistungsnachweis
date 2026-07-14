@@ -2,6 +2,7 @@
 das IST bleibt die Arbeitszeit-Erfassung. Nachtbesetzungs-Check für Angebote mit
 Nacht-Erreichbarkeit (M2). Kein eAU – Krankmeldung läuft über Abwesenheit + Lohnbüro.
 """
+from calendar import monthrange
 from datetime import date
 
 from django.contrib import messages
@@ -16,6 +17,8 @@ from . import services
 from .models import (Dienst, Schichtart, Mitarbeiter, Angebot, Erreichbarkeit)
 
 WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
+               "August", "September", "Oktober", "November", "Dezember"]
 
 
 def _int0(val):
@@ -23,6 +26,28 @@ def _int0(val):
         return int(val)
     except (TypeError, ValueError):
         return 0
+
+
+@login_required
+def dienst_abgleich(request):
+    """SOLL/IST-Abgleich (Dienstplan vs. Arbeitszeit) je Mitarbeiter*in im Monat,
+    mit ArbZG-Ruhezeit-Prüfung. Nur Leitung, team-gescopt."""
+    if not services.ist_leitung(request.user):
+        return HttpResponseForbidden()
+    teams = list(services.teams_fuer(request.user))
+    if not teams:
+        return render(request, "nachweis/dienst_abgleich.html",
+                      {"aktiv": "dienstabgleich", "kein_team": True})
+    team = next((t for t in teams if t.id == _int0(request.GET.get("team"))), teams[0])
+    jahr = min(2100, max(2000, _int0(request.GET.get("jahr")) or date.today().year))
+    monat = min(12, max(1, _int0(request.GET.get("monat")) or date.today().month))
+    mitarbeitende = list(Mitarbeiter.objects.filter(team=team, aktiv=True).order_by("name", "vorname"))
+    zeilen = services.dienst_ist_abgleich(mitarbeitende, jahr, monat)
+    return render(request, "nachweis/dienst_abgleich.html", {
+        "aktiv": "dienstabgleich", "team": team, "teams": teams,
+        "jahr": jahr, "monat": monat, "monat_name": MONATSNAMEN[monat],
+        "monate": [(m, MONATSNAMEN[m]) for m in range(1, 13)], "zeilen": zeilen,
+    })
 
 
 @login_required

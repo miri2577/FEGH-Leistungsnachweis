@@ -762,6 +762,47 @@ def fehlzeiten_statistik(mitarbeitende, jahr: int, heute=None):
     return out
 
 
+def dienst_ist_abgleich(mitarbeitende, jahr: int, monat: int):
+    """SOLL (Dienstplan) vs. IST (Arbeitszeit) je MA im Monat + ArbZG-Ruhezeit-Prüfung.
+    Ruhezeit: § 5 ArbZG verlangt i. d. R. 11 h ununterbrochene Ruhe zwischen zwei
+    Diensten (in Pflege/Betreuung auf bis zu 10 h verkürzbar, § 5 Abs. 2) – geprüft am
+    geplanten Dienst (über Mitternacht laufende Nachtdienste berücksichtigt)."""
+    from calendar import monthrange
+    from datetime import date as _date, datetime, timedelta
+    from .models import AbwesenheitStatus
+    von, bis = _date(jahr, monat, 1), _date(jahr, monat, monthrange(jahr, monat)[1])
+    out = []
+    for m in mitarbeitende:
+        dienste = list(m.dienste.filter(datum__gte=von, datum__lte=bis)
+                       .select_related("schichtart").order_by("datum"))
+        azs = list(m.arbeitszeiten.filter(datum__gte=von, datum__lte=bis)
+                   .exclude(status=AbwesenheitStatus.ABGELEHNT))
+        soll = sum((d.schichtart.dauer_stunden for d in dienste), Decimal("0"))
+        ist = sum((a.dauer_stunden for a in azs), Decimal("0"))
+        # geplante Dienst-Zeitfenster (Start/Ende als datetime, Nacht über Mitternacht)
+        events = []
+        for d in dienste:
+            sa = d.schichtart
+            start = datetime.combine(d.datum, sa.beginn)
+            end = datetime.combine(d.datum, sa.ende)
+            if sa.ende <= sa.beginn:
+                end += timedelta(days=1)
+            events.append((start, end, d))
+        events.sort(key=lambda e: e[0])
+        ruhe = []
+        for (s1, e1, d1), (s2, e2, d2) in zip(events, events[1:]):
+            rest = round((s2 - e1).total_seconds() / 3600, 1)
+            if rest < 11:
+                ruhe.append({"von": d1, "nach": d2, "stunden": rest})
+        out.append({
+            "ma": m, "soll": soll.quantize(Q3, ROUND_HALF_UP),
+            "ist": ist.quantize(Q3, ROUND_HALF_UP),
+            "delta": (ist - soll).quantize(Q3, ROUND_HALF_UP),
+            "n_dienste": len(dienste), "ruhe": ruhe,
+        })
+    return out
+
+
 def team_ueberlappung(abw):
     """Andere Team-Mitarbeiter*innen, deren nicht-abgelehnte Abwesenheit den Zeitraum
     von `abw` überlappt – Warnung vor gleichzeitigem Ausfall im Team."""

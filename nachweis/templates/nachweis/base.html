@@ -375,6 +375,8 @@
         {% if nav_az_offen %}<span style="background:var(--orange);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 7px">{{ nav_az_offen }}</span>{% endif %}</a>
       <a href="{% url 'nachweis:fehlzeiten' %}" class="{% if aktiv == 'fehlzeiten' %}active{% endif %}" title="Fehlzeiten-Statistik (Fehlquote je Mitarbeiter*in)">
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M3 13h2v7H3v-7zm4-6h2v13H7V7zm4 3h2v10h-2V10zm4-6h2v16h-2V4zm4 9h2v7h-2v-7z"/></svg></span> Fehlzeiten</a>
+      <a href="{% url 'nachweis:dienst_abgleich' %}" class="{% if aktiv == 'dienstabgleich' %}active{% endif %}" title="Dienstplan SOLL vs. Arbeitszeit IST + Ruhezeit-Prüfung">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></span> Dienst-Abgleich</a>
       {% endif %}
       {% if not nav_ist_admin %}
       <div class="grp">Abrechnung</div>

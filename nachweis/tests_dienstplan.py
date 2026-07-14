@@ -9,9 +9,58 @@ from django.urls import reverse
 
 from .models import (Team, Teamtyp, Mitarbeiter, Rolle, Schichtart, Dienst,
                      Angebot, AngebotsTyp, Erreichbarkeit, Abwesenheit,
-                     AbwesenheitArt, AbwesenheitStatus, Klient, Status, Termin)
+                     AbwesenheitArt, AbwesenheitStatus, Klient, Status, Termin,
+                     Arbeitszeit, Genehmigungsstatus)
 
 User = get_user_model()
+
+
+class DienstAbgleichTests(TestCase):
+    def setUp(self):
+        self.team = Team.objects.create(name="WG", typ=Teamtyp.values[0])
+        self.lu = User.objects.create_user("chef", password="x")
+        m = Mitarbeiter.objects.create(user=self.lu, name="Chef", rolle=Rolle.LEITUNG, kuerzel="c")
+        m.leitet.set([self.team])
+        self.ma = Mitarbeiter.objects.create(
+            user=User.objects.create_user("ma", password="x"),
+            name="Muster", rolle=Rolle.USER, team=self.team, kuerzel="mu")
+        self.frueh = Schichtart.objects.create(name="Früh6", kuerzel="F6",
+                                               beginn=time(6, 0), ende=time(14, 0))
+        self.spaet = Schichtart.objects.create(name="Spät6", kuerzel="S6",
+                                               beginn=time(14, 0), ende=time(22, 0))
+        self.client.force_login(self.lu)
+
+    def test_soll_ist_delta(self):
+        from . import services
+        Dienst.objects.create(mitarbeiter=self.ma, datum=date(2026, 7, 1), schichtart=self.frueh)  # 8h SOLL
+        Arbeitszeit.objects.create(mitarbeiter=self.ma, datum=date(2026, 7, 1),
+                                   beginn=time(6, 0), ende=time(12, 0),
+                                   status=Genehmigungsstatus.GENEHMIGT)                              # 6h IST
+        z = services.dienst_ist_abgleich([self.ma], 2026, 7)[0]
+        self.assertEqual(z["soll"], Decimal("8.000"))
+        self.assertEqual(z["ist"], Decimal("6.000"))
+        self.assertEqual(z["delta"], Decimal("-2.000"))
+
+    def test_ruhezeit_verstoss(self):
+        from . import services
+        # Spät (…22:00) + Früh am Folgetag (06:00…) -> 8 h Ruhe < 11 h
+        Dienst.objects.create(mitarbeiter=self.ma, datum=date(2026, 7, 1), schichtart=self.spaet)
+        Dienst.objects.create(mitarbeiter=self.ma, datum=date(2026, 7, 2), schichtart=self.frueh)
+        z = services.dienst_ist_abgleich([self.ma], 2026, 7)[0]
+        self.assertEqual(len(z["ruhe"]), 1)
+        self.assertEqual(z["ruhe"][0]["stunden"], 8.0)
+
+    def test_genug_ruhe_keine_warnung(self):
+        from . import services
+        Dienst.objects.create(mitarbeiter=self.ma, datum=date(2026, 7, 1), schichtart=self.frueh)  # …14:00
+        Dienst.objects.create(mitarbeiter=self.ma, datum=date(2026, 7, 2), schichtart=self.frueh)  # 06:00… -> 16h
+        z = services.dienst_ist_abgleich([self.ma], 2026, 7)[0]
+        self.assertEqual(z["ruhe"], [])
+
+    def test_seite_nur_leitung(self):
+        self.assertEqual(self.client.get(reverse("nachweis:dienst_abgleich")).status_code, 200)
+        self.client.force_login(self.ma.user)
+        self.assertEqual(self.client.get(reverse("nachweis:dienst_abgleich")).status_code, 403)
 
 
 class DienstplanBasis(TestCase):

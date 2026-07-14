@@ -146,6 +146,7 @@ urlpatterns = [
     path("abwesenheit/save/", views.abwesenheit_save, name="abwesenheit_save"),
     path("abwesenheit/status/", views.abwesenheit_status, name="abwesenheit_status"),
     path("fehlzeiten/", views.fehlzeiten, name="fehlzeiten"),
+    path("dienstabgleich/", views_dienstplan.dienst_abgleich, name="dienst_abgleich"),
 
     # API (Erfassungs-Grid)
     path("api/leistungen/", views.api_leistungen, name="api_leistungen"),
