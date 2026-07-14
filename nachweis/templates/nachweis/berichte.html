@@ -26,6 +26,7 @@
     <a class="btn ghost" href="{% url 'nachweis:start' %}">← Mein Überblick</a>{% endif %}
     <a class="btn ghost" href="{% url 'nachweis:ziele' klient.id %}">Ziele (ZLP)</a>
     <a class="btn ghost" href="{% url 'nachweis:wirkung' klient.id %}">Wirkung</a>
+    <a class="btn ghost" href="{% url 'nachweis:dokumente' klient.id %}">Dokumente</a>
     {% if klient.kue_bis %}<span class="muted" style="align-self:center">KÜ endet {{ klient.kue_bis|date:"d.m.Y" }}</span>{% endif %}
   </div>
 

@@ -158,6 +158,11 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Dokumentenablage: Dateien liegen im media-Volume (Docker: /app/media) und werden
+# ausschließlich über die authentifizierte, team-gescopte Download-View ausgeliefert —
+# bewusst KEINE MEDIA_URL (kein direkter Webzugriff auf Klientendokumente).
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -251,6 +256,7 @@ AUDITLOG_INCLUDE_TRACKING_MODELS = (
     "nachweis.Dienst",
     "nachweis.Wirkungsdimension",
     {"model": "nachweis.Wirkungseinschaetzung", "exclude_fields": ["kommentar"]},
+    {"model": "nachweis.Dokument", "exclude_fields": ["notiz"]},
 )
 
 # =====================================================================

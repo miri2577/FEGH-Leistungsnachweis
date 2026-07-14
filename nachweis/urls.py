@@ -3,7 +3,8 @@ from django.urls import path
 
 from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse,
                views_abrechnung, views_feld, views_ziele, views_berichte,
-               views_controlling, views_belegung, views_qm, views_dienstplan)
+               views_controlling, views_belegung, views_qm, views_dienstplan,
+               views_dokumente)
 
 app_name = "nachweis"
 
@@ -30,6 +31,12 @@ urlpatterns = [
     path("wirkung/<int:pk>/", views_ziele.wirkung, name="wirkung"),
     path("wirkung/speichern/", views_ziele.wirkung_speichern, name="wirkung_speichern"),
     path("wirkung/loeschen/", views_ziele.wirkung_loeschen, name="wirkung_loeschen"),
+
+    # Dokumentenablage (DMS light)
+    path("dokumente/<int:pk>/", views_dokumente.dokumente, name="dokumente"),
+    path("dokumente/hochladen/", views_dokumente.dokument_hochladen, name="dokument_hochladen"),
+    path("dokument/<int:pk>/download/", views_dokumente.dokument_download, name="dokument_download"),
+    path("dokumente/loeschen/", views_dokumente.dokument_loeschen, name="dokument_loeschen"),
 
     # Berichte (Phase 2)
     path("berichte/<int:pk>/", views_berichte.berichte, name="berichte"),

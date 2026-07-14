@@ -7,6 +7,7 @@ Gruppennachweise · Teamsitzung · Fachleistungsstunden-Auswertung.
 Fachliche Grundlage: Berlin ab 01.01.2026, Beschluss 3/2026.
 Alle Zeit-/Betragsgrößen als Decimal (keine Floats) – abrechnungsrelevant.
 """
+import os
 from datetime import datetime, date, timedelta as _td
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -1779,3 +1780,75 @@ class Wirkungseinschaetzung(models.Model):
 
     def __str__(self):
         return f"{self.klient} · {self.dimension} · {self.datum}: {self.ist}→{self.soll}"
+
+
+# ==========================================================================
+#  Dokumentenablage (DMS light): Datei am Klienten, optional an der
+#  Bewilligung. Dateien liegen unter MEDIA_ROOT (Docker-Volume "media") und
+#  werden NIE direkt ausgeliefert — nur über die team-gescopte Download-View.
+# ==========================================================================
+def _dokument_pfad(instance, filename):
+    """Speicherpfad mit Zufallsnamen — der Originalname steht nur im Feld `name`
+    (kein Klientenname/keine Sonderzeichen im Dateisystem)."""
+    import uuid
+    ext = os.path.splitext(filename)[1].lower()[:10]
+    return f"dokumente/{instance.klient_id}/{uuid.uuid4().hex}{ext}"
+
+
+class DokumentKategorie(models.TextChoices):
+    BESCHEID = "bescheid", "Bewilligungsbescheid"
+    BERICHT = "bericht", "Bericht (unterschrieben)"
+    VERTRAG = "vertrag", "Vertrag / WBVG"
+    SCHUTZ = "schutz", "Schutzkonzept / Vereinbarung"
+    SONSTIG = "sonstig", "Sonstiges"
+
+
+class Dokument(models.Model):
+    """Abgelegte Datei je Klient*in (Bescheide, unterschriebene Berichte, Verträge)."""
+    # Whitelist: Endung -> erwartete Magic Bytes (None = kein Inhalts-Check möglich)
+    ERLAUBT = {
+        ".pdf": (b"%PDF",),
+        ".png": (b"\x89PNG",),
+        ".jpg": (b"\xff\xd8\xff",), ".jpeg": (b"\xff\xd8\xff",),
+        ".docx": (b"PK\x03\x04",), ".xlsx": (b"PK\x03\x04",),
+        ".odt": (b"PK\x03\x04",), ".ods": (b"PK\x03\x04",),
+        ".txt": None,
+    }
+    MAX_GROESSE = 15 * 1024 * 1024   # 15 MB
+
+    klient = models.ForeignKey(Klient, on_delete=models.CASCADE,
+                               related_name="dokumente")
+    bewilligung = models.ForeignKey("Bewilligung", on_delete=models.SET_NULL,
+                                    null=True, blank=True, related_name="dokumente",
+                                    verbose_name="gehört zu Bewilligung")
+    kategorie = models.CharField(max_length=12, choices=DokumentKategorie.choices,
+                                 default=DokumentKategorie.SONSTIG)
+    name = models.CharField("Anzeigename", max_length=200)
+    datei = models.FileField(upload_to=_dokument_pfad, max_length=255)
+    groesse = models.PositiveIntegerField(default=0, editable=False)
+    notiz = models.CharField(max_length=200, blank=True)
+    hochgeladen_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL,
+                                        null=True, blank=True, related_name="+")
+    hochgeladen_am = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Dokument"
+        verbose_name_plural = "Dokumente"
+        ordering = ["-hochgeladen_am"]
+        indexes = [models.Index(fields=["klient", "kategorie"])]
+
+    def __str__(self):
+        return f"{self.name} ({self.klient})"
+
+    @property
+    def groesse_anzeige(self) -> str:
+        kb = self.groesse / 1024
+        return f"{kb / 1024:.1f} MB" if kb >= 1024 else f"{kb:.0f} KB"
+
+    def delete(self, *args, **kwargs):
+        # Django löscht Dateien nicht automatisch mit — hier gehört die Datei
+        # untrennbar zum Datensatz (auch fürs Löschkonzept).
+        datei = self.datei
+        super().delete(*args, **kwargs)
+        if datei:
+            datei.delete(save=False)

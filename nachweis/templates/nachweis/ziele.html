@@ -37,6 +37,7 @@
     <a class="btn ghost" href="{% url 'nachweis:start' %}">← Mein Überblick</a>{% endif %}
     <a class="btn ghost" href="{% url 'nachweis:berichte' klient.id %}">Berichte</a>
     <a class="btn ghost" href="{% url 'nachweis:wirkung' klient.id %}" title="Wirkungsdimensionen Ist/Soll (7er-Skala)">Wirkung</a>
+    <a class="btn ghost" href="{% url 'nachweis:dokumente' klient.id %}">Dokumente</a>
     <span class="muted" style="align-self:center">{{ n_aktiv }} aktive Ziel(e)</span>
   </div>
 
