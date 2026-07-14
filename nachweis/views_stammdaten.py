@@ -53,7 +53,13 @@ def _ma(pk):
 def belegungsliste(request):
     if not _nur_leitung(request):
         return HttpResponseForbidden()
-    klienten = services.klienten_fuer(request.user).select_related("team", "bezugsbetreuer").order_by("nachname", "vorname")
+    klienten = list(services.klienten_fuer(request.user)
+                    .select_related("team", "bezugsbetreuer")
+                    .prefetch_related("bewilligungen")
+                    .order_by("nachname", "vorname"))
+    heute = date.today()
+    for k in klienten:                          # Status-Badges (Bewilligung/Bericht)
+        k.hinweise = services.klient_hinweise(k, heute)
     return render(request, "nachweis/belegungsliste.html", {
         "aktiv": "belegungsliste", "klienten": klienten,
         "kein_team": not services.teams_fuer(request.user).exists(),

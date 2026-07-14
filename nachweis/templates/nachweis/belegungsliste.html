@@ -3,6 +3,8 @@
 {% block extrastyle %}
   .st{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600}
   .st.ok{background:var(--okbg);color:var(--ok)} .st.end{background:var(--badbg);color:var(--bad)}
+  .bl-badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:10.5px;font-weight:700;margin-left:6px;white-space:nowrap}
+  .bl-badge.bad{background:var(--badbg);color:var(--bad)} .bl-badge.warn{background:var(--warnbg);color:var(--warn)}
 {% endblock %}
 {% block content %}
   <h1 class="page">Belegungsliste</h1>
@@ -33,7 +35,8 @@
         <tbody>
           {% for k in klienten %}
           <tr>
-            <td><b>{{ k.name }}</b></td>
+            <td><a href="{% url 'nachweis:klient_detail' k.id %}" style="font-weight:700;text-decoration:none">{{ k.name }}</a>
+              {% for h in k.hinweise %}<span class="bl-badge {{ h.art }}">{{ h.text }}</span>{% endfor %}</td>
             <td class="muted">{{ k.team.name|default:"—" }}</td>
             <td class="muted">{{ k.bezugsbetreuer }}</td>
             <td class="num">{{ k.al|floatformat:3 }}</td>
@@ -44,10 +47,7 @@
             <td>{% if k.versendet_am %}{{ k.versendet_am|date:"d.m.Y" }}{% else %}<span class="muted">—</span>{% endif %}</td>
             <td>{% if k.status == 'Beendigung' %}<span class="st end">Beendigung</span>{% else %}<span class="st ok">Betreuung</span>{% endif %}</td>
             <td style="white-space:nowrap">
-              <a class="btn ghost" style="padding:4px 10px;font-size:12px" href="{% url 'nachweis:klient_bearbeiten' k.id %}">Bearbeiten</a>
-              <a class="btn ghost" style="padding:4px 10px;font-size:12px" href="{% url 'nachweis:bewilligungen' k.id %}" title="Kostenzusagen / Bewilligungen">Bewilligungen</a>
-              <a class="btn ghost" style="padding:4px 10px;font-size:12px" href="{% url 'nachweis:ziele' k.id %}" title="Ziel- und Leistungsplanung (ZLP)">Ziele</a>
-              <a class="btn ghost" style="padding:4px 10px;font-size:12px" href="{% url 'nachweis:berichte' k.id %}" title="Entwicklungs-/Informationsberichte">Berichte</a>
+              <a class="btn" style="padding:4px 12px;font-size:12px" href="{% url 'nachweis:klient_detail' k.id %}">Öffnen ›</a>
             </td>
           </tr>
           {% empty %}

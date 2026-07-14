@@ -231,6 +231,28 @@ def bewilligung_fristen(klienten, stichtag=None, vorlauf_tage: int = 70):
     return eintraege
 
 
+def klient_hinweise(klient, stichtag=None):
+    """Aufmerksamkeits-Badges für die Belegungsliste/Fallakte einer/eines Klient*in:
+    fehlende/auslaufende Bewilligung, fälliger Entwicklungsbericht. `art` steuert die
+    Farbe (bad/warn). Nur für laufende Betreuungen relevant."""
+    stichtag = stichtag or date.today()
+    out = []
+    if klient.status != Status.BETREUUNG:
+        return out
+    bew = klient.aktive_bewilligung(stichtag)
+    if bew is None:
+        out.append({"text": "keine Bewilligung", "art": "bad"})
+    elif bew.gueltig_bis is not None:
+        tage = (bew.gueltig_bis - stichtag).days
+        if tage < 0:
+            out.append({"text": "Bewilligung abgelaufen", "art": "bad"})
+        elif tage <= 70:
+            out.append({"text": f"Bewilligung endet in {tage} T", "art": "warn"})
+    if klient.bericht_offen(stichtag):
+        out.append({"text": "Bericht fällig", "art": "warn"})
+    return out
+
+
 def undokumentierte_termine(me, tage: int = 30):
     """Vergangene Klienten-Termine der/des MA, die noch NICHT dokumentiert sind
     (kein verknüpfter Leistungseintrag). Erinnerung im Überblick. Feste

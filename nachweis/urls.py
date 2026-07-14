@@ -4,7 +4,7 @@ from django.urls import path
 from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse,
                views_abrechnung, views_feld, views_ziele, views_berichte,
                views_controlling, views_belegung, views_qm, views_dienstplan,
-               views_dokumente, views_loeschfristen)
+               views_dokumente, views_loeschfristen, views_fallakte)
 
 app_name = "nachweis"
 
@@ -19,6 +19,10 @@ urlpatterns = [
     path("gruppen/", views.gruppen, name="gruppen"),
     path("gruppen/save/", views.gruppe_save, name="gruppe_save"),
     path("gruppen/delete/", views.gruppe_delete, name="gruppe_delete"),
+
+    # Klient-Fallakte (zentrale Detailseite mit Reitern)
+    path("klient/<int:pk>/", views_fallakte.klient_detail, name="klient_detail"),
+    path("klient/<int:pk>/verlauf/", views_fallakte.klient_verlauf, name="klient_verlauf"),
 
     # Ziele (ZLP, Phase 2)
     path("ziele/<int:pk>/", views_ziele.ziele, name="ziele"),

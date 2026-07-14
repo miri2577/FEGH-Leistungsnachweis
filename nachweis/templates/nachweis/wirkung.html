@@ -14,19 +14,17 @@
   .ber{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
 {% endblock %}
 {% block content %}
-  <h1 class="page">Wirkung · {{ klient.name }}</h1>
-  <p class="sub">Wirkungsdimensionen nach dem Berliner Fachkonzept: Ist-/Soll-Einstufung auf der 7er-Skala
-    (<b>1 = keine/geringe Problemstellung … 7 = sehr stark erhöhte</b> — niedriger ist besser),
-    zu Hilfebeginn (≤ 8 Wochen), jeder Fortschreibung und zum Ende. Einschätzungen werden je Beteiligtem erfasst (partizipativ).</p>
+  {% include "nachweis/_fallakte_kopf.html" with fa_tab="teilhabe" %}
 
   {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
-  <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap">
-    {% if ist_leitung %}<a class="btn ghost" href="{% url 'nachweis:belegungsliste' %}">← Belegungsliste</a>{% else %}
-    <a class="btn ghost" href="{% url 'nachweis:start' %}">← Mein Überblick</a>{% endif %}
-    <a class="btn ghost" href="{% url 'nachweis:ziele' klient.id %}">Ziele (ZLP)</a>
-    <a class="btn ghost" href="{% url 'nachweis:berichte' klient.id %}">Berichte</a>
+  <div class="fa-subnav">
+    <a href="{% url 'nachweis:ziele' klient.id %}">Ziele (ZLP)</a>
+    <a class="on" href="{% url 'nachweis:wirkung' klient.id %}">Wirkung</a>
   </div>
+  <p class="sub" style="margin-top:0">Wirkungsdimensionen nach dem Berliner Fachkonzept: Ist-/Soll-Einstufung auf der 7er-Skala
+    (<b>1 = keine/geringe Problemstellung … 7 = sehr stark erhöhte</b> — niedriger ist besser),
+    zu Hilfebeginn (≤ 8 Wochen), jeder Fortschreibung und zum Ende. Einschätzungen werden je Beteiligtem erfasst (partizipativ).</p>
 
   <div class="panel">
     <div class="head"><h2>Verlauf (Sicht Fachkraft)</h2><span class="muted">Δ = Veränderung seit Hilfebeginn (+ = Verbesserung)</span></div>

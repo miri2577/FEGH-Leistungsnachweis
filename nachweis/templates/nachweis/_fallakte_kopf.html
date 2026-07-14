@@ -1,0 +1,59 @@
+{% comment %}
+Gemeinsame Kopf- und Reiter-Leiste der Klient-Fallakte. Einbinden mit:
+  {% include "nachweis/_fallakte_kopf.html" with fa_tab="teilhabe" %}
+`fa_tab` = aktiver Reiter (uebersicht|kostenzusage|teilhabe|berichte|dokumente|verlauf).
+Braucht `klient` im Kontext; nutzt das globale `nav_ist_leitung`.
+{% endcomment %}
+<style>
+  .fa-kopf{background:var(--card);border:1px solid var(--border);border-radius:14px 14px 0 0;
+    padding:16px 20px;border-bottom:0}
+  .fa-back{margin-bottom:8px}
+  .fa-back a{font-size:12.5px;color:var(--muted);text-decoration:none}
+  .fa-back a:hover{color:var(--brand-d)}
+  .fa-name{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .fa-name h1{margin:0;font-size:24px}
+  .fa-st{display:inline-block;padding:2px 11px;border-radius:999px;font-size:12px;font-weight:700}
+  .fa-st.ok{background:var(--okbg);color:var(--ok)} .fa-st.end{background:#eef2f5;color:#697786}
+  .fa-meta{display:flex;flex-wrap:wrap;gap:4px 20px;margin-top:7px;font-size:13px;color:var(--muted)}
+  .fa-meta b{color:var(--ink,#1e2a37);font-weight:600}
+  .fa-tabs{display:flex;flex-wrap:wrap;gap:2px;background:var(--card);border:1px solid var(--border);
+    border-top:0;border-radius:0 0 14px 14px;padding:0 10px;margin-bottom:16px;overflow-x:auto}
+  .fa-tabs a{padding:11px 15px;font-size:13.5px;font-weight:600;color:#51637a;text-decoration:none;
+    border-bottom:2.5px solid transparent;white-space:nowrap}
+  .fa-tabs a:hover{color:var(--brand-d)}
+  .fa-tabs a.on{color:var(--brand-d);border-bottom-color:var(--brand)}
+  /* Unter-Umschaltung innerhalb eines Reiters (z. B. Teilhabe: Ziele | Wirkung) */
+  .fa-subnav{display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+  .fa-subnav a{padding:5px 13px;font-size:13px;font-weight:600;border:1px solid var(--border);
+    border-radius:999px;color:#51637a;text-decoration:none;background:var(--card)}
+  .fa-subnav a:hover{color:var(--brand-d)}
+  .fa-subnav a.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+</style>
+<div class="fa-kopf">
+  <div class="fa-back">
+    {% if nav_ist_leitung %}<a href="{% url 'nachweis:belegungsliste' %}">← Belegungsliste</a>
+    {% else %}<a href="{% url 'nachweis:start' %}">← Mein Überblick</a>{% endif %}
+  </div>
+  <div class="fa-name">
+    <h1>{{ klient.name }}</h1>
+    {% if klient.status == 'Beendigung' %}<span class="fa-st end">Beendigung</span>
+    {% else %}<span class="fa-st ok">Betreuung</span>{% endif %}
+    {% if klient.anonymisiert_am %}<span class="fa-st end" title="DSGVO-anonymisiert">anonymisiert</span>{% endif %}
+  </div>
+  <div class="fa-meta">
+    {% if klient.hbg %}<span><b>HBG</b> {{ klient.hbg }}</span>{% endif %}
+    <span><b>FLS/Monat</b> {{ klient.fls_gesamt|floatformat:2 }}</span>
+    {% if klient.kue_bis %}<span><b>KÜ bis</b> {{ klient.kue_bis|date:"d.m.Y" }}</span>{% endif %}
+    <span><b>Team</b> {{ klient.team.name|default:"—" }}</span>
+    <span><b>Bezug</b> {{ klient.bezugsbetreuer }}</span>
+    {% if klient.person_id %}<span><b>Person-ID</b> {{ klient.person_id }}</span>{% endif %}
+  </div>
+</div>
+<nav class="fa-tabs">
+  <a href="{% url 'nachweis:klient_detail' klient.id %}" class="{% if fa_tab == 'uebersicht' %}on{% endif %}">Übersicht</a>
+  {% if nav_ist_leitung %}<a href="{% url 'nachweis:bewilligungen' klient.id %}" class="{% if fa_tab == 'kostenzusage' %}on{% endif %}">Kostenzusage</a>{% endif %}
+  <a href="{% url 'nachweis:ziele' klient.id %}" class="{% if fa_tab == 'teilhabe' %}on{% endif %}">Teilhabe</a>
+  <a href="{% url 'nachweis:berichte' klient.id %}" class="{% if fa_tab == 'berichte' %}on{% endif %}">Berichte</a>
+  <a href="{% url 'nachweis:dokumente' klient.id %}" class="{% if fa_tab == 'dokumente' %}on{% endif %}">Dokumente</a>
+  <a href="{% url 'nachweis:klient_verlauf' klient.id %}" class="{% if fa_tab == 'verlauf' %}on{% endif %}">Verlauf</a>
+</nav>
