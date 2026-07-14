@@ -130,6 +130,36 @@ class TeamIsolationTests(TestCase):
         self.assertContains(r, 'class="mxname">Anna')     # eigenes Team
         self.assertNotContains(r, 'class="mxname">Bea')   # Fremdteam nicht sichtbar
 
+    def test_fehlzeiten_statistik(self):
+        from datetime import date
+        from decimal import Decimal
+        from .models import Abwesenheit, AbwesenheitArt, AbwesenheitStatus
+        from . import services
+        self.mA.wochenstunden = Decimal("40.0"); self.mA.save()   # Tagessoll 8,0
+        # 5 Werktage Krank (Mo–Fr) + 3 Werktage Urlaub, genehmigt, im Jahr 2026
+        Abwesenheit.objects.create(mitarbeiter=self.mA, art=AbwesenheitArt.KRANK,
+                                   von=date(2026, 1, 5), bis=date(2026, 1, 9),
+                                   status=AbwesenheitStatus.GENEHMIGT)
+        Abwesenheit.objects.create(mitarbeiter=self.mA, art=AbwesenheitArt.URLAUB,
+                                   von=date(2026, 2, 2), bis=date(2026, 2, 4),
+                                   status=AbwesenheitStatus.GENEHMIGT)
+        # nicht genehmigt -> zählt nicht
+        Abwesenheit.objects.create(mitarbeiter=self.mA, art=AbwesenheitArt.KRANK,
+                                   von=date(2026, 3, 2), bis=date(2026, 3, 6),
+                                   status=AbwesenheitStatus.BEANTRAGT)
+        stat = services.fehlzeiten_statistik([self.mA], 2026, heute=date(2026, 12, 31))
+        r = stat[0]
+        self.assertEqual(r["tage"]["krank"], 5)
+        self.assertEqual(r["tage"]["urlaub"], 3)
+        self.assertEqual(r["summe"], 8)
+        self.assertEqual(r["fehlstunden"], Decimal("64.000"))     # 8 Tage × 8,0
+        # Krankquote = 5 / Werktage-2026 × 100
+        self.assertAlmostEqual(r["krankquote"], round(5 / r["basis"] * 100, 1))
+
+    def test_fehlzeiten_seite_nur_leitung(self):
+        self.assertEqual(self.cl(self.uA).get("/fehlzeiten/").status_code, 403)
+        self.assertEqual(self.cl(self.uLA).get("/fehlzeiten/").status_code, 200)
+
     def test_urlaub_ueberlappung_warnung(self):
         from datetime import date
         from .models import Abwesenheit, AbwesenheitArt, AbwesenheitStatus

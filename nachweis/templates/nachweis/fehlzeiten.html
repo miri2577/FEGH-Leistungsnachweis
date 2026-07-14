@@ -1,0 +1,60 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Fehlzeiten · FEGH{% endblock %}
+{% block extrastyle %}
+  .fz{width:100%;border-collapse:collapse;font-size:13px}
+  .fz th,.fz td{border:1px solid var(--line);padding:6px 9px;text-align:right}
+  .fz th{background:var(--bg-2);font-size:12px}
+  .fz td.name,.fz th.name{text-align:left;white-space:nowrap}
+  .fz td.q{font-weight:700;font-variant-numeric:tabular-nums}
+  .q.gut{color:var(--ok)} .q.mittel{color:var(--warn)} .q.hoch{color:var(--bad)}
+  .filter{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:12px}
+  .filter select,.filter input{padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-family:inherit}
+  .krank{background:#fff6f6}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Fehlzeiten-Statistik</h1>
+  <p class="sub">Fehlquote je Mitarbeiter*in in Prozent der Werktage (Mo–Fr ohne Feiertage), fortlaufend fürs Jahr
+    bis heute, aufgeschlüsselt nach Art. Nur genehmigte Abwesenheiten. Fehlstunden = Fehltage × Tagessoll
+    (Wochenarbeitszeit ÷ 5).</p>
+
+  <form method="get" class="filter">
+    {% if teams|length > 1 %}<label style="font-size:12px;color:var(--muted)">Team
+      <select name="team" onchange="this.form.submit()"><option value="">Alle</option>
+        {% for t in teams %}<option value="{{ t.id }}" {% if team_id == t.id|stringformat:'s' %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></label>{% endif %}
+    <label style="font-size:12px;color:var(--muted)">Jahr <input type="number" name="jahr" value="{{ jahr }}" style="width:90px"></label>
+    <button class="btn" type="submit">Anzeigen</button>
+    <span class="muted" style="font-size:12px;align-self:center">Zeitraum-Werktage: <b>{{ basis }}</b></span>
+  </form>
+
+  <div class="panel"><div class="body" style="overflow-x:auto">
+    <table class="fz">
+      <thead><tr>
+        <th class="name">Mitarbeiter*in</th>
+        <th>Urlaub</th><th class="krank">Krank</th><th>Fortbild.</th><th>FZA</th><th>Sonst.</th>
+        <th>Σ Fehltage</th><th>Fehlstd.</th><th>Fehlquote</th><th class="krank">Krankquote</th>
+      </tr></thead>
+      <tbody>
+        {% for r in stat %}
+        <tr>
+          <td class="name"><b>{{ r.ma.name }}</b>{% if r.ma.vorname %}, {{ r.ma.vorname }}{% endif %}
+            <span class="muted" style="font-size:11px">· {{ r.ma.team.name|default:"—" }}</span></td>
+          <td>{{ r.tage.urlaub }}</td>
+          <td class="krank">{{ r.tage.krank }}</td>
+          <td>{{ r.tage.fortbildung }}</td>
+          <td>{{ r.tage.fza }}</td>
+          <td>{{ r.tage.sonstige }}</td>
+          <td><b>{{ r.summe }}</b></td>
+          <td>{{ r.fehlstunden|floatformat:1 }}</td>
+          <td class="q {% if r.fehlquote >= 20 %}hoch{% elif r.fehlquote >= 10 %}mittel{% else %}gut{% endif %}">{{ r.fehlquote|floatformat:1 }} %</td>
+          <td class="q krank {% if r.krankquote >= 8 %}hoch{% elif r.krankquote >= 4 %}mittel{% else %}gut{% endif %}">{{ r.krankquote|floatformat:1 }} %</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10" class="muted" style="text-align:center;padding:18px">Keine Mitarbeiter*innen im Zeitraum.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div></div>
+  <p class="note" style="max-width:900px">Hinweis: Urlaub ist geplante Abwesenheit und keine „Fehlzeit" im engeren
+    Sinn – für die Personalplanung ist v. a. die <b>Krankquote</b> aussagekräftig. Fehlzeiten unterliegen dem
+    Beschäftigtendatenschutz; die Auswertung ist auf die Leitung des eigenen Teams beschränkt.</p>
+{% endblock %}

@@ -726,6 +726,42 @@ def arbeitszeit_monat(mitarbeiter, jahr: int, monat: int):
             "tage_erfasst": len(erfasst), "fehlende_tage": fehlend}
 
 
+def fehlzeiten_statistik(mitarbeitende, jahr: int, heute=None):
+    """Fehlzeiten je Mitarbeiter*in im Jahr (fortlaufend bis heute): Fehltage nach Art
+    (nur GENEHMIGTE Abwesenheiten, Werktage Mo–Fr ohne Feiertage) und die Fehlquote in
+    % der Werktage des Zeitraums. Fehlstunden = Fehltage × Tagessoll (Wochenarbeitszeit/5)."""
+    from datetime import date as _date
+    from .models import AbwesenheitArt, AbwesenheitStatus
+    heute = heute or _date.today()
+    ps, pe = _date(jahr, 1, 1), _date(jahr, 12, 31)
+    if jahr == heute.year:
+        pe = min(pe, heute)                       # fortlaufend bis heute
+    if pe < ps:
+        return []                                 # reines Zukunftsjahr
+    basis = werktage(ps, pe)                       # mögliche Arbeitstage im Zeitraum
+    _key = {AbwesenheitArt.URLAUB: "urlaub", AbwesenheitArt.KRANK: "krank",
+            AbwesenheitArt.FORTBILDUNG: "fortbildung",
+            AbwesenheitArt.FREIZEITAUSGLEICH: "fza", AbwesenheitArt.SONSTIGE: "sonstige"}
+    out = []
+    for m in mitarbeitende:
+        tage = {v: 0 for v in _key.values()}
+        for a in m.abwesenheiten.filter(status=AbwesenheitStatus.GENEHMIGT,
+                                        von__lte=pe, bis__gte=ps):
+            n = werktage(max(a.von, ps), min(a.bis, pe))
+            tage[_key.get(a.art, "sonstige")] += n
+        summe = sum(tage.values())
+
+        def _q(x):
+            return round(x / basis * 100, 1) if basis else 0.0
+        out.append({
+            "ma": m, "basis": basis, "tage": tage, "summe": summe,
+            "fehlquote": _q(summe), "krankquote": _q(tage["krank"]),
+            "fehlstunden": (Decimal(summe) * m.tagessoll).quantize(Q3, ROUND_HALF_UP),
+        })
+    out.sort(key=lambda r: r["fehlquote"], reverse=True)
+    return out
+
+
 def team_ueberlappung(abw):
     """Andere Team-Mitarbeiter*innen, deren nicht-abgelehnte Abwesenheit den Zeitraum
     von `abw` überlappt – Warnung vor gleichzeitigem Ausfall im Team."""

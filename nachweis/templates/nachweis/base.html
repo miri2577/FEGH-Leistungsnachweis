@@ -373,6 +373,8 @@
       <a href="{% url 'nachweis:arbeitszeit_freigaben' %}" class="{% if aktiv == 'az_freigaben' %}active{% endif %}" style="justify-content:space-between">
         <span style="display:flex;align-items:center;gap:11px"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4zM12 2a10 10 0 100 20 10 10 0 000-20z" opacity=".0"/><path d="M20 6 9 17l-5-5 1.41-1.41L9 14.17l9.59-9.58z"/></svg></span> Arbeitszeit-Freigaben</span>
         {% if nav_az_offen %}<span style="background:var(--orange);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 7px">{{ nav_az_offen }}</span>{% endif %}</a>
+      <a href="{% url 'nachweis:fehlzeiten' %}" class="{% if aktiv == 'fehlzeiten' %}active{% endif %}" title="Fehlzeiten-Statistik (Fehlquote je Mitarbeiter*in)">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M3 13h2v7H3v-7zm4-6h2v13H7V7zm4 3h2v10h-2V10zm4-6h2v16h-2V4zm4 9h2v7h-2v-7z"/></svg></span> Fehlzeiten</a>
       {% endif %}
       {% if not nav_ist_admin %}
       <div class="grp">Abrechnung</div>

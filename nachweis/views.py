@@ -1220,6 +1220,25 @@ def abwesenheit_status(request):
     return redirect("nachweis:abwesenheit")
 
 
+@login_required
+def fehlzeiten(request):
+    """Fehlzeiten-Statistik der Leitung: Fehlquote je Mitarbeiter*in (% der Werktage),
+    fortlaufend fürs Jahr, aufgeschlüsselt nach Urlaub/Krank/Fortbildung/FZA/Sonstiges."""
+    if not services.ist_leitung(request.user):
+        return HttpResponseForbidden()
+    teams = services.teams_fuer(request.user)
+    jahr = _jahr(request)
+    team_id = request.GET.get("team") or ""
+    team_qs = teams.filter(id=int(team_id)) if team_id.isdigit() else teams
+    mitarbeitende = list(Mitarbeiter.objects.filter(aktiv=True, team__in=team_qs)
+                         .order_by("name", "vorname"))
+    stat = services.fehlzeiten_statistik(mitarbeitende, jahr)
+    return render(request, "nachweis/fehlzeiten.html", {
+        "aktiv": "fehlzeiten", "jahr": jahr, "teams": teams, "team_id": team_id,
+        "stat": stat, "basis": stat[0]["basis"] if stat else 0,
+    })
+
+
 # ---------------------------------------------------------------- Wiederherstellungs-Timeline (nur Superuser)
 def _log_changes(le):
     """Änderungs-Dict {feld: [alt, neu]} robust aus einem auditlog-LogEntry lesen."""
