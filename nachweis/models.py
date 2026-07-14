@@ -20,6 +20,12 @@ from simple_history.models import HistoricalRecords
 Q3 = Decimal("0.001")  # Rundung auf 3 Nachkommastellen (Stunden)
 
 
+def _monatstage(jahr: int, monat: int) -> int:
+    """Anzahl Tage im Monat (ohne calendar-Import an jeder Aufrufstelle)."""
+    from calendar import monthrange
+    return monthrange(jahr, monat)[1]
+
+
 def _stunden(beginn, ende) -> Decimal:
     """Dauer zwischen zwei Uhrzeiten in Dezimalstunden. Ist das Ende zeitlich vor dem
     Beginn, wird ein Tageswechsel angenommen (Nacht-/Bereitschaftsdienst über
@@ -1933,3 +1939,138 @@ class Aufbewahrungsregel(models.Model):
 
     def __str__(self):
         return f"{self.get_kategorie_display()}: {self.jahre} J."
+
+
+# ==========================================================================
+#  Selbstzahler / Wohnkosten (WBVG): Seit dem BTHG zahlen Bewohner*innen
+#  besonderer Wohnformen Miete, Nebenkosten und Verpflegung SELBST (zweiter
+#  Debitor neben dem Kostenträger, der die Fachleistung zahlt). Die Wohnkosten-
+#  vereinbarung hält die monatlich wiederkehrenden Positionen; daraus entsteht
+#  eine monatliche Selbstzahler-Rechnung (Dauerrechnung) an die Bewohner*in.
+# ==========================================================================
+class WohnkostenKategorie(models.TextChoices):
+    MIETE = "miete", "Wohnraum / Grundmiete"
+    NEBENKOSTEN = "nebenkosten", "Neben-/Betriebskosten"
+    VERPFLEGUNG = "verpflegung", "Verpflegung"
+    INVESTITION = "investition", "Investitionskosten"
+    BARBETRAG = "barbetrag", "Barbetrag / Weiteres"
+    SONSTIGES = "sonstiges", "Sonstiges"
+
+
+class Wohnkostenvereinbarung(models.Model):
+    """WBVG-Kostenvereinbarung einer Bewohner*in: die monatlich wiederkehrenden
+    Positionen (Miete/Verpflegung …), die die Bewohner*in selbst trägt. Grundlage
+    der monatlichen Selbstzahler-Rechnung (Dauerrechnung)."""
+    klient = models.ForeignKey(Klient, on_delete=models.CASCADE, related_name="wohnkosten")
+    angebot = models.ForeignKey(Angebot, on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name="wohnkosten", verbose_name="Wohnform")
+    gueltig_von = models.DateField("gültig ab", null=True, blank=True)
+    gueltig_bis = models.DateField("gültig bis", null=True, blank=True)
+    faelligkeit_tag = models.PositiveSmallIntegerField(
+        "fällig am Tag des Monats", default=1, validators=[MinValueValidator(1), MaxValueValidator(28)])
+    aktiv = models.BooleanField(default=True)
+    notiz = models.CharField(max_length=200, blank=True)
+    erstellt = models.DateTimeField(auto_now_add=True)
+    history = HistoricalRecords(excluded_fields=["notiz"])
+
+    class Meta:
+        verbose_name = "Wohnkostenvereinbarung"
+        verbose_name_plural = "Wohnkostenvereinbarungen"
+        ordering = ["-gueltig_von", "-id"]
+
+    def __str__(self):
+        return f"Wohnkosten {self.klient} ({self.monatssumme} €/Monat)"
+
+    @property
+    def monatssumme(self) -> Decimal:
+        return sum((p.monatsbetrag for p in self.positionen.all()), Decimal("0"))
+
+    def gilt_im_monat(self, jahr: int, monat: int) -> bool:
+        """Ist die Vereinbarung im gegebenen Monat gültig (überlappt sie ihn)?"""
+        if not self.aktiv:
+            return False
+        monatsende = date(jahr, monat, _monatstage(jahr, monat))
+        monatsanfang = date(jahr, monat, 1)
+        if self.gueltig_von and self.gueltig_von > monatsende:
+            return False
+        if self.gueltig_bis and self.gueltig_bis < monatsanfang:
+            return False
+        return True
+
+
+class Wohnkostenposition(models.Model):
+    """Eine wiederkehrende Monatsposition der Wohnkostenvereinbarung."""
+    vereinbarung = models.ForeignKey(Wohnkostenvereinbarung, on_delete=models.CASCADE,
+                                     related_name="positionen")
+    kategorie = models.CharField(max_length=12, choices=WohnkostenKategorie.choices,
+                                 default=WohnkostenKategorie.MIETE)
+    bezeichnung = models.CharField(max_length=120)
+    monatsbetrag = models.DecimalField("Betrag €/Monat", max_digits=10, decimal_places=2,
+                                       validators=[MinValueValidator(Decimal("0"))])
+
+    class Meta:
+        verbose_name = "Wohnkostenposition"
+        verbose_name_plural = "Wohnkostenpositionen"
+        ordering = ["kategorie", "id"]
+
+    def __str__(self):
+        return f"{self.bezeichnung}: {self.monatsbetrag} €"
+
+
+class SelbstzahlerRechnung(models.Model):
+    """Monatliche Selbstzahler-Rechnung (Dauerrechnung) an eine Bewohner*in. Eigener
+    Nummernkreis (WK-JAHR-NNNN), getrennt von den Kostenträger-Rechnungen. Positionen
+    werden bei der Erstellung aus der Wohnkostenvereinbarung festgeschrieben."""
+    nummer = models.CharField("Rechnungsnummer", max_length=20, unique=True)
+    klient = models.ForeignKey(Klient, on_delete=models.PROTECT, related_name="selbstzahler_rechnungen")
+    empfaenger = models.CharField("Empfänger", max_length=140)
+    empfaenger_anschrift = models.TextField("Anschrift", blank=True)
+    jahr = models.PositiveIntegerField()
+    monat = models.PositiveSmallIntegerField()
+    datum = models.DateField("Rechnungsdatum")
+    faellig_am = models.DateField("fällig am", null=True, blank=True)
+    betrag = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    status = models.CharField(max_length=10, choices=Rechnungsstatus.choices,
+                              default=Rechnungsstatus.GESTELLT)
+    bezahlt_am = models.DateField("bezahlt am", null=True, blank=True)
+    notiz = models.CharField(max_length=200, blank=True)
+    erstellt_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True, blank=True,
+                                     related_name="+")
+    erstellt = models.DateTimeField(auto_now_add=True)
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = "Selbstzahler-Rechnung"
+        verbose_name_plural = "Selbstzahler-Rechnungen"
+        ordering = ["-datum", "-nummer"]
+        constraints = [models.UniqueConstraint(
+            fields=["klient", "jahr", "monat"],
+            condition=models.Q(status__in=["entwurf", "gestellt", "bezahlt"]),
+            name="eine_selbstzahler_rechnung_je_klient_monat")]
+
+    def __str__(self):
+        return f"{self.nummer} · {self.empfaenger} · {self.betrag} €"
+
+    @property
+    def monat_text(self) -> str:
+        return f"{self.monat:02d}.{self.jahr}"
+
+    @property
+    def ist_offen(self) -> bool:
+        return self.status == Rechnungsstatus.GESTELLT
+
+
+class SelbstzahlerPosition(models.Model):
+    """Festgeschriebene Position einer Selbstzahler-Rechnung (Snapshot der Vereinbarung)."""
+    rechnung = models.ForeignKey(SelbstzahlerRechnung, on_delete=models.CASCADE,
+                                 related_name="positionen")
+    bezeichnung = models.CharField(max_length=140)
+    betrag = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        verbose_name = "Selbstzahler-Position"
+        verbose_name_plural = "Selbstzahler-Positionen"
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"{self.bezeichnung}: {self.betrag} €"

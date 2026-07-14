@@ -4,7 +4,7 @@ from django.urls import path
 from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse,
                views_abrechnung, views_feld, views_ziele, views_berichte,
                views_controlling, views_belegung, views_qm, views_dienstplan,
-               views_dokumente, views_loeschfristen, views_fallakte)
+               views_dokumente, views_loeschfristen, views_fallakte, views_wohnkosten)
 
 app_name = "nachweis"
 
@@ -40,6 +40,18 @@ urlpatterns = [
     path("loeschfristen/", views_loeschfristen.loeschfristen, name="loeschfristen"),
     path("loeschfristen/<int:pk>/", views_loeschfristen.loeschfristen_klient, name="loeschfristen_klient"),
     path("loeschfristen/anonymisieren/", views_loeschfristen.loeschfristen_anonymisieren, name="loeschfristen_anonymisieren"),
+
+    # Selbstzahler / Wohnkosten (WBVG)
+    path("wohnkosten/", views_wohnkosten.wohnkosten, name="wohnkosten"),
+    path("wohnkosten/vereinbarung/anlegen/", views_wohnkosten.vereinbarung_anlegen, name="wohnkosten_vereinbarung_anlegen"),
+    path("wohnkosten/vereinbarung/<int:pk>/", views_wohnkosten.wohnkosten_vereinbarung, name="wohnkosten_vereinbarung"),
+    path("wohnkosten/vereinbarung/speichern/", views_wohnkosten.vereinbarung_speichern, name="wohnkosten_vereinbarung_speichern"),
+    path("wohnkosten/position/speichern/", views_wohnkosten.position_speichern, name="wohnkosten_position_speichern"),
+    path("wohnkosten/position/loeschen/", views_wohnkosten.position_loeschen, name="wohnkosten_position_loeschen"),
+    path("wohnkosten/erzeugen/", views_wohnkosten.wohnkosten_erzeugen, name="wohnkosten_erzeugen"),
+    path("wohnkosten/rechnung/<int:pk>/", views_wohnkosten.selbstzahler_rechnung, name="selbstzahler_rechnung"),
+    path("wohnkosten/rechnung/<int:pk>/pdf/", views_wohnkosten.selbstzahler_pdf, name="selbstzahler_pdf"),
+    path("wohnkosten/rechnung/aktion/", views_wohnkosten.selbstzahler_aktion, name="selbstzahler_aktion"),
 
     # Dokumentenablage (DMS light)
     path("dokumente/<int:pk>/", views_dokumente.dokumente, name="dokumente"),

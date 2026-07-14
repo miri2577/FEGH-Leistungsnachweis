@@ -1,0 +1,62 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Selbstzahler-Rechnung {{ r.nummer }}{% endblock %}
+{% block extrastyle %}
+  .doc{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+    padding:28px 32px;max-width:820px;margin-top:14px;color:#1e2a37}
+  .top{display:flex;justify-content:space-between;gap:24px}
+  .abs{font-size:11px;color:#666;white-space:pre-line;line-height:1.5;max-width:55%}
+  .to{font-size:14px;line-height:1.6}
+  .to .lbl{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.4px}
+  .doc h2{font-size:20px;color:var(--brand-d);margin:24px 0 4px}
+  .meta{margin:6px 0 16px;font-size:13px;line-height:1.7}
+  .meta b{color:#555}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+  th,td{border:1px solid #bcd;padding:6px 9px}
+  th{background:#eef4fa;text-align:left} td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.sum td{background:var(--brand);color:#fff;font-weight:700}
+  .legal{margin-top:18px;color:#666;font-size:11px;line-height:1.6}
+  @media print{ header.top,nav.side,.no-print{display:none !important} body{background:#fff} main{padding:0}
+    .doc{border:0;box-shadow:none;border-radius:0;max-width:none;padding:0} }
+{% endblock %}
+{% block content %}
+  <div class="no-print" style="display:flex;gap:8px;margin-top:6px">
+    <button class="btn" onclick="window.print()">🖨️ Drucken / als PDF speichern</button>
+    <a class="btn ghost" href="{% url 'nachweis:selbstzahler_rechnung' r.id %}">← Zurück</a>
+  </div>
+
+  <div class="doc">
+    <div class="top">
+      <div class="abs">{% if steller and steller.name %}{{ steller.name }}
+{{ steller.strasse }}
+{{ steller.plz }} {{ steller.ort }}{% else %}[ Trägeranschrift – Rechnungssteller-Stammdaten pflegen ]{% endif %}</div>
+      <div class="to">
+        <div class="lbl">Rechnungsempfänger*in</div>
+        <b>{{ r.empfaenger }}</b>{% if r.empfaenger_anschrift %}<br>{{ r.empfaenger_anschrift|linebreaksbr }}{% endif %}
+      </div>
+    </div>
+
+    <h2>Rechnung {{ r.nummer }}</h2>
+    <div class="meta">
+      <b>Rechnungsdatum:</b> {{ r.datum|date:"d.m.Y" }} &nbsp;&nbsp;
+      <b>Zeitraum:</b> {{ monatsname }} {{ r.jahr }} &nbsp;&nbsp;
+      <b>fällig am:</b> {{ r.faellig_am|date:"d.m.Y"|default:"—" }}<br>
+      <b>Leistung:</b> Wohnkosten / Verpflegung (Selbstzahleranteil, WBVG)
+    </div>
+
+    <table>
+      <thead><tr><th>Position</th><th class="num" style="width:130px">Betrag</th></tr></thead>
+      <tbody>
+        {% for p in positionen %}
+        <tr><td>{{ p.bezeichnung }}</td><td class="num">{{ p.betrag|floatformat:2 }} €</td></tr>
+        {% empty %}<tr><td colspan="2" style="text-align:center">Keine Positionen.</td></tr>{% endfor %}
+        <tr class="sum"><td>Monatsbetrag gesamt</td><td class="num">{{ r.betrag|floatformat:2 }} €</td></tr>
+      </tbody>
+    </table>
+
+    <p class="legal">Selbstzahleranteil nach dem Wohn- und Betreuungsvertragsgesetz (WBVG) für Wohnraum,
+      Neben-/Betriebskosten und Verpflegung in der besonderen Wohnform. Die Fachleistung der Eingliederungshilfe
+      wird gesondert mit dem Kostenträger abgerechnet. Umsatzsteuer soweit zutreffend (Vermietung § 4 Nr. 12 UStG,
+      Betreuungsleistungen § 4 Nr. 16 UStG – mit dem Steuerbüro abstimmen). Zahlbar ohne Abzug bis zum Fälligkeitsdatum.</p>
+    {% if r.notiz %}<p class="legal">Notiz: {{ r.notiz }}</p>{% endif %}
+  </div>
+{% endblock %}

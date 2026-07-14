@@ -258,6 +258,9 @@ AUDITLOG_INCLUDE_TRACKING_MODELS = (
     {"model": "nachweis.Wirkungseinschaetzung", "exclude_fields": ["kommentar"]},
     {"model": "nachweis.Dokument", "exclude_fields": ["notiz"]},
     "nachweis.Aufbewahrungsregel",
+    {"model": "nachweis.Wohnkostenvereinbarung", "exclude_fields": ["notiz"]},
+    "nachweis.Wohnkostenposition",
+    {"model": "nachweis.SelbstzahlerRechnung", "exclude_fields": ["notiz"]},
 )
 
 # =====================================================================

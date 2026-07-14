@@ -1,0 +1,74 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Wohnkosten · {{ klient.name }} · FEGH{% endblock %}
+{% block extrastyle %}
+  .g{width:100%;border-collapse:collapse;font-size:13px}
+  .g th,.g td{border:1px solid var(--line);padding:6px 9px;text-align:left}
+  .g th{background:var(--bg-2);font-size:12px}
+  .g td.num,.g th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .kopf{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:16px}
+  .kopf label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+  .kopf input,.kopf select{padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-family:inherit;width:100%}
+  .kopf .full{grid-column:1/-1}
+  .posform{display:grid;grid-template-columns:1fr 2fr 130px auto;gap:10px;align-items:end;padding:14px 16px}
+  .posform label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+  .posform input,.posform select{padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-family:inherit}
+  @media(max-width:820px){.kopf{grid-template-columns:1fr 1fr}.posform{grid-template-columns:1fr 1fr}}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Wohnkosten · {{ klient.name }}</h1>
+  <p class="sub">Wiederkehrende Monatspositionen der WBVG-Vereinbarung. Diese bilden die Grundlage der monatlichen Selbstzahler-Rechnung.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div style="margin-bottom:12px"><a class="btn ghost" href="{% url 'nachweis:wohnkosten' %}">← Wohnkosten-Übersicht</a></div>
+
+  <div class="panel">
+    <div class="head"><h2>Vereinbarung</h2><span class="muted" style="align-self:center">Σ {{ v.monatssumme|floatformat:2 }} €/Monat</span></div>
+    <form method="post" action="{% url 'nachweis:wohnkosten_vereinbarung_speichern' %}">
+      {% csrf_token %}<input type="hidden" name="id" value="{{ v.id }}">
+      <div class="kopf">
+        <label>Wohnform
+          <select name="angebot"><option value="">—</option>{% for a in angebote %}<option value="{{ a.id }}" {% if v.angebot_id == a.id %}selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></label>
+        <label>gültig ab <input type="date" name="gueltig_von" value="{{ v.gueltig_von|date:'Y-m-d' }}"></label>
+        <label>gültig bis <input type="date" name="gueltig_bis" value="{{ v.gueltig_bis|date:'Y-m-d' }}"></label>
+        <label>fällig am Tag <input type="number" name="faelligkeit_tag" min="1" max="28" value="{{ v.faelligkeit_tag }}"></label>
+        <label class="full" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" name="aktiv" {% if v.aktiv %}checked{% endif %} style="width:auto"> aktiv (wird beim Monatslauf berücksichtigt)</label>
+        <label class="full">Notiz <input type="text" name="notiz" maxlength="200" value="{{ v.notiz }}"></label>
+        <div class="full"><button class="btn" type="submit">Speichern</button></div>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <div class="head"><h2>Positionen</h2></div>
+    <div class="body" style="overflow-x:auto">
+      <table class="g">
+        <thead><tr><th>Kategorie</th><th>Bezeichnung</th><th class="num">€/Monat</th><th></th></tr></thead>
+        <tbody>
+          {% for p in positionen %}
+          <tr>
+            <td class="muted">{{ p.get_kategorie_display }}</td>
+            <td>{{ p.bezeichnung }}</td>
+            <td class="num">{{ p.monatsbetrag|floatformat:2 }} €</td>
+            <td>
+              <form method="post" action="{% url 'nachweis:wohnkosten_position_loeschen' %}" onsubmit="return confirm('Position löschen?')" style="display:inline">{% csrf_token %}
+                <input type="hidden" name="id" value="{{ p.id }}">
+                <button class="btn ghost" style="padding:2px 9px;font-size:12px;color:var(--bad)">✕</button></form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="muted" style="text-align:center;padding:14px">Noch keine Position – unten hinzufügen.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <form method="post" action="{% url 'nachweis:wohnkosten_position_speichern' %}" class="posform">
+      {% csrf_token %}<input type="hidden" name="vereinbarung" value="{{ v.id }}">
+      <label>Kategorie
+        <select name="kategorie">{% for kv, kl in kategorien %}<option value="{{ kv }}">{{ kl }}</option>{% endfor %}</select></label>
+      <label>Bezeichnung <input type="text" name="bezeichnung" maxlength="120" placeholder="z. B. Grundmiete Zimmer 3" required></label>
+      <label>€/Monat <input type="text" name="monatsbetrag" inputmode="decimal" placeholder="0,00" required></label>
+      <div><button class="btn" type="submit">+ Hinzufügen</button></div>
+    </form>
+  </div>
+{% endblock %}

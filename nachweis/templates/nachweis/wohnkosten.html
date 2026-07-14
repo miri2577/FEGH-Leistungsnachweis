@@ -1,0 +1,98 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Wohnkosten (Selbstzahler) · FEGH{% endblock %}
+{% block extrastyle %}
+  .wk-grid{display:grid;grid-template-columns:1fr;gap:16px}
+  .g{width:100%;border-collapse:collapse;font-size:13px}
+  .g th,.g td{border:1px solid var(--line);padding:6px 9px;text-align:left}
+  .g th{background:var(--bg-2);font-size:12px}
+  .g td.num,.g th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .rs{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700}
+  .rs.gestellt{background:var(--warnbg);color:var(--warn)} .rs.bezahlt{background:var(--okbg);color:var(--ok)}
+  .rs.storniert{background:#eef2f5;color:#697786} .rs.entwurf{background:var(--brand-soft);color:var(--brand-d)}
+  .run{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+  .run label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+  .run select,.run input{padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-family:inherit}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Wohnkosten · Selbstzahler (WBVG)</h1>
+  <p class="sub">Seit dem BTHG zahlen Bewohner*innen besonderer Wohnformen Miete, Nebenkosten und
+    Verpflegung selbst (zweiter Debitor neben dem Kostenträger). Aus der Wohnkostenvereinbarung
+    entsteht monatlich eine Selbstzahler-Rechnung (Dauerrechnung).</p>
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div class="panel" style="max-width:760px">
+    <div class="head"><h2>Monatslauf</h2></div>
+    <div class="body" style="padding:14px 18px">
+      <form method="post" action="{% url 'nachweis:wohnkosten_erzeugen' %}" class="run"
+            onsubmit="return confirm('Selbstzahler-Rechnungen für den gewählten Monat erzeugen?');">
+        {% csrf_token %}
+        <label>Monat <select name="monat">{% for m, n in monate %}<option value="{{ m }}" {% if m == monat_default %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></label>
+        <label>Jahr <input type="number" name="jahr" value="{{ jahr_default }}" style="width:90px"></label>
+        <button class="btn" type="submit">Rechnungen erzeugen</button>
+        <span class="muted" style="font-size:12px">Erzeugt für alle im Monat gültigen Vereinbarungen; bereits berechnete werden übersprungen.</span>
+      </form>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <div class="head"><h2>Wohnkostenvereinbarungen</h2></div>
+    <div class="body" style="overflow-x:auto">
+      <table class="g">
+        <thead><tr><th>Bewohner*in</th><th>Wohnform</th><th>Gültig</th>
+          <th class="num">€/Monat</th><th>Positionen</th><th>aktiv</th><th></th></tr></thead>
+        <tbody>
+          {% for v in vereinbarungen %}
+          <tr>
+            <td><b>{{ v.klient.name }}</b></td>
+            <td class="muted">{{ v.angebot.name|default:"—" }}</td>
+            <td class="muted">{{ v.gueltig_von|date:"d.m.y"|default:"—" }} – {{ v.gueltig_bis|date:"d.m.y"|default:"offen" }}</td>
+            <td class="num"><b>{{ v.monatssumme|floatformat:2 }} €</b></td>
+            <td class="muted">{{ v.positionen.all|length }}</td>
+            <td>{% if v.aktiv %}✓{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td><a class="btn ghost" style="padding:3px 10px;font-size:12px" href="{% url 'nachweis:wohnkosten_vereinbarung' v.id %}">Bearbeiten</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="muted" style="text-align:center;padding:16px">Noch keine Vereinbarung – unten anlegen.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" style="max-width:640px;margin-top:14px">
+    <div class="head"><h2>Neue Vereinbarung</h2></div>
+    <form method="post" action="{% url 'nachweis:wohnkosten_vereinbarung_anlegen' %}" style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      {% csrf_token %}
+      <label style="grid-column:1/-1">Bewohner*in
+        <select name="klient" required style="width:100%">{% for k in klienten %}<option value="{{ k.id }}">{{ k.name }}</option>{% endfor %}</select></label>
+      <label>gültig ab <input type="date" name="gueltig_von" style="width:100%"></label>
+      <div style="align-self:end"><button class="btn" type="submit">Anlegen &amp; Positionen erfassen</button></div>
+    </form>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <div class="head"><h2>Selbstzahler-Rechnungen</h2></div>
+    <div class="body" style="overflow-x:auto">
+      <table class="g">
+        <thead><tr><th>Nummer</th><th>Bewohner*in</th><th>Monat</th><th class="num">Betrag</th>
+          <th>fällig</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          {% for r in rechnungen %}
+          <tr>
+            <td><b>{{ r.nummer }}</b></td>
+            <td>{{ r.klient.name }}</td>
+            <td class="muted">{{ r.monat_text }}</td>
+            <td class="num">{{ r.betrag|floatformat:2 }} €</td>
+            <td class="muted">{{ r.faellig_am|date:"d.m.Y"|default:"—" }}</td>
+            <td><span class="rs {{ r.status }}">{{ r.get_status_display }}</span></td>
+            <td><a class="btn ghost" style="padding:3px 10px;font-size:12px" href="{% url 'nachweis:selbstzahler_rechnung' r.id %}">Öffnen</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="muted" style="text-align:center;padding:16px">Noch keine Rechnungen – oben den Monatslauf starten.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

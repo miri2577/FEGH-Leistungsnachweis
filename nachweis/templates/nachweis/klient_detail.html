@@ -35,7 +35,7 @@
     <div class="panel">
       <div class="head"><h2>Letzte Verlaufsdokumentation</h2>
         <a class="btn ghost" href="{% url 'nachweis:klient_verlauf' klient.id %}">Alle ansehen</a></div>
-      <div class="body">
+      <div class="body" style="padding:14px 18px">
         {% for l in letzte_doku %}
         <div class="doku-item">
           <div class="k">{{ l.datum|date:"d.m.Y" }} · {{ l.leistungsart }}{% if l.taetigkeit %} · {{ l.taetigkeit }}{% endif %} · {{ l.betreuer.kuerzel|default:l.betreuer.name }}</div>
@@ -50,7 +50,7 @@
     <div class="panel">
       <div class="head"><h2>Stammdaten</h2>
         {% if nav_ist_leitung %}<a class="btn ghost" href="{% url 'nachweis:klient_bearbeiten' klient.id %}">Bearbeiten</a>{% endif %}</div>
-      <div class="body" style="font-size:13.5px;line-height:1.9">
+      <div class="body" style="font-size:13.5px;line-height:1.75;padding:14px 18px">
         <div><span class="muted">Team:</span> {{ klient.team.name|default:"—" }}</div>
         <div><span class="muted">Bezugsbetreuer*in:</span> {{ klient.bezugsbetreuer }}</div>
         {% if klient.hbg %}<div><span class="muted">HBG:</span> {{ klient.hbg }}</div>{% endif %}
