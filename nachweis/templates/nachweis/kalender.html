@@ -71,13 +71,22 @@
   /* Tages-Popover der Matrix */
   .pop{position:fixed;inset:0;background:rgba(15,30,50,.4);z-index:60;display:none;place-items:center}
   .pop.on{display:grid}
-  .pop .box{background:var(--card,#fff);border-radius:12px;padding:18px;min-width:300px;max-width:420px;box-shadow:var(--shadow)}
-  .mxp-ev{display:block;padding:5px 9px;margin:4px 0;border-radius:7px;background:var(--bg-2);
-    font-size:12.5px;color:inherit;text-decoration:none;border-left:4px solid var(--border)}
-  a.mxp-ev:hover{background:var(--brand-soft);text-decoration:none}
+  .pop .box{background:var(--card,#fff);border-radius:12px;padding:18px;width:440px;max-width:calc(100vw - 32px);
+    max-height:calc(100vh - 48px);overflow-y:auto;box-shadow:var(--shadow)}
+  .mxp-ev{display:block;width:100%;text-align:left;padding:6px 10px;margin:4px 0;border-radius:7px;background:var(--bg-2);
+    font-size:12.5px;color:inherit;text-decoration:none;border-left:4px solid var(--border);border-top:0;border-right:0;border-bottom:0}
+  button.mxp-ev{cursor:pointer} button.mxp-ev:hover,a.mxp-ev:hover{background:var(--brand-soft);text-decoration:none}
   .mxp-abw{font-size:12px;color:var(--muted);margin:6px 0}
   .pop .sa{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
   .pop .sa button{border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;color:#fff;font-weight:700}
+  /* Termin-Formular in der Tages-Card */
+  .mxp-tf{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+  .mxp-tf .row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .mxp-tf label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);font-weight:600}
+  .mxp-tf input,.mxp-tf select{padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13.5px;width:100%}
+  .mxp-actions{display:flex;gap:8px;align-items:center;margin-top:2px}
+  .mxp-sec{border-top:1px solid var(--border);margin-top:12px;padding-top:10px}
+  .mxp-sec-t{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:4px}
 
   .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:12px 2px 0;font-size:12.5px}
   .legend .li{display:inline-flex;align-items:center;gap:6px}
@@ -277,7 +286,7 @@
             {% if f.dienst %}<span class="mxd" style="background:{{ f.dienst.schichtart.farbe }}" title="{{ f.dienst.schichtart.name }}{% if f.dienst.angebot %} · {{ f.dienst.angebot.name }}{% endif %}">{{ f.dienst.schichtart.kuerzel }}</span>{% endif %}
             {% for t in f.termine %}<span class="mxev{% if forloop.counter > 2 %} hid{% endif %}" style="background:{{ t.farbe }}"
               data-label="{{ t.zeit }} · {{ t.voll_anzeige }}"
-              {% if z.ich or kann_alle %}data-edit="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form"{% endif %}
+              {% if z.ich or kann_alle %}data-tid="{{ t.id }}" data-datum="{{ t.datum|date:'Y-m-d' }}" data-beginn="{{ t.beginn|time:'H:i' }}" data-ende="{{ t.ende|time:'H:i' }}" data-klient="{{ t.klient_id|default_if_none:'' }}" data-titel="{{ t.titel }}" data-ort="{{ t.ort }}" data-notiz="{{ t.notiz }}"{% endif %}
               title="{{ t.zeit }} · {{ t.voll_anzeige }}">{{ t.anzeige }}</span>{% endfor %}
             {% if f.termine|length > 2 %}<span class="mxmore">+{{ f.termine|length|add:"-2" }}</span>{% endif %}
             {% if f.abw and not f.dienst and not f.termine %}<span class="mxabw">{{ f.abw }}</span>{% endif %}
@@ -299,8 +308,9 @@
   {% endif %}
   </div>{# .kal-main #}
 
-  {# ---------------- Termin-Formular (rechte Spalte) ---------------- #}
-  {% if me %}
+  {# ---------------- Termin-Formular (rechte Spalte, nur Woche/Tag) ---------------- #}
+  {# In der Monatsmatrix steckt das Formular in der schwebenden Tages-Card (mxpop). #}
+  {% if me and ansicht != 'monat' %}
   <aside class="kal-side">
   <div class="panel" id="form">
     <div class="head"><h2>{% if bearbeiten %}Termin bearbeiten{% else %}Neuer Termin{% endif %}</h2>
@@ -343,16 +353,58 @@
   {% endif %}
   </div>{# .kal-layout #}
 
-  {# Tages-Popover der Monatsmatrix: Termine des Tages + (Leitung) Dienst setzen #}
+  {# Tages-Card der Monatsmatrix: Termine ansehen/anlegen/bearbeiten + (Leitung) Dienst #}
   {% if ansicht == 'monat' %}
-  <div class="pop" id="mxpop" data-addbase="?{{ nav_self }}{{ filter_qs }}">
+  <div class="pop" id="mxpop">
     <div class="box">
       <div style="font-weight:700;margin-bottom:6px" id="mxp-title">Tag</div>
-      <div id="mxp-list"></div>
-      {% if me %}<a class="btn ghost" id="mxp-add" href="#" style="margin-top:6px;display:none">＋ Termin anlegen</a>{% endif %}
+
+      {# Ansicht: Termine des Tages #}
+      <div id="mxp-list-wrap">
+        <div id="mxp-list"></div>
+        {% if me %}<button type="button" class="btn ghost" id="mxp-neu" style="margin-top:8px">＋ Neuer Termin</button>{% endif %}
+      </div>
+
+      {# Termin anlegen/bearbeiten – client-seitig befüllt #}
+      {% if me %}
+      <div id="mxp-form" hidden>
+        <form method="post" action="{% url 'nachweis:termin_save' %}" class="mxp-tf">
+          {% csrf_token %}
+          <input type="hidden" name="zurueck" value="{{ request.get_full_path }}">
+          <input type="hidden" name="id" id="tf-id">
+          <input type="hidden" name="mitarbeiter" id="tf-ma">
+          <div class="row2">
+            <label>Datum<input type="date" name="datum" id="tf-datum" required></label>
+            <label>Beginn<input type="time" name="beginn" id="tf-beginn" required></label>
+          </div>
+          <div class="row2">
+            <label>Ende<input type="time" name="ende" id="tf-ende"></label>
+            <label>Klient*in<select name="klient" id="tf-klient">
+              <option value="">— interner Termin</option>
+              {% for k in klienten %}<option value="{{ k.id }}">{{ k.name }}{% if k.kuerzel_anzeige %} ({{ k.kuerzel_anzeige }}){% endif %}</option>{% endfor %}
+            </select></label>
+          </div>
+          <label>Titel <span class="muted" style="font-weight:400">(bei internem Termin)</span>
+            <input type="text" name="titel" id="tf-titel" maxlength="120" placeholder="z. B. Teamsitzung, Supervision"></label>
+          <label>Ort<input type="text" name="ort" id="tf-ort" maxlength="120"></label>
+          <label>Notiz<input type="text" name="notiz" id="tf-notiz" maxlength="255"></label>
+          <div class="mxp-actions">
+            <button class="btn" type="submit" id="tf-save">Anlegen</button>
+            <button class="btn ghost" type="button" id="tf-back">← Termine</button>
+          </div>
+        </form>
+        <form method="post" action="{% url 'nachweis:termin_delete' %}" id="tf-delform" hidden
+              onsubmit="return confirm('Termin löschen?')" style="margin-top:6px">
+          {% csrf_token %}<input type="hidden" name="zurueck" value="{{ request.get_full_path }}">
+          <input type="hidden" name="id" id="tf-delid">
+          <button class="btn ghost" style="color:var(--bad)" type="submit">Termin löschen</button>
+        </form>
+      </div>
+      {% endif %}
+
       {% if schichtarten %}
-      <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:10px">
-        <div style="font-size:12.5px;color:var(--muted);font-weight:600">Dienst (stationäre Planung)</div>
+      <div class="mxp-sec">
+        <div class="mxp-sec-t">Dienst (stationäre Planung)</div>
         <form method="post" action="{% url 'nachweis:dienst_setzen' %}">
           {% csrf_token %}
           <input type="hidden" name="mitarbeiter" id="mxp-ma">
@@ -375,8 +427,9 @@
         </form>
       </div>
       {% endif %}
-      <div style="margin-top:10px;text-align:right">
-        <button type="button" class="btn ghost" onclick="document.getElementById('mxpop').classList.remove('on')">Schließen</button>
+
+      <div style="margin-top:12px;text-align:right">
+        <button type="button" class="btn ghost" id="mxp-close">Schließen</button>
       </div>
     </div>
   </div>
@@ -432,44 +485,77 @@
     });
   })();
 
-  // Monatsmatrix: Zelle anklicken -> Tages-Popover (Termine + Dienst-Sektion)
+  // Monatsmatrix: Zelle anklicken -> Tages-Card (Termine ansehen/anlegen/bearbeiten
+  // + Dienst). Das komplette Termin-Formular steckt in der Card (keine rechte Spalte).
   (function(){
     var pop = document.getElementById('mxpop'); if(!pop) return;
-    var list = document.getElementById('mxp-list'), title = document.getElementById('mxp-title');
-    var addA = document.getElementById('mxp-add');
+    var title = document.getElementById('mxp-title');
+    var list = document.getElementById('mxp-list'), listWrap = document.getElementById('mxp-list-wrap');
+    var form = document.getElementById('mxp-form'), neu = document.getElementById('mxp-neu');
     var dma = document.getElementById('mxp-ma'), ddatum = document.getElementById('mxp-datum');
-    var addbase = pop.dataset.addbase;
-    document.querySelectorAll('.mxcell').forEach(function(cell){
-      cell.addEventListener('click', function(){
-        title.textContent = cell.dataset.name || '';
-        list.innerHTML = '';
-        cell.querySelectorAll('.mxev').forEach(function(ev){
-          var row = document.createElement(ev.dataset.edit ? 'a' : 'div');
-          row.className = 'mxp-ev';
-          row.textContent = ev.dataset.label || ev.textContent;
-          row.style.borderLeftColor = ev.style.background || 'var(--border)';
-          if(ev.dataset.edit) row.href = ev.dataset.edit;
-          list.appendChild(row);
-        });
-        if(cell.dataset.abw){
-          var ab = document.createElement('div'); ab.className = 'mxp-abw';
-          ab.textContent = 'Abwesenheit: ' + cell.dataset.abw; list.appendChild(ab);
-        }
-        if(!list.children.length){
-          var le = document.createElement('div'); le.className = 'mxp-abw';
-          le.textContent = 'Keine Termine an diesem Tag.'; list.appendChild(le);
-        }
-        if(addA){
-          var darf = cell.dataset.add === '1';
-          addA.style.display = darf ? 'inline-flex' : 'none';
-          if(darf) addA.href = addbase + '&tag=' + cell.dataset.datum + '&ma=' + cell.dataset.ma + '#form';
-        }
-        if(dma){ dma.value = cell.dataset.ma; ddatum.value = cell.dataset.datum; }
-        pop.classList.add('on');
+    var curCell = null;
+    function close(){ pop.classList.remove('on'); }
+    function showList(){ if(form) form.hidden = true; listWrap.hidden = false; }
+    function showForm(){ if(form) form.hidden = false; listWrap.hidden = true; }
+
+    function fillForm(cell, ev){
+      var g = function(id){ return document.getElementById(id); };
+      g('tf-ma').value = cell.dataset.ma || '';
+      if(ev){                                  // bearbeiten
+        g('tf-id').value = ev.dataset.tid || '';
+        g('tf-datum').value = ev.dataset.datum || cell.dataset.datum || '';
+        g('tf-beginn').value = ev.dataset.beginn || '';
+        g('tf-ende').value = ev.dataset.ende || '';
+        g('tf-klient').value = ev.dataset.klient || '';
+        g('tf-titel').value = ev.dataset.titel || '';
+        g('tf-ort').value = ev.dataset.ort || '';
+        g('tf-notiz').value = ev.dataset.notiz || '';
+        g('tf-save').textContent = 'Speichern';
+        g('tf-delform').hidden = false; g('tf-delid').value = ev.dataset.tid || '';
+      } else {                                 // neuer Termin
+        g('tf-id').value = ''; g('tf-datum').value = cell.dataset.datum || '';
+        g('tf-beginn').value = ''; g('tf-ende').value = ''; g('tf-klient').value = '';
+        g('tf-titel').value = ''; g('tf-ort').value = ''; g('tf-notiz').value = '';
+        g('tf-save').textContent = 'Anlegen'; g('tf-delform').hidden = true;
+      }
+      showForm();
+    }
+
+    function openCell(cell){
+      curCell = cell;
+      title.textContent = cell.dataset.name || '';
+      list.innerHTML = '';
+      cell.querySelectorAll('.mxev').forEach(function(ev){
+        var editable = !!ev.dataset.tid;
+        var row = document.createElement(editable ? 'button' : 'div');
+        row.className = 'mxp-ev'; if(editable){ row.type = 'button'; }
+        row.textContent = ev.dataset.label || ev.textContent;
+        row.style.borderLeftColor = ev.style.background || 'var(--border)';
+        if(editable) row.addEventListener('click', function(){ fillForm(cell, ev); });
+        list.appendChild(row);
       });
+      if(cell.dataset.abw){
+        var ab = document.createElement('div'); ab.className = 'mxp-abw';
+        ab.textContent = 'Abwesenheit: ' + cell.dataset.abw; list.appendChild(ab);
+      }
+      if(!list.children.length){
+        var le = document.createElement('div'); le.className = 'mxp-abw';
+        le.textContent = 'Keine Termine an diesem Tag.'; list.appendChild(le);
+      }
+      if(neu) neu.style.display = (cell.dataset.add === '1') ? 'inline-flex' : 'none';
+      if(dma){ dma.value = cell.dataset.ma; ddatum.value = cell.dataset.datum; }   // Dienst-Formular
+      showList();
+      pop.classList.add('on');
+    }
+
+    document.querySelectorAll('.mxcell').forEach(function(cell){
+      cell.addEventListener('click', function(){ openCell(cell); });
     });
-    pop.addEventListener('click', function(e){ if(e.target === pop) pop.classList.remove('on'); });
-    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') pop.classList.remove('on'); });
+    if(neu) neu.addEventListener('click', function(){ if(curCell) fillForm(curCell, null); });
+    var back = document.getElementById('tf-back'); if(back) back.addEventListener('click', showList);
+    document.getElementById('mxp-close').addEventListener('click', close);
+    pop.addEventListener('click', function(e){ if(e.target === pop) close(); });
+    document.addEventListener('keydown', function(e){ if(e.key === 'Escape') close(); });
   })();
 
   // Tag-Raster: Block ziehen = Startzeit, untere Kante = Dauer (15-Min-Raster)
