@@ -726,6 +726,21 @@ def arbeitszeit_monat(mitarbeiter, jahr: int, monat: int):
             "tage_erfasst": len(erfasst), "fehlende_tage": fehlend}
 
 
+def team_ueberlappung(abw):
+    """Andere Team-Mitarbeiter*innen, deren nicht-abgelehnte Abwesenheit den Zeitraum
+    von `abw` überlappt – Warnung vor gleichzeitigem Ausfall im Team."""
+    from .models import Abwesenheit, AbwesenheitStatus
+    if not abw.mitarbeiter.team_id:
+        return []
+    return list(Abwesenheit.objects
+                .filter(mitarbeiter__team_id=abw.mitarbeiter.team_id,
+                        von__lte=abw.bis, bis__gte=abw.von)
+                .exclude(status=AbwesenheitStatus.ABGELEHNT)
+                .exclude(pk=abw.pk)
+                .select_related("mitarbeiter")
+                .order_by("von"))
+
+
 def urlaub_uebersicht(mitarbeiter, jahr: int):
     from .models import AbwesenheitArt, AbwesenheitStatus
     genommen = beantragt = 0

@@ -53,12 +53,15 @@
           {% for a in alle_offen %}
           <tr>
             <td>{{ a.mitarbeiter }}</td><td>{{ a.get_art_display }}</td>
-            <td>{{ a.von|date:"d.m.Y" }} – {{ a.bis|date:"d.m.Y" }}</td>
+            <td>{{ a.von|date:"d.m.Y" }} – {{ a.bis|date:"d.m.Y" }}
+              {% if a.ueberlappt %}<div style="margin-top:3px;font-size:12px;color:var(--warn);font-weight:600">⚠ gleichzeitig abwesend:
+                {% for o in a.ueberlappt %}{{ o.mitarbeiter.name }} ({{ o.get_art_display }}, {{ o.von|date:"d.m." }}–{{ o.bis|date:"d.m." }}{% if o.status != 'genehmigt' %}, beantragt{% endif %}){% if not forloop.last %} · {% endif %}{% endfor %}</div>{% endif %}</td>
             <td class="num">{{ a.werktage }}</td><td class="muted">{{ a.kommentar }}</td>
             <td>
               <form method="post" action="{% url 'nachweis:abwesenheit_status' %}" style="display:inline">
                 {% csrf_token %}<input type="hidden" name="id" value="{{ a.id }}">
-                <button class="btn" style="padding:4px 9px" name="status" value="genehmigt">✓</button>
+                <button class="btn" style="padding:4px 9px" name="status" value="genehmigt"
+                  {% if a.ueberlappt %}onclick="return confirm('Achtung: {{ a.ueberlappt|length }} Kolleg*in(nen) sind im selben Zeitraum abwesend. Trotzdem genehmigen?');"{% endif %}>✓</button>
                 <button class="btn ghost" style="padding:4px 9px;color:var(--bad)" name="status" value="abgelehnt">✕</button>
               </form>
             </td>

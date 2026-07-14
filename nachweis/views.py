@@ -1163,9 +1163,11 @@ def abwesenheit(request):
     alle_offen = None
     if services.ist_leitung(request.user):
         # nur Anträge von Mitarbeiter*innen der geleiteten Team(s)
-        alle_offen = Abwesenheit.objects.filter(
+        alle_offen = list(Abwesenheit.objects.filter(
             status=AbwesenheitStatus.BEANTRAGT,
-            mitarbeiter__team__in=services.teams_fuer(request.user)).select_related("mitarbeiter")
+            mitarbeiter__team__in=services.teams_fuer(request.user)).select_related("mitarbeiter"))
+        for a in alle_offen:      # gleichzeitiger Ausfall im Team -> Warnung
+            a.ueberlappt = services.team_ueberlappung(a)
     return render(request, "nachweis/abwesenheit.html", {
         "aktiv": "abwesenheit", "jahr": jahr, "me": me,
         "meine": list(me.abwesenheiten.all()) if me else [],

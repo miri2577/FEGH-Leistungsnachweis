@@ -130,6 +130,35 @@ class TeamIsolationTests(TestCase):
         self.assertContains(r, 'class="mxname">Anna')     # eigenes Team
         self.assertNotContains(r, 'class="mxname">Bea')   # Fremdteam nicht sichtbar
 
+    def test_urlaub_ueberlappung_warnung(self):
+        from datetime import date
+        from .models import Abwesenheit, AbwesenheitArt, AbwesenheitStatus
+        from . import services
+        # zweite*r Team-A-MA schon genehmigt abwesend im überlappenden Zeitraum
+        u2 = User.objects.create_user("tom", password="pw")
+        m2 = Mitarbeiter.objects.create(user=u2, name="Tom", rolle=Rolle.USER, team=self.team_a)
+        Abwesenheit.objects.create(mitarbeiter=m2, art=AbwesenheitArt.URLAUB,
+                                   von=date(2026, 8, 10), bis=date(2026, 8, 14),
+                                   status=AbwesenheitStatus.GENEHMIGT)
+        antrag = Abwesenheit.objects.create(mitarbeiter=self.mA, art=AbwesenheitArt.URLAUB,
+                                            von=date(2026, 8, 12), bis=date(2026, 8, 18),
+                                            status=AbwesenheitStatus.BEANTRAGT)
+        # Service findet die Überschneidung
+        ueberlappt = services.team_ueberlappung(antrag)
+        self.assertEqual([o.mitarbeiter for o in ueberlappt], [m2])
+        # Leitung sieht die Warnung
+        r = self.cl(self.uLA).get("/abwesenheit/")
+        self.assertContains(r, "gleichzeitig abwesend")
+        self.assertContains(r, "Tom")
+        # fremdes Team überlappt nicht
+        mfb = Mitarbeiter.objects.create(
+            user=User.objects.create_user("uwe", password="pw"),
+            name="Uwe", rolle=Rolle.USER, team=self.team_b)
+        Abwesenheit.objects.create(mitarbeiter=mfb, art=AbwesenheitArt.URLAUB,
+                                   von=date(2026, 8, 12), bis=date(2026, 8, 18),
+                                   status=AbwesenheitStatus.GENEHMIGT)
+        self.assertEqual([o.mitarbeiter for o in services.team_ueberlappung(antrag)], [m2])
+
     def test_kalender_tag_und_monat_rendern(self):
         for ansicht in ("tag", "monat", "woche"):
             r = self.cl(self.uA).get(f"/kalender/?ansicht={ansicht}")
