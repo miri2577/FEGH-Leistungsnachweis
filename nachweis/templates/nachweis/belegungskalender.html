@@ -1,0 +1,126 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Belegung · {{ angebot.name }} · FEGH{% endblock %}
+{% block extrastyle %}
+  .bk{border-collapse:collapse;font-size:11.5px;width:100%}
+  .bk th,.bk td{border:1px solid var(--border);padding:2px 3px;text-align:center;min-width:22px}
+  .bk th{background:var(--bg-2,#f6f9fb);font-weight:600}
+  .bk td.name{text-align:left;white-space:nowrap;padding:3px 8px;font-weight:600;min-width:140px}
+  .bk td.A{background:var(--okbg);color:var(--ok);font-weight:700}
+  .bk td.abw{background:var(--warnbg);color:var(--warn);font-weight:700}
+  .bk td.abw0{background:var(--badbg);color:var(--bad);font-weight:700}
+  .bk td.leer{background:#f3f5f7;color:#c3ccd4}
+  .bk td.num{font-variant-numeric:tabular-nums}
+  .bk-wrap{overflow-x:auto}
+  .warnbox{background:var(--warnbg);color:var(--warn);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13.5px;line-height:1.6}
+  .mini-form{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;padding:12px 16px}
+  .mini-form label{font-size:12px;color:var(--muted);font-weight:600;display:block}
+  .mini-form input,.mini-form select{display:block;margin-top:3px}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Belegung · {{ angebot.name }}</h1>
+  <p class="sub">{{ angebot.get_typ_display }} · {{ angebot.plaetze }} Plätze · {{ angebot.get_erreichbarkeit_display }}
+    {% if angebot.katalog %} · Abrechnung: {{ angebot.katalog.name }}{% endif %}</p>
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <a class="btn ghost" href="{% url 'nachweis:angebote' %}">← Angebote</a>
+    <form method="get" class="filter" style="display:flex;gap:8px">
+      <select name="monat">{% for m in monate %}<option value="{{ m }}" {% if m == monat %}selected{% endif %}>{{ m }}</option>{% endfor %}</select>
+      <input type="number" name="jahr" value="{{ jahr }}" style="width:90px">
+      <button class="btn" type="submit">Anzeigen</button>
+    </form>
+    {% if auslastung is not None %}<span class="muted">Auslastung {{ monat }}/{{ jahr }}: <b>{{ auslastung }} %</b>
+      ({{ gesamt.belegt }} Belegungstage)</span>{% endif %}
+  </div>
+
+  {% if warnungen %}
+  <div class="warnbox">
+    <b>⚠ Meldung an den Kostenträger fällig:</b>
+    {% for w in warnungen %}
+    <div>{{ w.abwesenheit.belegung.klient.name }} – {{ w.abwesenheit.art.name }} seit {{ w.abwesenheit.von|date:"d.m.Y" }}
+      ({{ w.dauer }} Tage, Frist {{ w.frist }})
+      <form method="post" action="{% url 'nachweis:klient_abwesenheit_aktion' %}" style="display:inline">
+        {% csrf_token %}<input type="hidden" name="id" value="{{ w.abwesenheit.id }}">
+        <button class="btn ghost" style="padding:2px 9px;font-size:12px">heute gemeldet ✓</button></form>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="panel">
+    <div class="head"><h2>Anwesenheitskalender {{ monat }}/{{ jahr }}</h2>
+      <span class="muted">A = anwesend · Kürzel = Abwesenheitsart · rot = über Weiterzahlungsgrenze (0 %)</span></div>
+    <div class="body bk-wrap">
+      <table class="bk">
+        <thead><tr><th style="text-align:left">Bewohner*in</th>
+          {% for t in tage_range %}<th>{{ t }}</th>{% endfor %}
+          <th title="Belegungstage">BT</th><th title="vergütete Tage (Äquivalent)">verg.</th><th>Betrag</th><th></th></tr></thead>
+        <tbody>
+          {% for z in zeilen %}
+          <tr>
+            <td class="name">{{ z.belegung.klient.name }}
+              {% if z.belegung.platz %}<span class="muted" style="font-weight:400"> · {{ z.belegung.platz }}</span>{% endif %}
+              {% if z.belegung.auszug %}<span class="muted" style="font-weight:400"> · Auszug {{ z.belegung.auszug|date:"d.m." }}</span>{% endif %}</td>
+            {% for t in z.kal.tage %}
+            <td class="{% if t.status == 'anwesend' %}A{% elif t.status == 'abwesend' %}{% if t.anteil == 0 %}abw0{% else %}abw{% endif %}{% else %}leer{% endif %}"
+                {% if t.status == 'abwesend' %}title="{{ t.kuerzel }} · vergütet {{ t.anteil }}"{% endif %}>
+              {% if t.status == 'anwesend' %}A{% elif t.status == 'abwesend' %}{{ t.kuerzel }}{% endif %}</td>
+            {% endfor %}
+            <td class="num"><b>{{ z.kal.summen.belegt }}</b></td>
+            <td class="num">{{ z.kal.summen.verguetet_aequiv|floatformat:1 }}</td>
+            <td class="num">{% if z.kal.betrag is not None %}<b>{{ z.kal.betrag|floatformat:2 }} €</b>{% else %}<span class="muted" title="kein Entgeltsatz auflösbar (Katalog/Satz prüfen)">—</span>{% endif %}</td>
+            <td style="white-space:nowrap">
+              <details style="display:inline-block;text-align:left">
+                <summary class="btn ghost" style="padding:2px 8px;font-size:11.5px;cursor:pointer;list-style:none">…</summary>
+                <div style="position:absolute;background:var(--card,#fff);border:1px solid var(--border);border-radius:10px;padding:10px 12px;z-index:20;box-shadow:var(--shadow)">
+                  <form method="post" action="{% url 'nachweis:belegung_speichern' %}" style="display:flex;gap:6px;align-items:flex-end">
+                    {% csrf_token %}<input type="hidden" name="id" value="{{ z.belegung.id }}">
+                    <label style="font-size:11px">Auszug<input type="date" name="auszug" value="{{ z.belegung.auszug|date:'Y-m-d' }}" style="font-size:12px"></label>
+                    <label style="font-size:11px">Platz<input type="text" name="platz" value="{{ z.belegung.platz }}" style="width:70px;font-size:12px"></label>
+                    <button class="btn ghost" style="padding:3px 9px;font-size:12px">✓</button>
+                  </form>
+                </div>
+              </details>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="40" class="muted" style="text-align:center;padding:18px">Keine Belegung in diesem Monat.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-top:16px">
+    <div class="panel" style="flex:1 1 360px">
+      <div class="head"><h2>Einzug</h2></div>
+      <form method="post" action="{% url 'nachweis:belegung_speichern' %}" class="mini-form">
+        {% csrf_token %}<input type="hidden" name="angebot" value="{{ angebot.id }}">
+        <label>Klient*in
+          <select name="klient">{% for k in kandidaten %}<option value="{{ k.id }}">{{ k.name }}</option>{% endfor %}</select></label>
+        <label>Einzug<input type="date" name="einzug" value="{{ heute }}" required></label>
+        <label>Platz<input type="text" name="platz" style="width:80px"></label>
+        <button class="btn" type="submit">Einziehen</button>
+      </form>
+    </div>
+
+    <div class="panel" style="flex:1 1 460px">
+      <div class="head"><h2>Abwesenheit erfassen</h2></div>
+      <form method="post" action="{% url 'nachweis:klient_abwesenheit_speichern' %}" class="mini-form">
+        {% csrf_token %}
+        <label>Bewohner*in
+          <select name="belegung">{% for z in zeilen %}<option value="{{ z.belegung.id }}">{{ z.belegung.klient.name }}</option>{% endfor %}</select></label>
+        <label>Art
+          <select name="art">{% for a in arten %}<option value="{{ a.id }}" title="{{ a.kommentar }}">{{ a.name }}</option>{% endfor %}</select></label>
+        <label>von (Abreisetag)<input type="date" name="von" value="{{ heute }}" required></label>
+        <label>bis (letzter Abw.-Tag)<input type="date" name="bis"></label>
+        <label>gemeldet am<input type="date" name="gemeldet_am"></label>
+        <button class="btn" type="submit">Speichern</button>
+      </form>
+      <p class="note" style="padding:0 16px 12px">Rückkehrtag nicht eintragen – er zählt als Anwesenheit (Beschluss 8/2007).
+        „bis“ leer = dauert an. Die Vergütungsregeln (Weiterzahlungsgrenzen, Kontingente, Meldefristen) stecken in den
+        Abwesenheitsarten – pflegbar ohne Programmierung.</p>
+    </div>
+  </div>
+{% endblock %}

@@ -1404,3 +1404,147 @@ class Entgeltsatz(models.Model):
         if self.gueltig_von > stichtag:
             return False
         return self.gueltig_bis is None or self.gueltig_bis >= stichtag
+
+
+# ==========================================================================
+#  Mehr-Bereichs-Fundament (M2): Angebote, Belegung, Abwesenheits-Regeln
+#  ((teil-)stationäre Bereiche: Wohnheim, WG, Wohngruppe/Tagesgruppe SGB VIII)
+# ==========================================================================
+class AngebotsTyp(models.TextChoices):
+    BEW_EINZEL = "bew", "BEW / TBEW (ambulant, Einzelwohnen)"
+    WG_VERBUND = "wg", "WG / verbundene Wohnform (EGH)"
+    BESONDERE_WOHNFORM = "wohnform", "besondere Wohnform (EGH, ehem. stationär)"
+    WOHNGRUPPE_JUG = "wohngruppe", "Wohngruppe Jugendhilfe (§ 34/35a SGB VIII)"
+    TAGESGRUPPE = "tagesgruppe", "Tagesgruppe (§ 32 SGB VIII, teilstationär)"
+
+
+class Erreichbarkeit(models.TextChoices):
+    OHNE = "ohne", "ohne besondere Erreichbarkeit"
+    TAG = "tag", "Tag-Präsenz"
+    NACHT = "nacht", "Nacht-Bereitschaft/-Präsenz"
+    TAG_NACHT = "tag_nacht", "Tag + Nacht (24h)"
+
+
+class Angebot(models.Model):
+    """Leistungsangebot/Standort zwischen Team und Klient*in (Vivendi: Bereichsbaum).
+    Trägt Platzzahl, Erreichbarkeitsprofil (örV-Vergleichskreise) und den Default-
+    Leistungstyp für die Abrechnung. BEW braucht kein Angebot — es ist der Trivialfall."""
+    name = models.CharField(max_length=120)
+    team = models.ForeignKey(Team, on_delete=models.PROTECT, related_name="angebote")
+    typ = models.CharField(max_length=16, choices=AngebotsTyp.choices,
+                           default=AngebotsTyp.WG_VERBUND)
+    katalog = models.ForeignKey(Leistungskatalog, on_delete=models.PROTECT,
+                                null=True, blank=True, related_name="angebote",
+                                verbose_name="Standard-Leistungstyp (Abrechnung)")
+    erreichbarkeit = models.CharField(max_length=12, choices=Erreichbarkeit.choices,
+                                      default=Erreichbarkeit.OHNE)
+    plaetze = models.PositiveSmallIntegerField("Plätze", default=0)
+    betriebserlaubnis = models.CharField("Betriebserlaubnis (§ 45 SGB VIII) / Kennung",
+                                         max_length=80, blank=True)
+    adresse = models.CharField(max_length=160, blank=True)
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Angebot"
+        verbose_name_plural = "Angebote"
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_typ_display()})"
+
+
+class Belegung(models.Model):
+    """Platz-Belegung: Klient*in wohnt/ist im Angebot von Einzug bis Auszug.
+    Aufnahme- und Entlasstag zählen je als voller Belegungstag (BRV Jug)."""
+    klient = models.ForeignKey(Klient, on_delete=models.CASCADE, related_name="belegungen")
+    angebot = models.ForeignKey(Angebot, on_delete=models.PROTECT, related_name="belegungen")
+    platz = models.CharField("Platz/Zimmer", max_length=40, blank=True)
+    einzug = models.DateField()
+    auszug = models.DateField(null=True, blank=True)
+    kommentar = models.CharField(max_length=200, blank=True)
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = "Belegung"
+        verbose_name_plural = "Belegungen"
+        ordering = ["-einzug"]
+        indexes = [models.Index(fields=["angebot", "einzug"])]
+
+    def __str__(self):
+        return f"{self.klient} in {self.angebot.name} ab {self.einzug}"
+
+    def belegt_am(self, tag) -> bool:
+        if tag < self.einzug:
+            return False
+        return self.auszug is None or tag <= self.auszug
+
+
+class AbwesenheitsBasis(models.TextChoices):
+    JE_EREIGNIS = "ereignis", "je Ereignis (zusammenhängend)"
+    KALENDERJAHR = "jahr", "kumulativ je Kalenderjahr"
+
+
+class AbwesenheitsartKlient(models.Model):
+    """Abwesenheitsart mit VERGÜTUNGSREGELN ALS DATEN (Vivendi-Prinzip): die Regeln
+    aus BRV Jug Tz 22 (Krankenhaus 3 Monate, Urlaub 30 T/Jahr, Entweichung 14 T …)
+    und Beschluss 8/2007 EGH (Freihaltegeld minus Beköstigung, 91-Tage-Kontingent,
+    Kurzbesuch ≤ 3 T ohne Anrechnung) sind Datensätze — neue Regeln ohne Code."""
+    name = models.CharField(max_length=80, unique=True)
+    kuerzel = models.CharField(max_length=4, help_text="fürs Kalenderraster, z. B. KH")
+    verguetung_prozent = models.PositiveSmallIntegerField(
+        "Vergütung %", default=100,
+        help_text="Anteil des Tagessatzes innerhalb der Weiterzahlungsgrenze")
+    abzug_je_tag = models.DecimalField(
+        "Abzug €/Tag", max_digits=7, decimal_places=2, default=0,
+        help_text="z. B. Beköstigungssatz beim EGH-Freihaltegeld")
+    max_tage = models.PositiveSmallIntegerField(
+        "Weiterzahlungsgrenze (Tage)", null=True, blank=True,
+        help_text="leer = unbegrenzt; darüber 0 % Vergütung")
+    basis = models.CharField(max_length=10, choices=AbwesenheitsBasis.choices,
+                             default=AbwesenheitsBasis.JE_EREIGNIS)
+    meldefrist_tage = models.PositiveSmallIntegerField(
+        "Meldefrist (Tage)", null=True, blank=True,
+        help_text="Warnung, wenn die Abwesenheit länger dauert und nicht gemeldet ist "
+                  "(BRV Jug: Meldung ans Jugendamt ab dem 4. Tag → 3)")
+    kommentar = models.CharField(max_length=200, blank=True)
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Abwesenheitsart (Klient)"
+        verbose_name_plural = "Abwesenheitsarten (Klient)"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class KlientAbwesenheit(models.Model):
+    """Abwesenheit einer belegten Klient*in (Krankenhaus, Urlaub …). Konvention:
+    `von` = erster Abwesenheitstag (Abreisetag zählt als abwesend), `bis` = letzter
+    Abwesenheitstag — der Rückkehrtag wird NICHT eingetragen (zählt als Anwesenheit,
+    Beschluss 8/2007). `gemeldet_am` dokumentiert die Meldung an den Kostenträger."""
+    belegung = models.ForeignKey(Belegung, on_delete=models.CASCADE,
+                                 related_name="abwesenheiten")
+    art = models.ForeignKey(AbwesenheitsartKlient, on_delete=models.PROTECT,
+                            related_name="abwesenheiten")
+    von = models.DateField("abwesend ab (Abreisetag)")
+    bis = models.DateField("letzter Abwesenheitstag", null=True, blank=True,
+                           help_text="leer = dauert an")
+    gemeldet_am = models.DateField("dem Kostenträger gemeldet am", null=True, blank=True)
+    kommentar = models.CharField(max_length=200, blank=True)
+    # Freitext (kann Gesundheitsbezug haben) bleibt aus der History-Tabelle heraus –
+    # konsistent zur Auditlog-Datenminimierung (exclude_fields in settings).
+    history = HistoricalRecords(excluded_fields=["kommentar"])
+
+    class Meta:
+        verbose_name = "Klienten-Abwesenheit"
+        verbose_name_plural = "Klienten-Abwesenheiten"
+        ordering = ["-von", "-id"]
+
+    def __str__(self):
+        return f"{self.belegung.klient} · {self.art} ab {self.von}"
+
+    def abwesend_am(self, tag) -> bool:
+        if tag < self.von:
+            return False
+        return self.bis is None or tag <= self.bis

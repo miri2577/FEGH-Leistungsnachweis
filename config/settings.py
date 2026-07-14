@@ -241,6 +241,10 @@ AUDITLOG_INCLUDE_TRACKING_MODELS = (
     "nachweis.Berichtsvorlage",
     "nachweis.Leistungskatalog",
     "nachweis.Entgeltsatz",
+    "nachweis.Angebot",
+    "nachweis.Belegung",
+    "nachweis.AbwesenheitsartKlient",
+    {"model": "nachweis.KlientAbwesenheit", "exclude_fields": ["kommentar"]},
 )
 
 # =====================================================================

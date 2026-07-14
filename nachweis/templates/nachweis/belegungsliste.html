@@ -21,6 +21,7 @@
   <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap">
     <a class="btn" href="{% url 'nachweis:klient_neu' %}" {% if kein_team %}style="opacity:.5;pointer-events:none" aria-disabled="true"{% endif %}>+ Klient*in anlegen</a>
     <a class="btn ghost" href="{% url 'nachweis:kostentraeger_liste' %}">Kostenträger verwalten</a>
+    <a class="btn ghost" href="{% url 'nachweis:angebote' %}" title="Wohnformen/WGs/Gruppen mit Plätzen + Anwesenheitskalender">Angebote &amp; Belegung</a>
   </div>
 
   <div class="panel">

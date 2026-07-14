@@ -1,0 +1,81 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Angebote · FEGH{% endblock %}
+{% block extrastyle %}
+  .ag-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;padding:18px}
+  .ag-form .full{grid-column:1 / -1}
+  .ag-form input,.ag-form select{width:100%}
+  @media(max-width:600px){.ag-form{grid-template-columns:1fr}}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Angebote &amp; Standorte</h1>
+  <p class="sub">Wohnformen, WGs, Wohn-/Tagesgruppen mit Plätzen, Erreichbarkeitsprofil und Standard-Leistungstyp –
+    die Belegung je Angebot läuft über den Anwesenheitskalender.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn ghost" href="{% url 'nachweis:belegungsliste' %}">← Belegungsliste</a>
+    <a class="btn ghost" href="{% url 'nachweis:leistungskatalog' %}">Leistungskatalog</a>
+  </div>
+
+  <div class="panel">
+    <div class="head"><h2>Angebote</h2></div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Name</th><th>Typ</th><th>Team</th><th>Erreichbarkeit</th>
+          <th class="num">Plätze</th><th class="num">belegt heute</th><th>Leistungstyp</th><th></th></tr></thead>
+        <tbody>
+          {% for a in angebote %}
+          <tr>
+            <td><b>{{ a.name }}</b>{% if not a.aktiv %} <span class="muted">(inaktiv)</span>{% endif %}
+              {% if a.betriebserlaubnis %}<div class="muted" style="font-size:11.5px">BE: {{ a.betriebserlaubnis }}</div>{% endif %}</td>
+            <td class="muted">{{ a.get_typ_display }}</td>
+            <td class="muted">{{ a.team.name }}</td>
+            <td class="muted">{{ a.get_erreichbarkeit_display }}</td>
+            <td class="num">{{ a.plaetze }}</td>
+            <td class="num">{% if a.plaetze and a.belegt >= a.plaetze %}<b style="color:var(--ok)">{{ a.belegt }}</b>{% else %}{{ a.belegt }}{% endif %}</td>
+            <td class="muted">{{ a.katalog.name|default:"—"|truncatechars:36 }}</td>
+            <td style="white-space:nowrap">
+              <a class="btn ghost" style="padding:4px 10px;font-size:12px" href="{% url 'nachweis:belegungskalender' a.id %}">Belegung</a>
+              <a class="btn ghost" style="padding:4px 10px;font-size:12px" href="?edit={{ a.id }}">Bearbeiten</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="muted" style="text-align:center;padding:18px">Noch keine Angebote – unten anlegen
+            (für das ambulante BEW ist keins nötig).</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" style="max-width:860px;margin-top:16px">
+    <div class="head"><h2>{% if bearbeiten %}Angebot bearbeiten{% else %}Neues Angebot{% endif %}</h2>
+      {% if bearbeiten %}<a class="btn ghost" href="{% url 'nachweis:angebote' %}">Abbrechen</a>{% endif %}</div>
+    <form method="post">
+      {% csrf_token %}
+      {% if bearbeiten %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">{% endif %}
+      <div class="ag-form">
+        <div><label class="fld">Name *</label><input type="text" name="name" maxlength="120" value="{{ bearbeiten.name|default:'' }}" required></div>
+        <div><label class="fld">Team *</label>
+          <select name="team">{% for t in teams %}<option value="{{ t.id }}" {% if bearbeiten.team_id == t.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></div>
+        <div><label class="fld">Typ</label>
+          <select name="typ">{% for v,l in typen %}<option value="{{ v }}" {% if bearbeiten.typ == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+        <div><label class="fld">Erreichbarkeit</label>
+          <select name="erreichbarkeit">{% for v,l in erreichbarkeiten %}<option value="{{ v }}" {% if bearbeiten.erreichbarkeit == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+        <div><label class="fld">Plätze</label><input type="number" name="plaetze" min="0" max="500" value="{{ bearbeiten.plaetze|default:'0' }}"></div>
+        <div><label class="fld">Standard-Leistungstyp <span class="muted" style="font-weight:400">(Abrechnung)</span></label>
+          <select name="katalog"><option value="">—</option>
+            {% if bearbeiten.katalog and not bearbeiten.katalog.aktiv %}
+            <option value="{{ bearbeiten.katalog_id }}" selected>{{ bearbeiten.katalog.name|truncatechars:44 }} (inaktiv)</option>
+            {% endif %}
+            {% for k in kataloge %}<option value="{{ k.id }}" {% if bearbeiten.katalog_id == k.id %}selected{% endif %}>{{ k.name|truncatechars:48 }}</option>{% endfor %}</select></div>
+        <div><label class="fld">Betriebserlaubnis / Kennung</label><input type="text" name="betriebserlaubnis" maxlength="80" value="{{ bearbeiten.betriebserlaubnis|default:'' }}"></div>
+        <div><label class="fld">Adresse</label><input type="text" name="adresse" maxlength="160" value="{{ bearbeiten.adresse|default:'' }}"></div>
+        <div class="full"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px">
+          <input type="checkbox" name="aktiv" style="width:auto" {% if bearbeiten.aktiv or not bearbeiten %}checked{% endif %}> aktiv</label></div>
+        <div class="full"><button class="btn" type="submit">Speichern</button></div>
+      </div>
+    </form>
+  </div>
+{% endblock %}

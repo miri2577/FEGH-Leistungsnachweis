@@ -3,7 +3,7 @@ from django.urls import path
 
 from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse,
                views_abrechnung, views_feld, views_ziele, views_berichte,
-               views_controlling)
+               views_controlling, views_belegung)
 
 app_name = "nachweis"
 
@@ -132,6 +132,13 @@ urlpatterns = [
     path("kostentraeger/speichern/", views_stammdaten.kostentraeger_speichern, name="kostentraeger_speichern"),
     path("kostentraeger/bezirke/", views_stammdaten.kostentraeger_bezirke, name="kostentraeger_bezirke"),
     path("leistungskatalog/", views_stammdaten.leistungskatalog, name="leistungskatalog"),
+    path("angebote/", views_belegung.angebote, name="angebote"),
+    path("angebote/<int:pk>/belegung/", views_belegung.belegungskalender, name="belegungskalender"),
+    path("belegung/speichern/", views_belegung.belegung_speichern, name="belegung_speichern"),
+    path("klient-abwesenheit/speichern/", views_belegung.klient_abwesenheit_speichern,
+         name="klient_abwesenheit_speichern"),
+    path("klient-abwesenheit/aktion/", views_belegung.klient_abwesenheit_aktion,
+         name="klient_abwesenheit_aktion"),
     path("parameter/", views_stammdaten.parameter, name="parameter"),
     path("parameter/serie/speichern/", views_stammdaten.serie_save, name="serie_save"),
     path("parameter/serie/loeschen/", views_stammdaten.serie_delete, name="serie_delete"),
