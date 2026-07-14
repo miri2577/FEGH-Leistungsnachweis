@@ -26,15 +26,34 @@ nav:
       - Erste Schritte: anleitung/erste-schritte.md
       - Zwei-Faktor-Anmeldung: anleitung/zwei-faktor.md
       - Mein Überblick (Startseite): anleitung/mein-ueberblick.md
+      - Fallakte & Belegungsliste: anleitung/fallakte.md
       - Leistung erfassen (Grid): anleitung/leistungsnachweis.md
       - Dokumentation (Verlaufstexte): anleitung/dokumentation.md
+      - Unterwegs-Modus (mobil): anleitung/unterwegs.md
+      - Ziele (ZLP): anleitung/ziele-zlp.md
+      - Wirkungsmessung: anleitung/wirkung.md
+      - ICF-Bedarfsermittlung (TIB): anleitung/bedarf-icf-tib.md
+      - Berichte & TeilhabeAssist: anleitung/berichte.md
+      - Dokumente ablegen & ansehen: anleitung/dokumente-ablage.md
       - Globale Suche: anleitung/globale-suche.md
-      - Wochenkalender: anleitung/kalender.md
+      - Kalender & Planungsbrett: anleitung/kalender.md
       - Arbeitszeit & Stempeluhr: anleitung/arbeitszeit-stempeluhr.md
       - Urlaub & Abwesenheit: anleitung/urlaub-abwesenheit.md
+      - Fehlzeiten-Statistik: anleitung/fehlzeiten.md
       - Kasse (Kassenbuch & Zählprotokoll): anleitung/kasse.md
       - Gruppen anlegen: anleitung/gruppen.md
       - Druck-Nachweis erstellen: anleitung/druck-nachweis.md
+  - Abrechnung:
+      - Bewilligungen & Kontingent: abrechnung/bewilligungen.md
+      - Rechnungen & XRechnung: abrechnung/rechnungen.md
+      - Mahnwesen, Offene Posten & Storno: abrechnung/mahnwesen.md
+      - Wohnkosten / Selbstzahler (WBVG): abrechnung/wohnkosten.md
+      - Controlling & DATEV-Export: abrechnung/controlling-datev.md
+  - "Bereiche (Wohnheim/WG/Jugendhilfe)":
+      - Angebote, Belegung & Tagessatz: bereiche/angebote-belegung.md
+  - Qualität & Dienstplanung:
+      - Vorkommnis-Meldewesen (QM): qm/vorkommnisse.md
+      - Dienstplan & SOLL/IST-Abgleich: qm/dienstplan.md
   - Fachliches:
       - "Fachleistungsstunden (FLS) & kLE": fachliches/fls-kle.md
       - "Teamsitzung & Gruppen": fachliches/teamsitzung-gruppen.md
@@ -60,7 +79,8 @@ nav:
       - Deployment (Produktivbetrieb): sicherheit/deployment.md
       - "Backup & Wiederherstellung (verschlüsselt)": sicherheit/backup-restore.md
       - Wiederherstellung (Audit-Timeline): sicherheit/wiederherstellung.md
-      - Aufbewahrung & Löschkonzept: sicherheit/backups-loeschkonzept.md
+      - Aufbewahrung & Löschkonzept (Konzept): sicherheit/backups-loeschkonzept.md
+      - Aufbewahrungsfristen & Anonymisierung (Modul): sicherheit/loeschkonzept.md
   - "Datenschutz-Vorlagen (Träger/DSB)":
       - "Verzeichnis von Verarbeitungstätigkeiten (Art. 30)": datenschutz/vvt.md
       - "Datenschutz-Folgenabschätzung (Art. 35)": datenschutz/dsfa.md

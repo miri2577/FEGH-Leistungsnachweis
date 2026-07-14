@@ -14,6 +14,39 @@ auf die jeweiligen Detailseiten.
 
 ---
 
+## ★ Fach-Ausbau: Vivendi-Roadmap P1–P5, Mehr-Bereichs-Kette & Teilhabe (Juli 2026)
+
+Aufbauend auf der Vivendi-Analyse wurde die App vom reinen Stundennachweis zur
+bereichsübergreifenden Fachsoftware ausgebaut – mit durchgängiger Zugriffstrennung
+und Art.-9-Datensparsamkeit in jedem Baustein.
+
+- **Zentrale Navigation:** die [Fallakte](anleitung/fallakte.md) bündelt je Klient\*in
+  alles unter Reitern (Übersicht · Kostenzusage · Teilhabe · Berichte · Dokumente ·
+  Verlauf); die Belegungsliste wurde zur schlanken Cockpit-Liste mit Status-Badges.
+- **Teilhabe-Doku:** [Ziele (ZLP)](anleitung/ziele-zlp.md), die
+  [Wirkungsmessung](anleitung/wirkung.md) (Berliner 8 Dimensionen, Pflicht Jugendhilfe
+  seit 01.05.2026) und die [ICF-Bedarfsermittlung nach dem TIB](anleitung/bedarf-icf-tib.md)
+  (§ 118 SGB IX, narrativ, 12 Lebensbereiche); [Berichte & TeilhabeAssist](anleitung/berichte.md).
+- **Dokumente:** [Ablage & Inline-Ansicht](anleitung/dokumente-ablage.md) (PDF/Bild/Text
+  direkt in der App), team-gescopt und upload-gehärtet.
+- **Abrechnungsschutz:** [Bewilligungen & Kontingent](abrechnung/bewilligungen.md),
+  [Rechnungen & XRechnung](abrechnung/rechnungen.md),
+  [Mahnwesen, Offene Posten & Storno](abrechnung/mahnwesen.md),
+  [Controlling & DATEV](abrechnung/controlling-datev.md) sowie die neue
+  [Wohnkosten-/Selbstzahler-Abrechnung (WBVG)](abrechnung/wohnkosten.md).
+- **Mehr-Bereichs-Kette** für Wohnheim/WG/Jugendhilfe: [Angebote, Belegung &
+  Tagessatz](bereiche/angebote-belegung.md) mit Abwesenheits-Regel-Engine.
+- **Qualität & Dienst:** [Vorkommnis-Meldewesen](qm/vorkommnisse.md) mit erzwungenem
+  QM-Kreislauf, [Dienstplan & SOLL/IST-Abgleich](qm/dienstplan.md) inkl. ArbZG-Ruhezeit;
+  die [Fehlzeiten-Statistik](anleitung/fehlzeiten.md) und der [Unterwegs-Modus](anleitung/unterwegs.md).
+- **Kalender = Planungsbrett:** Kalender und Dienstplan sind zu einer Monatsmatrix
+  verschmolzen (ambulante Termine + stationäre Schichtdienste), Bedienung über eine
+  schwebende Tages-Card – siehe [Kalender & Planungsbrett](anleitung/kalender.md).
+- **DSGVO-Löschkonzept:** [Aufbewahrungsfristen & Anonymisierung](sicherheit/loeschkonzept.md)
+  (Fristen als Daten, Rechtsstand Juli 2026; review-gestützte zweistufige Anonymisierung).
+
+---
+
 ## ★ ISO-27001-Sicherheitsrunde + VPN (Juli 2026)
 
 Ein mehrstufiger Sicherheitsaudit (White-Box-Code-/Deployment-Prüfung, jede Erkenntnis adversarial
