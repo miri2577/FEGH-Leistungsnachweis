@@ -249,6 +249,8 @@ AUDITLOG_INCLUDE_TRACKING_MODELS = (
      "exclude_fields": ["beschreibung", "sofortmassnahmen", "massnahmen"]},
     "nachweis.Schichtart",
     "nachweis.Dienst",
+    "nachweis.Wirkungsdimension",
+    {"model": "nachweis.Wirkungseinschaetzung", "exclude_fields": ["kommentar"]},
 )
 
 # =====================================================================

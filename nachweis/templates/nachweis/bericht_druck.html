@@ -56,7 +56,23 @@
         {% for z in ziele %}
         <tr><td>{% if z.uebergeordnet %}<span class="muted">{{ z.uebergeordnet.titel }} → </span>{% endif %}{{ z.titel }}</td>
           <td>{{ z.indikator|default:"—" }}</td>
-          <td>{{ z.get_status_display }}</td></tr>
+          <td>{{ z.get_status_display }}{% if z.erreicht_grad is not None %} ({{ z.erreicht_grad }} %){% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if wirkung %}
+    <div class="absch">Anlage: Wirkungsdimensionen (Ist → Soll, 7er-Skala, niedriger = besser)</div>
+    <table class="ziel-t">
+      <thead><tr><th style="width:90px">Datum</th><th>Dimension</th><th style="width:150px">Anlass · Perspektive</th>
+        <th style="width:80px">Ist → Soll</th></tr></thead>
+      <tbody>
+        {% for w in wirkung %}
+        <tr><td>{{ w.datum|date:"d.m.Y" }}</td>
+          <td>{{ w.dimension.name }}</td>
+          <td>{{ w.get_anlass_display|truncatechars:18 }} · {{ w.get_perspektive_display|truncatechars:16 }}</td>
+          <td style="text-align:center">{{ w.ist }} → {{ w.soll }}</td></tr>
         {% endfor %}
       </tbody>
     </table>

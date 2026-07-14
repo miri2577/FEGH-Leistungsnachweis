@@ -183,7 +183,15 @@ def _rohpaket_daten(b):
             "richtungsziel": z.uebergeordnet.titel if z.uebergeordnet else None,
             "indikator": z.indikator, "beschreibung": z.beschreibung,
             "status": z.get_status_display(),
+            "erreicht_grad": z.erreicht_grad,
         } for z in ziele],
+        "wirkung": [{
+            "dimension": e.dimension.name, "bereich": e.dimension.get_bereich_display(),
+            "datum": e.datum.isoformat(), "anlass": e.get_anlass_display(),
+            "perspektive": e.get_perspektive_display(),
+            "ist": e.ist, "soll": e.soll,
+        } for e in k.wirkungseinschaetzungen.select_related("dimension")
+            .order_by("datum")],
         "statistik": {"kontakte_im_zeitraum": kontakte, "doku_eintraege": len(dokus)},
         "verlaufsdokumentation": [{
             "datum": l.datum.isoformat(), "leistungsart": l.leistungsart,
@@ -212,8 +220,17 @@ def _rohpaket_markdown(d) -> str:
         out.append("## Ziele (ZLP)")
         for zi in d["ziele"]:
             praefix = f"{zi['richtungsziel']} → " if zi["richtungsziel"] else ""
+            grad = (f" — Zielerreichung {zi['erreicht_grad']} %"
+                    if zi.get("erreicht_grad") is not None else "")
             out.append(f"- [{zi['status']}] {praefix}{zi['titel']}"
-                       + (f" — Indikator: {zi['indikator']}" if zi["indikator"] else ""))
+                       + (f" — Indikator: {zi['indikator']}" if zi["indikator"] else "")
+                       + grad)
+        out.append("")
+    if d.get("wirkung"):
+        out.append("## Wirkungsdimensionen (Ist→Soll, 7er-Skala, niedriger = besser)")
+        for w in d["wirkung"]:
+            out.append(f"- {w['datum']} · {w['dimension']} ({w['anlass']}, "
+                       f"{w['perspektive']}): Ist {w['ist']} → Soll {w['soll']}")
         out.append("")
     st = d["statistik"]
     out.append(f"## Verlaufsdokumentation ({st['doku_eintraege']} Einträge, "
@@ -263,5 +280,7 @@ def bericht_druck(request, pk):
                  .exclude(status=ZielStatus.AUFGEGEBEN).select_related("uebergeordnet"))
     return render(request, "nachweis/bericht_druck.html", {
         "b": b, "klient": b.klient, "ziele": ziele,
+        "wirkung": list(b.klient.wirkungseinschaetzungen
+                        .select_related("dimension").order_by("datum")),
         "abschnitte": (b.vorlage.abschnitte if b.vorlage else []),
     })

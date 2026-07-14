@@ -12,7 +12,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.conf import settings
 from django.db import models
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from simple_history.models import HistoricalRecords
 
 
@@ -1217,8 +1217,11 @@ class Bewilligung(models.Model):
 #  Phase 2: Teilhabe-Dokumentation — Ziele der Ziel- und Leistungsplanung
 # ==========================================================================
 class ZielArt(models.TextChoices):
-    RICHTUNGSZIEL = "richtungsziel", "Richtungsziel"
-    HANDLUNGSZIEL = "handlungsziel", "Handlungsziel"
+    # DB-Werte bleiben stabil; Labels folgen dem offiziellen Berliner ZLP-Formular
+    # (Gesamtplanverfahren): Leitziele (O-Ton der Person) -> operationale Teilhabeziele
+    # mit Indikatoren. „Richtungs-/Handlungsziel" war unsere Alt-Terminologie.
+    RICHTUNGSZIEL = "richtungsziel", "Leitziel"
+    HANDLUNGSZIEL = "handlungsziel", "Teilhabeziel (operational)"
 
 
 class ZielStatus(models.TextChoices):
@@ -1247,6 +1250,11 @@ class Ziel(models.Model):
                                  help_text="Woran erkennen wir, dass das Ziel erreicht ist?")
     status = models.CharField(max_length=12, choices=ZielStatus.choices,
                               default=ZielStatus.AKTIV)
+    # Zielerreichungsgrad in % (optional) — der örV-Informationsbericht wertet aus,
+    # „inwieweit am Ende des Leistungszeitraumes Teilhabeziele erreicht" wurden.
+    erreicht_grad = models.PositiveSmallIntegerField(
+        "Zielerreichung %", null=True, blank=True,
+        validators=[MaxValueValidator(100)])
     gueltig_von = models.DateField("vereinbart am", null=True, blank=True)
     gueltig_bis = models.DateField("Zielhorizont", null=True, blank=True)
     reihenfolge = models.PositiveSmallIntegerField(default=0)
@@ -1693,3 +1701,81 @@ class Dienst(models.Model):
 
     def __str__(self):
         return f"{self.mitarbeiter} · {self.datum} · {self.schichtart.kuerzel}"
+
+
+# ==========================================================================
+#  Wirkungsmessung (Berliner Systematik): Wirkungsdimensionen mit Ist/Soll
+#  auf 7er-Skala. Jugendhilfe: PFLICHT seit 01.05.2026 (AV Hilfeplanung
+#  Abschnitt 4, partizipativ, Zeitpunkte Beginn ≤8 Wochen/Fortschreibung/Ende).
+#  EGH: örV ab 2027 macht "Qualität einschließlich der Wirksamkeit" prüfbar
+#  (§ 128 SGB IX) — Zielerreichung läuft dort über ZLP + Informationsbericht.
+# ==========================================================================
+class Wirkungsdimension(models.Model):
+    """Wirkungsdimension als Stammdatum — die 8 Berliner Dimensionen (5 personen-,
+    3 familienbezogen) kommen per Migration; eigene (z. B. EGH/ICF-nah) sind ohne
+    Programmierung ergänzbar."""
+    name = models.CharField(max_length=100, unique=True)
+    bereich = models.CharField(max_length=10, default="person",
+                               choices=[("person", "personenbezogen"),
+                                        ("familie", "familienbezogen")])
+    reihenfolge = models.PositiveSmallIntegerField(default=0)
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Wirkungsdimension"
+        verbose_name_plural = "Wirkungsdimensionen"
+        ordering = ["reihenfolge", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+class WirkungsAnlass(models.TextChoices):
+    BEGINN = "beginn", "Hilfebeginn (≤ 8 Wochen)"
+    FORTSCHREIBUNG = "fortschreibung", "Fortschreibung / Hilfekonferenz"
+    ENDE = "ende", "Beendigung der Hilfe"
+
+
+class WirkungsPerspektive(models.TextChoices):
+    FACHKRAFT = "fachkraft", "Fachkraft Leistungserbringer"
+    KLIENT = "klient", "Klient*in / junger Mensch"
+    FAMILIE = "familie", "Familie / Sorgeberechtigte"
+    KOSTENTRAEGER = "kostentraeger", "Fachkraft Jugendamt/THFD"
+
+
+class Wirkungseinschaetzung(models.Model):
+    """Ist-/Soll-Einstufung einer Wirkungsdimension zu einem Anlass — 7-stufige
+    Skala des Berliner Fachkonzepts (1 = keine/geringe Problemstellung …
+    7 = sehr stark erhöhte Problemstellung; NIEDRIGER = besser). Die Einschätzung
+    ist partizipativ: je Beteiligtem (Perspektive) ein eigener Datensatz —
+    „Die Einschätzungen aller Beteiligten werden erfasst" (AV Hilfeplanung)."""
+    klient = models.ForeignKey(Klient, on_delete=models.CASCADE,
+                               related_name="wirkungseinschaetzungen")
+    dimension = models.ForeignKey(Wirkungsdimension, on_delete=models.PROTECT,
+                                  related_name="einschaetzungen")
+    datum = models.DateField()
+    anlass = models.CharField(max_length=16, choices=WirkungsAnlass.choices,
+                              default=WirkungsAnlass.FORTSCHREIBUNG)
+    perspektive = models.CharField(max_length=16, choices=WirkungsPerspektive.choices,
+                                   default=WirkungsPerspektive.FACHKRAFT)
+    ist = models.PositiveSmallIntegerField(
+        "Ist-Zustand (1–7)", validators=[MinValueValidator(1), MaxValueValidator(7)])
+    soll = models.PositiveSmallIntegerField(
+        "Soll bis zur nächsten Konferenz (1–7)",
+        validators=[MinValueValidator(1), MaxValueValidator(7)])
+    kommentar = models.CharField(max_length=200, blank=True)
+    bericht = models.ForeignKey(Bericht, on_delete=models.SET_NULL, null=True,
+                                blank=True, related_name="wirkungseinschaetzungen")
+    erstellt_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name="+")
+    erstellt = models.DateTimeField(auto_now_add=True)
+    history = HistoricalRecords(excluded_fields=["kommentar"])
+
+    class Meta:
+        verbose_name = "Wirkungseinschätzung"
+        verbose_name_plural = "Wirkungseinschätzungen"
+        ordering = ["-datum", "dimension__reihenfolge"]
+        indexes = [models.Index(fields=["klient", "dimension"])]
+
+    def __str__(self):
+        return f"{self.klient} · {self.dimension} · {self.datum}: {self.ist}→{self.soll}"

@@ -36,6 +36,7 @@
     <a class="btn ghost" href="{% url 'nachweis:bewilligungen' klient.id %}">Bewilligungen</a>{% else %}
     <a class="btn ghost" href="{% url 'nachweis:start' %}">← Mein Überblick</a>{% endif %}
     <a class="btn ghost" href="{% url 'nachweis:berichte' klient.id %}">Berichte</a>
+    <a class="btn ghost" href="{% url 'nachweis:wirkung' klient.id %}" title="Wirkungsdimensionen Ist/Soll (7er-Skala)">Wirkung</a>
     <span class="muted" style="align-self:center">{{ n_aktiv }} aktive Ziel(e)</span>
   </div>
 
@@ -128,6 +129,8 @@
         {% if bearbeiten %}
         <div><label class="fld">Status</label>
           <select name="status">{% for v,l in status_wahl %}<option value="{{ v }}" {% if bearbeiten.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+        <div><label class="fld">Zielerreichung % <span class="muted" style="font-weight:400">(für den Informationsbericht)</span></label>
+          <input type="number" name="erreicht_grad" min="0" max="100" value="{{ bearbeiten.erreicht_grad|default_if_none:'' }}"></div>
         <div><label class="fld">Reihenfolge</label><input type="number" name="reihenfolge" min="0" max="999" value="{{ bearbeiten.reihenfolge }}"></div>
         {% endif %}
         <div class="full" style="margin-top:4px">

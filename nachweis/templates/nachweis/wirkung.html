@@ -1,0 +1,106 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Wirkung · {{ klient.name }} · FEGH{% endblock %}
+{% block extrastyle %}
+  .w-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 16px;padding:18px}
+  .w-form .full{grid-column:1 / -1}
+  .w-form input,.w-form select{width:100%}
+  .stufe{display:inline-block;min-width:26px;padding:2px 6px;border-radius:6px;font-weight:700;text-align:center;font-size:12.5px}
+  .s1,.s2{background:var(--okbg);color:var(--ok)}
+  .s3,.s4{background:#fdf3d7;color:#8a6d00}
+  .s5{background:var(--warnbg);color:var(--warn)}
+  .s6,.s7{background:var(--badbg);color:var(--bad)}
+  .delta-gut{color:var(--ok);font-weight:700}
+  .delta-schlecht{color:var(--bad);font-weight:700}
+  .ber{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Wirkung · {{ klient.name }}</h1>
+  <p class="sub">Wirkungsdimensionen nach dem Berliner Fachkonzept: Ist-/Soll-Einstufung auf der 7er-Skala
+    (<b>1 = keine/geringe Problemstellung … 7 = sehr stark erhöhte</b> — niedriger ist besser),
+    zu Hilfebeginn (≤ 8 Wochen), jeder Fortschreibung und zum Ende. Einschätzungen werden je Beteiligtem erfasst (partizipativ).</p>
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap">
+    {% if ist_leitung %}<a class="btn ghost" href="{% url 'nachweis:belegungsliste' %}">← Belegungsliste</a>{% else %}
+    <a class="btn ghost" href="{% url 'nachweis:start' %}">← Mein Überblick</a>{% endif %}
+    <a class="btn ghost" href="{% url 'nachweis:ziele' klient.id %}">Ziele (ZLP)</a>
+    <a class="btn ghost" href="{% url 'nachweis:berichte' klient.id %}">Berichte</a>
+  </div>
+
+  <div class="panel">
+    <div class="head"><h2>Verlauf (Sicht Fachkraft)</h2><span class="muted">Δ = Veränderung seit Hilfebeginn (+ = Verbesserung)</span></div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Dimension</th><th></th><th class="num">Beginn Ist→Soll</th><th class="num">zuletzt Ist→Soll</th><th class="num">Δ</th></tr></thead>
+        <tbody>
+          {% for m in matrix %}
+          <tr {% if not m.hat_werte %}style="opacity:.55"{% endif %}>
+            <td><b>{{ m.dimension.name }}</b></td>
+            <td><span class="ber">{{ m.dimension.get_bereich_display|slice:":6" }}</span></td>
+            <td class="num">{% if m.beginn %}<span class="stufe s{{ m.beginn.ist }}">{{ m.beginn.ist }}</span> → <span class="stufe s{{ m.beginn.soll }}">{{ m.beginn.soll }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{% if m.letzte %}<span class="stufe s{{ m.letzte.ist }}">{{ m.letzte.ist }}</span> → <span class="stufe s{{ m.letzte.soll }}">{{ m.letzte.soll }}</span>
+              <span class="muted" style="font-size:11px">{{ m.letzte.datum|date:"d.m.y" }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num">{% if m.delta is not None %}{% if m.delta > 0 %}<span class="delta-gut">+{{ m.delta }}</span>{% elif m.delta < 0 %}<span class="delta-schlecht">{{ m.delta }}</span>{% else %}±0{% endif %}{% else %}<span class="muted">—</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="note">Nur ausgewählte, zum Fall passende Dimensionen einstufen – nicht alle acht sind bei jeder Hilfe relevant
+        (AV Hilfeplanung: Auswahl „basierend auf Problemdefinition, Bedarfen und vereinbarten Zielen“).</p>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <div class="head"><h2>Alle Einschätzungen</h2></div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Datum</th><th>Anlass</th><th>Dimension</th><th>Perspektive</th>
+          <th class="num">Ist</th><th class="num">Soll</th><th>Kommentar</th><th></th></tr></thead>
+        <tbody>
+          {% for e in einschaetzungen %}
+          <tr>
+            <td>{{ e.datum|date:"d.m.Y" }}</td>
+            <td class="muted">{{ e.get_anlass_display|truncatechars:22 }}</td>
+            <td>{{ e.dimension.name|truncatechars:38 }}</td>
+            <td class="muted">{{ e.get_perspektive_display|truncatechars:24 }}</td>
+            <td class="num"><span class="stufe s{{ e.ist }}">{{ e.ist }}</span></td>
+            <td class="num"><span class="stufe s{{ e.soll }}">{{ e.soll }}</span></td>
+            <td class="muted" style="font-size:12px">{{ e.kommentar|default:"" }}</td>
+            <td>{% if ist_leitung %}
+              <form method="post" action="{% url 'nachweis:wirkung_loeschen' %}" style="display:inline" onsubmit="return confirm('Einschätzung löschen?')">
+                {% csrf_token %}<input type="hidden" name="id" value="{{ e.id }}">
+                <button class="btn ghost" style="padding:2px 8px;font-size:12px;color:var(--bad)">✕</button></form>{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="muted" style="text-align:center;padding:16px">Noch keine Einschätzungen – unten die erste erfassen
+            (spätestens 8 Wochen nach Hilfebeginn).</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" style="max-width:900px;margin-top:16px">
+    <div class="head"><h2>Einschätzung erfassen</h2></div>
+    <form method="post" action="{% url 'nachweis:wirkung_speichern' %}">
+      {% csrf_token %}
+      <input type="hidden" name="klient" value="{{ klient.id }}">
+      <div class="w-form">
+        <div class="full"><label class="fld">Wirkungsdimension *</label>
+          <select name="dimension">{% for d in dimensionen %}<option value="{{ d.id }}">{{ d.name }} ({{ d.get_bereich_display }})</option>{% endfor %}</select></div>
+        <div><label class="fld">Datum</label><input type="date" name="datum" value="{{ heute }}"></div>
+        <div><label class="fld">Anlass</label>
+          <select name="anlass">{% for v,l in anlaesse %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+        <div><label class="fld">Perspektive</label>
+          <select name="perspektive">{% for v,l in perspektiven %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+        <div><label class="fld">Ist (1–7) *</label>
+          <select name="ist">{% for s in skala %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select></div>
+        <div><label class="fld">Soll bis zur nächsten Konferenz (1–7) *</label>
+          <select name="soll">{% for s in skala %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select></div>
+        <div class="full"><label class="fld">Kommentar</label><input type="text" name="kommentar" maxlength="200"></div>
+        <div class="full"><button class="btn" type="submit">Speichern</button></div>
+      </div>
+    </form>
+  </div>
+{% endblock %}

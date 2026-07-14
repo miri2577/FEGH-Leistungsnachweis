@@ -15,7 +15,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 
 from . import services
-from .models import Klient, Ziel, ZielArt, ZielStatus, Leistung
+from .models import (Klient, Ziel, ZielArt, ZielStatus, Leistung,
+                     Wirkungsdimension, Wirkungseinschaetzung,
+                     WirkungsAnlass, WirkungsPerspektive)
 
 
 def _int0(val):
@@ -94,6 +96,8 @@ def ziel_speichern(request):
     st = request.POST.get("status")
     if st in ZielStatus.values:
         z.status = st
+    grad = (request.POST.get("erreicht_grad") or "").strip()
+    z.erreicht_grad = min(100, max(0, _int0(grad))) if grad else None
     z.gueltig_von = _datum(request.POST.get("gueltig_von"))
     z.gueltig_bis = _datum(request.POST.get("gueltig_bis"))
     try:
@@ -132,6 +136,77 @@ def ziel_loeschen(request):
     z.delete()
     messages.success(request, f"Ziel „{name}“ gelöscht.")
     return redirect("nachweis:ziele", pk=kpk)
+
+
+# ---------------------------------------------------------------- Wirkungsmessung
+@login_required
+def wirkung(request, pk):
+    """Wirkungsdimensionen je Klient*in (Berliner Systematik): Ist/Soll auf 7er-Skala
+    zu Beginn/Fortschreibung/Ende, partizipativ je Perspektive. Verlaufs-Matrix
+    zeigt die Entwicklung (niedriger = besser)."""
+    klient = get_object_or_404(services.klienten_fuer(request.user), pk=pk)
+    einschaetzungen = list(klient.wirkungseinschaetzungen
+                           .select_related("dimension", "erstellt_von"))
+    # Verlaufs-Matrix: je Dimension die Fachkraft-Werte nach Anlass (Beginn/letzte/Ende)
+    matrix = []
+    for d in Wirkungsdimension.objects.filter(aktiv=True):
+        werte = [e for e in einschaetzungen if e.dimension_id == d.id
+                 and e.perspektive == WirkungsPerspektive.FACHKRAFT]
+        if not werte and not d.aktiv:
+            continue
+        beginn = next((e for e in sorted(werte, key=lambda e: e.datum)
+                       if e.anlass == WirkungsAnlass.BEGINN), None)
+        letzte = max(werte, key=lambda e: e.datum, default=None)
+        delta = (beginn.ist - letzte.ist) if beginn and letzte and letzte != beginn else None
+        matrix.append({"dimension": d, "beginn": beginn, "letzte": letzte,
+                       "delta": delta, "hat_werte": bool(werte)})
+    return render(request, "nachweis/wirkung.html", {
+        "aktiv": "belegungsliste" if services.ist_leitung(request.user) else "start",
+        "klient": klient, "matrix": matrix, "einschaetzungen": einschaetzungen,
+        "dimensionen": Wirkungsdimension.objects.filter(aktiv=True),
+        "anlaesse": WirkungsAnlass.choices, "perspektiven": WirkungsPerspektive.choices,
+        "skala": range(1, 8), "heute": date.today().isoformat(),
+        "ist_leitung": services.ist_leitung(request.user),
+    })
+
+
+@require_POST
+@login_required
+def wirkung_speichern(request):
+    klient = get_object_or_404(services.klienten_fuer(request.user),
+                               pk=_int0(request.POST.get("klient")))
+    dimension = get_object_or_404(Wirkungsdimension, pk=_int0(request.POST.get("dimension")),
+                                  aktiv=True)
+    ist, soll = _int0(request.POST.get("ist")), _int0(request.POST.get("soll"))
+    if not (1 <= ist <= 7 and 1 <= soll <= 7):
+        messages.error(request, "Ist und Soll bitte auf der 7er-Skala (1–7) einstufen.")
+        return redirect("nachweis:wirkung", pk=klient.pk)
+    anlass = request.POST.get("anlass")
+    perspektive = request.POST.get("perspektive")
+    Wirkungseinschaetzung.objects.create(
+        klient=klient, dimension=dimension,
+        datum=_datum(request.POST.get("datum")) or date.today(),
+        anlass=anlass if anlass in WirkungsAnlass.values else WirkungsAnlass.FORTSCHREIBUNG,
+        perspektive=(perspektive if perspektive in WirkungsPerspektive.values
+                     else WirkungsPerspektive.FACHKRAFT),
+        ist=ist, soll=soll,
+        kommentar=(request.POST.get("kommentar") or "").strip()[:200],
+        erstellt_von=services.mitarbeiter_fuer(request.user))
+    messages.success(request, f"Einschätzung „{dimension.name}“ erfasst (Ist {ist} → Soll {soll}).")
+    return redirect("nachweis:wirkung", pk=klient.pk)
+
+
+@require_POST
+@login_required
+def wirkung_loeschen(request):
+    if not services.ist_leitung(request.user):
+        return HttpResponseForbidden()
+    e = get_object_or_404(Wirkungseinschaetzung.objects.filter(
+        klient__in=services.klienten_fuer(request.user)), pk=_int0(request.POST.get("id")))
+    kpk = e.klient_id
+    e.delete()
+    messages.success(request, "Einschätzung gelöscht.")
+    return redirect("nachweis:wirkung", pk=kpk)
 
 
 @login_required

@@ -26,6 +26,11 @@ urlpatterns = [
     path("ziele/loeschen/", views_ziele.ziel_loeschen, name="ziel_loeschen"),
     path("api/ziele/", views_ziele.api_ziele, name="api_ziele"),
 
+    # Wirkungsmessung (Berliner Wirkungsdimensionen, Ist/Soll 7er-Skala)
+    path("wirkung/<int:pk>/", views_ziele.wirkung, name="wirkung"),
+    path("wirkung/speichern/", views_ziele.wirkung_speichern, name="wirkung_speichern"),
+    path("wirkung/loeschen/", views_ziele.wirkung_loeschen, name="wirkung_loeschen"),
+
     # Berichte (Phase 2)
     path("berichte/<int:pk>/", views_berichte.berichte, name="berichte"),
     path("berichte/speichern/", views_berichte.bericht_speichern, name="bericht_speichern"),
