@@ -25,16 +25,16 @@
   .kal .maz{padding:8px 10px;font-weight:600;font-size:13px}
   .kal tr.ich .maz{box-shadow:inset 3px 0 0 var(--brand)}
   .kal td.day{padding:6px;height:132px;min-width:132px;vertical-align:top}
+  .kal td.day.wk-cell{cursor:pointer}
+  .kal td.day.wk-cell:hover{background:#f4f8fb}
   .kal td.we,.kal th.we{background:#fbfcfd}
   .kal th.today{background:var(--brand-soft);color:var(--brand-d)}
   .kal .dnum{font-size:15px;font-weight:700}
   .ev{display:block;border-radius:7px;padding:3px 7px;margin-bottom:4px;font-size:12px;line-height:1.25;
       color:#1f2d3a;border:1px solid rgba(0,0,0,.06);text-decoration:none}
+  .ev[draggable="true"]{cursor:pointer}
   a.ev:hover{filter:brightness(.96);text-decoration:none}
   .ev .t{font-variant-numeric:tabular-nums;font-weight:600;margin-right:3px}
-  .addcell{display:block;height:100%;min-height:60px;border-radius:7px;color:transparent;text-decoration:none}
-  td.day:hover .addcell{color:var(--muted);background:#f4f8fb;display:grid;place-items:center;font-size:20px}
-  table.month td[data-add]{cursor:pointer}
   .dg-col[data-datum]{cursor:copy}
   .dg-col[data-datum] .dg-ev{cursor:default}
 
@@ -207,9 +207,8 @@
         <tr class="{% if row.ich %}ich{% endif %}">
           <td class="maz">{{ row.m.name }}{% if row.m.vorname %}, {{ row.m.vorname }}{% endif %}{% if row.ich %} <span class="muted" style="font-weight:400">(ich)</span>{% endif %}</td>
           {% for z in row.zellen %}
-          <td class="day {% if z.we %}we{% endif %}"{% if row.ich or kann_alle %} data-datum="{{ z.datum|date:'Y-m-d' }}" data-drop="1" data-ma="{{ row.m.id }}"{% endif %}>
-            {% for t in z.termine %}{% if row.ich or kann_alle %}<a class="ev" draggable="true" data-termin="{{ t.id }}" data-ma="{{ row.m.id }}" style="background:{{ t.farbe }}" href="?{{ nav_self }}{{ filter_qs }}&edit={{ t.id }}#form" title="{{ t.zeit }} · {{ t.voll_anzeige }}{% if t.ort %} · {{ t.ort }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</a>{% else %}<span class="ev" style="background:{{ t.farbe }}" title="{{ t.zeit }} · {{ t.voll_anzeige }}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endif %}{% endfor %}
-            {% if row.ich or kann_alle %}<a class="addcell" href="?{{ nav_self }}{{ filter_qs }}&tag={{ z.datum|date:'Y-m-d' }}&ma={{ row.m.id }}#form" title="Termin eintragen">＋</a>{% endif %}
+          <td class="day wk-cell {% if z.we %}we{% endif %}" data-datum="{{ z.datum|date:'Y-m-d' }}" data-name="{{ row.m.name }} · {{ z.datum|date:'D d.m.Y' }}"{% if row.ich or kann_alle %} data-drop="1" data-ma="{{ row.m.id }}" data-add="1"{% endif %}>
+            {% for t in z.termine %}<span class="ev"{% if row.ich or kann_alle %} draggable="true" data-termin="{{ t.id }}" data-ma="{{ row.m.id }}" data-tid="{{ t.id }}" data-datum="{{ t.datum|date:'Y-m-d' }}" data-beginn="{{ t.beginn|time:'H:i' }}" data-ende="{{ t.ende|time:'H:i' }}" data-klient="{{ t.klient_id|default_if_none:'' }}" data-titel="{{ t.titel }}" data-ort="{{ t.ort }}" data-notiz="{{ t.notiz }}"{% endif %} data-label="{{ t.zeit }} · {{ t.voll_anzeige }}" style="background:{{ t.farbe }}" title="{{ t.zeit }} · {{ t.voll_anzeige }}{% if t.ort %} · {{ t.ort }}{% endif %}"><span class="t">{{ t.beginn|time:"H:i" }}</span>{{ t.anzeige }}</span>{% endfor %}
           </td>
           {% endfor %}
         </tr>
@@ -217,7 +216,7 @@
       </tbody>
     </table>
   </div>
-  <p class="drag-hint">Tipp: Termin <b>ziehen</b> = auf einen anderen Tag verschieben · <b>Doppelklick</b> = bearbeiten.{% if kann_alle %} Als Leitung kannst du alle Termine deines Teams bearbeiten.{% endif %}</p>
+  <p class="drag-hint">Tipp: <b>Zelle anklicken</b> = Termine ansehen/anlegen/bearbeiten · Termin-Chip <b>ziehen</b> = auf einen anderen Tag verschieben.{% if kann_alle %} Als Leitung kannst du alle Termine deines Teams bearbeiten.{% endif %}</p>
 
   {# ---------------- TAG ---------------- #}
   {% elif ansicht == 'tag' %}
@@ -242,7 +241,7 @@
           {% for e in s.evs %}
           <div class="dg-ev{% if s.ich or kann_alle %} drag{% endif %}" data-termin="{{ e.t.id }}"
                style="top:{{ e.top }}px;height:{{ e.h }}px;background:{{ e.t.farbe }}"
-               {% if s.ich or kann_alle %}data-edit="?{{ nav_self }}{{ filter_qs }}&edit={{ e.t.id }}#form"{% endif %}
+               {% if s.ich or kann_alle %}data-tid="{{ e.t.id }}" data-datum="{{ tag|date:'Y-m-d' }}" data-beginn="{{ e.t.beginn|time:'H:i' }}" data-ende="{{ e.t.ende|time:'H:i' }}" data-klient="{{ e.t.klient_id|default_if_none:'' }}" data-titel="{{ e.t.titel }}" data-ort="{{ e.t.ort }}" data-notiz="{{ e.t.notiz }}" data-ma="{{ s.m.id }}"{% endif %}
                title="{{ e.t.zeit }} · {{ e.t.voll_anzeige }}{% if e.t.ort %} · {{ e.t.ort }}{% endif %}">
             <div class="dg-ev-time">{{ e.t.beginn|time:'H:i' }}{% if e.t.ende %}–{{ e.t.ende|time:'H:i' }}{% endif %}</div>
             <div class="dg-ev-name">{% if e.t.klient %}{{ e.t.klient.kuerzel_anzeige }}{% else %}{{ e.t.titel }}{% endif %}</div>
@@ -308,53 +307,11 @@
   {% endif %}
   </div>{# .kal-main #}
 
-  {# ---------------- Termin-Formular (rechte Spalte, nur Woche/Tag) ---------------- #}
-  {# In der Monatsmatrix steckt das Formular in der schwebenden Tages-Card (mxpop). #}
-  {% if me and ansicht != 'monat' %}
-  <aside class="kal-side">
-  <div class="panel" id="form">
-    <div class="head"><h2>{% if bearbeiten %}Termin bearbeiten{% else %}Neuer Termin{% endif %}</h2>
-      {% if bearbeiten %}<a class="btn ghost" href="?{{ nav_self }}{{ filter_qs }}">Abbrechen</a>{% endif %}</div>
-    <form method="post" action="{% url 'nachweis:termin_save' %}">
-      {% csrf_token %}
-      <input type="hidden" name="zurueck" value="{{ request.get_full_path }}">
-      {% if bearbeiten %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">{% endif %}
-      <div class="tform">
-        {% if kann_alle %}<label class="w2">Für Mitarbeiter*in
-          <select name="mitarbeiter">{% for m in alle_ma %}<option value="{{ m.id }}"{% if bearbeiten and bearbeiten.mitarbeiter_id == m.id or not bearbeiten and ma_prefill == m.id|stringformat:'s' or not bearbeiten and not ma_prefill and me.id == m.id %} selected{% endif %}>{{ m.name }}{% if m.vorname %}, {{ m.vorname }}{% endif %}</option>{% endfor %}</select></label>{% endif %}
-        <label class="w2">Datum
-          <input type="date" name="datum" required value="{% if bearbeiten %}{{ bearbeiten.datum|date:'Y-m-d' }}{% else %}{{ tag_prefill }}{% endif %}"></label>
-        <label>Beginn <input type="time" name="beginn" required value="{% if bearbeiten %}{{ bearbeiten.beginn|time:'H:i' }}{% else %}{{ beginn_prefill }}{% endif %}"></label>
-        <label>Ende <input type="time" name="ende" value="{{ bearbeiten.ende|time:'H:i' }}"></label>
-        <label class="w2">Klient*in
-          <select name="klient">
-            <option value="">— (interner Termin)</option>
-            {% for k in klienten %}<option value="{{ k.id }}" {% if bearbeiten.klient_id == k.id %}selected{% endif %}>{{ k.name }}{% if k.kuerzel_anzeige %} ({{ k.kuerzel_anzeige }}){% endif %}</option>{% endfor %}
-          </select></label>
-        <label class="w3">Titel <span class="muted">(bei internem Termin)</span>
-          <input type="text" name="titel" maxlength="120" value="{{ bearbeiten.titel }}" placeholder="z. B. Teamsitzung, Supervision"></label>
-        <label class="w3">Ort <input type="text" name="ort" maxlength="120" value="{{ bearbeiten.ort }}"></label>
-        <label class="full">Notiz <input type="text" name="notiz" maxlength="255" value="{{ bearbeiten.notiz }}"></label>
-      </div>
-      <div style="padding:0 16px 16px;display:flex;gap:8px;align-items:center">
-        <button class="btn" type="submit">{% if bearbeiten %}Speichern{% else %}Termin anlegen{% endif %}</button>
-        <span class="muted" style="font-size:12px">{% if kann_alle %}Als Leitung: Termine des Teams.{% else %}Du kannst nur eigene Termine bearbeiten.{% endif %}</span>
-      </div>
-    </form>
-    {% if bearbeiten %}
-    <form method="post" action="{% url 'nachweis:termin_delete' %}" onsubmit="return confirm('Termin löschen?')" style="padding:0 16px 16px">
-      {% csrf_token %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">
-      <input type="hidden" name="zurueck" value="{{ request.get_full_path }}">
-      <button class="btn ghost" style="color:var(--bad)" type="submit">Termin löschen</button>
-    </form>
-    {% endif %}
-  </div>
-  </aside>
-  {% endif %}
   </div>{# .kal-layout #}
 
-  {# Tages-Card der Monatsmatrix: Termine ansehen/anlegen/bearbeiten + (Leitung) Dienst #}
-  {% if ansicht == 'monat' %}
+  {# Schwebende Tages-Card (alle Ansichten): Termine ansehen/anlegen/bearbeiten;
+     im Monat zusätzlich die Dienst-Sektion. Ersetzt die frühere rechte Spalte. #}
+  {% if me %}
   <div class="pop" id="mxpop">
     <div class="box">
       <div style="font-weight:700;margin-bottom:6px" id="mxp-title">Tag</div>
@@ -498,40 +455,40 @@
     function showList(){ if(form) form.hidden = true; listWrap.hidden = false; }
     function showForm(){ if(form) form.hidden = false; listWrap.hidden = true; }
 
-    function fillForm(cell, ev){
+    function fillForm(d, isEdit){
       var g = function(id){ return document.getElementById(id); };
-      g('tf-ma').value = cell.dataset.ma || '';
-      if(ev){                                  // bearbeiten
-        g('tf-id').value = ev.dataset.tid || '';
-        g('tf-datum').value = ev.dataset.datum || cell.dataset.datum || '';
-        g('tf-beginn').value = ev.dataset.beginn || '';
-        g('tf-ende').value = ev.dataset.ende || '';
-        g('tf-klient').value = ev.dataset.klient || '';
-        g('tf-titel').value = ev.dataset.titel || '';
-        g('tf-ort').value = ev.dataset.ort || '';
-        g('tf-notiz').value = ev.dataset.notiz || '';
-        g('tf-save').textContent = 'Speichern';
-        g('tf-delform').hidden = false; g('tf-delid').value = ev.dataset.tid || '';
-      } else {                                 // neuer Termin
-        g('tf-id').value = ''; g('tf-datum').value = cell.dataset.datum || '';
-        g('tf-beginn').value = ''; g('tf-ende').value = ''; g('tf-klient').value = '';
-        g('tf-titel').value = ''; g('tf-ort').value = ''; g('tf-notiz').value = '';
-        g('tf-save').textContent = 'Anlegen'; g('tf-delform').hidden = true;
-      }
+      g('tf-ma').value = d.ma || '';
+      g('tf-id').value = isEdit ? (d.tid || '') : '';
+      g('tf-datum').value = d.datum || '';
+      g('tf-beginn').value = d.beginn || '';
+      g('tf-ende').value = d.ende || '';
+      g('tf-klient').value = d.klient || '';
+      g('tf-titel').value = d.titel || '';
+      g('tf-ort').value = d.ort || '';
+      g('tf-notiz').value = d.notiz || '';
+      if(isEdit){ g('tf-save').textContent = 'Speichern'; g('tf-delform').hidden = false; g('tf-delid').value = d.tid || ''; }
+      else { g('tf-save').textContent = 'Anlegen'; g('tf-delform').hidden = true; }
       showForm();
+    }
+    function chipData(cell, ev){
+      return { tid: ev.dataset.tid, datum: ev.dataset.datum || (cell && cell.dataset.datum) || '',
+        beginn: ev.dataset.beginn, ende: ev.dataset.ende, klient: ev.dataset.klient,
+        titel: ev.dataset.titel, ort: ev.dataset.ort, notiz: ev.dataset.notiz,
+        ma: (cell && cell.dataset.ma) || ev.dataset.ma || '' };
     }
 
     function openCell(cell){
       curCell = cell;
       title.textContent = cell.dataset.name || '';
       list.innerHTML = '';
-      cell.querySelectorAll('.mxev').forEach(function(ev){
+      cell.querySelectorAll('.mxev, .ev').forEach(function(ev){
+        if(!ev.dataset.label) return;                 // Serien-Chips ohne Label auslassen
         var editable = !!ev.dataset.tid;
         var row = document.createElement(editable ? 'button' : 'div');
         row.className = 'mxp-ev'; if(editable){ row.type = 'button'; }
-        row.textContent = ev.dataset.label || ev.textContent;
+        row.textContent = ev.dataset.label;
         row.style.borderLeftColor = ev.style.background || 'var(--border)';
-        if(editable) row.addEventListener('click', function(){ fillForm(cell, ev); });
+        if(editable) row.addEventListener('click', function(){ fillForm(chipData(cell, ev), true); });
         list.appendChild(row);
       });
       if(cell.dataset.abw){
@@ -543,16 +500,19 @@
         le.textContent = 'Keine Termine an diesem Tag.'; list.appendChild(le);
       }
       if(neu) neu.style.display = (cell.dataset.add === '1') ? 'inline-flex' : 'none';
-      if(dma){ dma.value = cell.dataset.ma; ddatum.value = cell.dataset.datum; }   // Dienst-Formular
+      if(dma){ dma.value = cell.dataset.ma || ''; ddatum.value = cell.dataset.datum || ''; }   // Dienst-Formular
       showList();
       pop.classList.add('on');
     }
+    // Für die Tag-Ansicht (blockbasiert): Formular direkt öffnen, ohne Tagesliste.
+    function openDirect(d, isEdit){ curCell = null; fillForm(d, isEdit); pop.classList.add('on'); }
+    window._kalCard = { edit: function(d){ openDirect(d, true); }, neu: function(d){ openDirect(d, false); } };
 
-    document.querySelectorAll('.mxcell').forEach(function(cell){
+    document.querySelectorAll('.mxcell, .wk-cell').forEach(function(cell){
       cell.addEventListener('click', function(){ openCell(cell); });
     });
-    if(neu) neu.addEventListener('click', function(){ if(curCell) fillForm(curCell, null); });
-    var back = document.getElementById('tf-back'); if(back) back.addEventListener('click', showList);
+    if(neu) neu.addEventListener('click', function(){ if(curCell) fillForm({ ma: curCell.dataset.ma, datum: curCell.dataset.datum }, false); });
+    var back = document.getElementById('tf-back'); if(back) back.addEventListener('click', function(){ if(curCell) showList(); else close(); });
     document.getElementById('mxp-close').addEventListener('click', close);
     pop.addEventListener('click', function(e){ if(e.target === pop) close(); });
     document.addEventListener('keydown', function(e){ if(e.key === 'Escape') close(); });
@@ -588,18 +548,23 @@
         ev.classList.remove('dragging'); save(ev); }
       document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu);
     }
+    function dgData(ev){
+      return { tid: ev.dataset.tid, datum: ev.dataset.datum, beginn: ev.dataset.beginn,
+        ende: ev.dataset.ende, klient: ev.dataset.klient, titel: ev.dataset.titel,
+        ort: ev.dataset.ort, notiz: ev.dataset.notiz, ma: ev.dataset.ma };
+    }
     grid.querySelectorAll('.dg-ev.drag').forEach(function(ev){
       var handle = ev.querySelector('.dg-resize');
       ev.addEventListener('mousedown', function(e){ if(handle && e.target===handle) return; startDrag(ev, e, 'move'); });
       if(handle) handle.addEventListener('mousedown', function(e){ startDrag(ev, e, 'resize'); });
-      ev.addEventListener('dblclick', function(){ if(ev.dataset.edit) location.href = ev.dataset.edit; });
+      // Doppelklick öffnet die Card zum Ändern – wie in Woche/Monat, statt rechter Spalte.
+      ev.addEventListener('dblclick', function(){ if(window._kalCard && ev.dataset.tid) window._kalCard.edit(dgData(ev)); });
     });
-    // Klick auf freie Fläche einer Spalte = neuer Termin an dieser Uhrzeit
-    var addbase = grid.dataset.addbase;
-    if(addbase) grid.querySelectorAll('.dg-col[data-datum]').forEach(function(col){
+    // Klick auf freie Fläche einer Spalte = neuer Termin (Uhrzeit übernommen) in der Card
+    grid.querySelectorAll('.dg-col[data-datum]').forEach(function(col){
       col.addEventListener('click', function(e){
-        if(e.target !== col) return;
-        location.href = addbase + '&tag=' + col.dataset.datum + '&beginn=' + toTime(snap(e.offsetY)) + '&ma=' + (col.dataset.ma||'') + '#form';
+        if(e.target !== col || !window._kalCard) return;
+        window._kalCard.neu({ ma: col.dataset.ma || '', datum: col.dataset.datum, beginn: toTime(snap(e.offsetY)) });
       });
     });
   })();

@@ -125,8 +125,10 @@ class TeamIsolationTests(TestCase):
 
     def test_kalender_nur_eigenes_team(self):
         r = self.cl(self.uA).get("/kalender/")
-        self.assertContains(r, "Anna")        # eigenes Team
-        self.assertNotContains(r, "Bea")      # Fremdteam nicht sichtbar
+        # präzise auf die MA-Namenszelle der Matrix prüfen (nicht auf Substring 'Bea',
+        # das sonst z. B. in 'Bearbeiten' matcht)
+        self.assertContains(r, 'class="mxname">Anna')     # eigenes Team
+        self.assertNotContains(r, 'class="mxname">Bea')   # Fremdteam nicht sichtbar
 
     def test_kalender_tag_und_monat_rendern(self):
         for ansicht in ("tag", "monat", "woche"):
