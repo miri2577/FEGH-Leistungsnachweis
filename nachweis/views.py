@@ -1327,6 +1327,21 @@ def _coerce_alt(field, val):
     return field.to_python(val)
 
 
+@login_required
+def fristen(request):
+    """Wiedervorlagen/Fristen-Dashboard: auslaufende Bewilligungen, KÜ-Ende (Bericht
+    fällig), gesetzliche Betreuung, BRP – über die zugänglichen Klient*innen."""
+    if services.ohne_klientenarbeit(request.user):
+        return redirect("nachweis:start")
+    from datetime import date as _d
+    items = services.fristen_uebersicht(services.klienten_fuer(request.user))
+    return render(request, "nachweis/fristen.html", {
+        "aktiv": "fristen", "items": items,
+        "ueberfaellig": sum(1 for i in items if i["ueberfaellig"]),
+        "heute": _d.today(),
+    })
+
+
 @require_POST
 @login_required
 def timeline_restore(request):

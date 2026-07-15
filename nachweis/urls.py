@@ -18,6 +18,7 @@ urlpatterns = [
     path("druck/", views.druck, name="druck"),
     path("druck/pdf/", views.druck_pdf, name="druck_pdf"),
     path("gruppen/", views.gruppen, name="gruppen"),
+    path("fristen/", views.fristen, name="fristen"),
     path("gruppen/save/", views.gruppe_save, name="gruppe_save"),
     path("gruppen/delete/", views.gruppe_delete, name="gruppe_delete"),
 

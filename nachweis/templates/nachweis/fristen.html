@@ -1,0 +1,39 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Wiedervorlagen · FEGH{% endblock %}
+{% block extrastyle %}
+  .frist{display:inline-block;padding:1px 9px;border-radius:999px;font-size:11px;font-weight:700}
+  .frist.rot{background:var(--badbg);color:var(--bad)}
+  .frist.amber{background:var(--warnbg);color:var(--warn)}
+  .frist.ok{background:var(--okbg);color:var(--ok)}
+  tr.od td{background:#fdf0f0}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Wiedervorlagen &amp; Fristen</h1>
+  <p class="sub">Auslaufende Bewilligungen, KÜ-Ende (Bericht fällig), gesetzliche Betreuung und BRP – die nächsten 90 Tage sowie Überfälliges.{% if ueberfaellig %} <b style="color:var(--bad)">{{ ueberfaellig }} überfällig.</b>{% endif %}</p>
+
+  <div class="panel">
+    <div class="head"><h2>Fällige &amp; anstehende Fristen</h2><span class="muted">{{ items|length }} Einträge</span></div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Datum</th><th>Frist</th><th>Klient*in</th><th>Team</th><th>Bezug</th><th>Hinweis</th></tr></thead>
+        <tbody>
+          {% for i in items %}
+          <tr class="{% if i.ueberfaellig %}od{% endif %}">
+            <td style="white-space:nowrap"><b>{{ i.datum|date:"d.m.Y" }}</b>
+              {% if i.ueberfaellig %}<span class="frist rot">{{ i.tage }} T</span>
+              {% elif i.tage <= 21 %}<span class="frist amber">in {{ i.tage }} T</span>
+              {% else %}<span class="frist ok">in {{ i.tage }} T</span>{% endif %}</td>
+            <td>{{ i.art }}</td>
+            <td><a href="{% url 'nachweis:klient_detail' i.klient.id %}">{{ i.klient.name }}</a></td>
+            <td class="muted">{{ i.klient.team.name|default:"—" }}</td>
+            <td class="muted">{{ i.klient.bezugsbetreuer.name|default:"—" }}</td>
+            <td class="muted">{{ i.hinweis|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="muted" style="text-align:center;padding:20px">Keine anstehenden Fristen in den nächsten 90 Tagen. 👍</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

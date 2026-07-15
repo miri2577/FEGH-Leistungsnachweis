@@ -1287,6 +1287,37 @@ def offene_abrechnung(jahr: int = None, monat: int = None):
     return qs
 
 
+def fristen_uebersicht(klienten, heute=None, horizont_tage: int = 90):
+    """Wiedervorlagen/Fristen über die zugänglichen Klient*innen: auslaufende
+    Bewilligungen, KÜ-Ende (Bericht fällig), gesetzliche Betreuung, BRP. Nur Klient*innen
+    in Betreuung (nicht anonymisiert). Überfällige immer, künftige bis Horizont.
+    Rückgabe: Liste {klient, art, datum, tage, hinweis, ueberfaellig}, nach Datum sortiert."""
+    heute = heute or date.today()
+    grenze = heute + timedelta(days=horizont_tage)
+    items = []
+
+    def add(k, art, datum, hinweis=""):
+        if datum and datum <= grenze:
+            items.append({"klient": k, "art": art, "datum": datum,
+                          "tage": (datum - heute).days, "hinweis": hinweis,
+                          "ueberfaellig": datum < heute})
+
+    for k in (klienten.filter(anonymisiert_am__isnull=True, status=Status.BETREUUNG)
+              .select_related("team", "bezugsbetreuer").prefetch_related("bewilligungen")):
+        bew = k.aktive_bewilligung()
+        if bew and bew.gueltig_bis:
+            add(k, "Bewilligung läuft aus", bew.gueltig_bis, bew.aktenzeichen or "")
+        if k.kue_bis:
+            add(k, "KÜ-Ende / Bericht fällig", k.kue_bis,
+                f"Bericht {Klient.BERICHT_VORLAUF_TAGE // 7} Wo vorher")
+        if k.betreuung_bis:
+            add(k, "Gesetzl. Betreuung endet", k.betreuung_bis, k.betreuung_name)
+        if k.brp_bis:
+            add(k, "BRP zu Teamleitung bis", k.brp_bis)
+    items.sort(key=lambda x: x["datum"])
+    return items
+
+
 def naechste_rechnungsnummer(jahr: int) -> str:
     """Fortlaufende Rechnungsnummer JAHR-NNNN (lückenlos je Jahr)."""
     prefix = f"{jahr}-"
