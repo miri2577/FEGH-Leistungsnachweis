@@ -84,6 +84,11 @@ def feld_speichern(request):
     if not (klient and beginn and ende):
         messages.error(request, "Bitte Klient*in, Von- und Bis-Zeit angeben.")
         return redirect("nachweis:feld_heute")
+    # Harte Festschreibung: kein neuer Besuch in einem bereits eingereichten/abgerechneten Monat.
+    if services.monat_gesperrt(klient, datum.year, datum.month):
+        messages.error(request, "Dieser Monat ist bereits eingereicht/abgerechnet – "
+                                "es können keine neuen Besuche mehr erfasst werden.")
+        return redirect("nachweis:feld_heute")
     # Bezug zum Kalender-Termin (falls aus einem Termin heraus dokumentiert) –
     # nur eigener Termin desselben/derselben Klient*in; markiert ihn als dokumentiert.
     tid = request.POST.get("termin")

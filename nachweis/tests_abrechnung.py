@@ -3,6 +3,7 @@
 Sichert die Rechte-Kette und die DSGVO-Trennung (Verwaltung ohne Klientenzugriff)
 sowie die Betragsberechnung (FLS × FLS-Preis) und Storno (Positionen wieder frei).
 """
+import json
 from datetime import date, time
 from decimal import Decimal
 from unittest.mock import patch
@@ -485,3 +486,78 @@ class MailVersandTests(TestCase):
         m.refresh_from_db()
         self.assertIsNotNone(m.gesendet_am)
         self.assertEqual(m.gesendet_an, "rechnung@ba.de")
+
+
+class EditLockTests(TestCase):
+    """Harte Festschreibung: eingereichte/abgerechnete Monate sind gegen Änderung gesperrt
+    (Nachweis-Druck = Original)."""
+    def setUp(self):
+        self.team = Team.objects.create(name="TL", typ=Teamtyp.BEW)
+        u = User.objects.create_user("mlock", password="x")
+        self.m = Mitarbeiter.objects.create(user=u, name="M", rolle=Rolle.USER,
+                                             team=self.team, kuerzel="m")
+        self.k = Klient.objects.create(nachname="Sperr", team=self.team, bezugsbetreuer=self.m,
+                                       status=Status.BETREUUNG)
+        self.c = Client(); self.c.force_login(u)
+
+    def _sperren(self, status=Freigabestatus.EINGEREICHT):
+        Monatsfreigabe.objects.create(klient=self.k, jahr=2026, monat=6, status=status)
+
+    def _save(self, **extra):
+        payload = {"klient": self.k.id, "leistungsart": Leistungsart.FS, "datum": "2026-06-10",
+                   "beginn": "09:00", "ende": "10:00"}
+        payload.update(extra)
+        return self.c.post("/api/leistungen/save/", data=json.dumps(payload),
+                           content_type="application/json")
+
+    def _leistung(self, tag):
+        return Leistung.objects.create(datum=tag, klient=self.k, betreuer=self.m,
+                                       leistungsart=Leistungsart.FS, beginn=time(9, 0), ende=time(10, 0))
+
+    def test_offener_monat_erlaubt_speichern(self):
+        self.assertEqual(self._save().status_code, 200)
+
+    def test_eingereichter_monat_sperrt_speichern(self):
+        self._sperren()
+        self.assertEqual(self._save().status_code, 409)
+
+    def test_abgerechneter_monat_sperrt_speichern(self):
+        self._sperren(Freigabestatus.ABGERECHNET)
+        self.assertEqual(self._save().status_code, 409)
+
+    def test_zurueckgewiesen_offen_erlaubt_wieder(self):
+        self._sperren(Freigabestatus.OFFEN)          # zurückgewiesen = wieder offen
+        self.assertEqual(self._save().status_code, 200)
+
+    def test_verschieben_in_gesperrten_monat_blockiert(self):
+        l = self._leistung(date(2026, 5, 10))        # offener Mai
+        self._sperren()                              # Juni gesperrt
+        self.assertEqual(self._save(id=l.id, datum="2026-06-10").status_code, 409)
+
+    def test_wegschieben_aus_gesperrtem_monat_blockiert(self):
+        l = self._leistung(date(2026, 6, 10))        # gesperrter Juni
+        self._sperren()
+        self.assertEqual(self._save(id=l.id, datum="2026-07-10").status_code, 409)
+
+    def test_loeschen_blockiert(self):
+        l = self._leistung(date(2026, 6, 10))
+        self._sperren()
+        r = self.c.post("/api/leistungen/delete/", data=json.dumps({"id": l.id}),
+                        content_type="application/json")
+        self.assertEqual(r.status_code, 409)
+        self.assertTrue(Leistung.objects.filter(pk=l.id).exists())
+
+    def test_gruppe_blockiert_wenn_teilnehmer_monat_gesperrt(self):
+        from .models import Gruppe as G
+        self._sperren()
+        self.c.post("/gruppen/save/", {"thema": "Kochen", "datum": "2026-06-15",
+                    "leistungsart": Leistungsart.FS, "beginn": "10:00", "ende": "12:00",
+                    "anz_ma": "1", "teilnehmer": [str(self.k.id)]})
+        self.assertEqual(G.objects.count(), 0)
+
+    def test_feld_speichern_blockiert(self):
+        self._sperren()
+        self.c.post("/unterwegs/speichern/", {"klient": self.k.id, "datum": "2026-06-10",
+                    "beginn": "09:00", "ende": "10:00", "leistungsart": Leistungsart.FS,
+                    "doku_minuten": "0"})
+        self.assertEqual(Leistung.objects.filter(klient=self.k, datum=date(2026, 6, 10)).count(), 0)

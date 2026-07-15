@@ -1043,6 +1043,25 @@ def freigaben_map(klienten, jahr: int, monat: int) -> dict:
         klient__in=klienten, jahr=jahr, monat=monat)}
 
 
+def monat_gesperrt(klient, jahr: int, monat: int) -> bool:
+    """True, wenn der Monatsnachweis (Klient×Monat) bereits eingereicht/freigegeben/
+    abgerechnet ist. Dann sind die zugrundeliegenden Leistungen festgeschrieben
+    (harte Festschreibung: der Nachweis-Druck bleibt identisch zum Original)."""
+    return (Monatsfreigabe.objects
+            .filter(klient=klient, jahr=jahr, monat=monat)
+            .exclude(status=Freigabestatus.OFFEN).exists())
+
+
+def monat_gesperrt_fuer(klient_ids, jahr: int, monat: int) -> bool:
+    """Wie monat_gesperrt, aber für eine Menge Klient*innen (Gruppenleistungen):
+    True, sobald für MINDESTENS eine*n Teilnehmer*in der Monat festgeschrieben ist."""
+    if not klient_ids:
+        return False
+    return (Monatsfreigabe.objects
+            .filter(klient_id__in=klient_ids, jahr=jahr, monat=monat)
+            .exclude(status=Freigabestatus.OFFEN).exists())
+
+
 def fls_ist_split(klient, jahr: int, monat: int):
     """Ist-FLS des Monats getrennt nach einzeln/in Gruppe erbracht
     (§ 18 Abs. 3 Buchst. e Anlage 4 örV). einzeln = manuelle Leistungen +

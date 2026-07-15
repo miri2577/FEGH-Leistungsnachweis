@@ -298,6 +298,15 @@ def api_leistung_save(request):
     else:
         l = Leistung()
 
+    # Harte Festschreibung: in einem eingereichten/freigegebenen/abgerechneten Monat
+    # sind die Leistungen gesperrt. Beim Verschieben einer Zeile zählt sowohl der
+    # Ziel- als auch der bisherige Monat (sonst ließe sich Ist aus dem Nachweis ziehen).
+    if services.monat_gesperrt(klient, datum.year, datum.month) or (
+            l.pk and services.monat_gesperrt(l.klient, l.datum.year, l.datum.month)):
+        return HttpResponse("Dieser Monat ist bereits eingereicht/abgerechnet – die "
+                            "Leistung ist festgeschrieben und kann nicht geändert werden.",
+                            status=409)
+
     l.datum = datum
     l.klient = klient
     l.leistungsart = p["leistungsart"]
@@ -340,6 +349,10 @@ def api_leistung_delete(request):
     l = Leistung.objects.filter(pk=p.get("id")).first()
     if not l or l.klient not in services.klienten_fuer(request.user):
         return HttpResponseForbidden()
+    if services.monat_gesperrt(l.klient, l.datum.year, l.datum.month):
+        return HttpResponse("Dieser Monat ist bereits eingereicht/abgerechnet – die "
+                            "Leistung ist festgeschrieben und kann nicht gelöscht werden.",
+                            status=409)
     l.delete()
     return JsonResponse({"ok": True})
 
@@ -556,14 +569,21 @@ def gruppe_save(request):
         messages.error(request, "Bitte Datum, Thema und Leistungsart angeben.")
         return redirect("nachweis:gruppen")
 
+    ids = [i for i in request.POST.getlist("teilnehmer") if i.isdigit()]
+    # nur sichtbare (eigene Team-)Klient*innen zuweisbar
+    tn = list(sichtbar.filter(pk__in=ids))
+    # Harte Festschreibung: keine Gruppenleistung mehr in einem Monat, der für
+    # mindestens eine*n Teilnehmer*in bereits eingereicht/abgerechnet ist.
+    if services.monat_gesperrt_fuer([k.id for k in tn], datum.year, datum.month):
+        messages.error(request, "Für mindestens eine*n Teilnehmer*in ist dieser Monat bereits "
+                                "eingereicht/abgerechnet – die Gruppenleistung ist festgeschrieben.")
+        return redirect("nachweis:gruppen")
     g = Gruppe.objects.create(
         datum=datum, thema=thema, leistungsart=art,
         beginn=_parse_time(request.POST.get("beginn")),
         ende=_parse_time(request.POST.get("ende")),
         anz_ma=max(1, _int(request.POST.get("anz_ma"), 1)))
-    ids = [i for i in request.POST.getlist("teilnehmer") if i.isdigit()]
-    # nur sichtbare (eigene Team-)Klient*innen zuweisbar
-    g.teilnehmer.set(sichtbar.filter(pk__in=ids))
+    g.teilnehmer.set(tn)
     messages.success(request, f"Gruppe {thema} gespeichert ({g.teilnehmer.count()} Teilnehmer*innen).")
     return redirect("nachweis:gruppen")
 
@@ -575,6 +595,11 @@ def gruppe_delete(request):
     # nur Gruppen löschbar, die auch sichtbar sind (mind. ein*e sichtbare*r Teilnehmer*in)
     g = get_object_or_404(
         Gruppe.objects.filter(teilnehmer__in=sichtbar).distinct(), pk=request.POST.get("id"))
+    if services.monat_gesperrt_fuer(list(g.teilnehmer.values_list("id", flat=True)),
+                                    g.datum.year, g.datum.month):
+        messages.error(request, "Für mindestens eine*n Teilnehmer*in ist dieser Monat "
+                                "festgeschrieben – die Gruppe kann nicht gelöscht werden.")
+        return redirect("nachweis:gruppen")
     g.delete()
     messages.success(request, "Gruppe gelöscht.")
     return redirect("nachweis:gruppen")
