@@ -200,6 +200,8 @@ urlpatterns = [
     path("leistungskatalog/", views_stammdaten.leistungskatalog, name="leistungskatalog"),
     path("angebote/", views_belegung.angebote, name="angebote"),
     path("angebote/<int:pk>/belegung/", views_belegung.belegungskalender, name="belegungskalender"),
+    path("angebote/<int:pk>/zimmer/", views_belegung.zimmer, name="zimmer"),
+    path("zimmer/loeschen/", views_belegung.zimmer_loeschen, name="zimmer_loeschen"),
     path("belegung/speichern/", views_belegung.belegung_speichern, name="belegung_speichern"),
     path("klient-abwesenheit/speichern/", views_belegung.klient_abwesenheit_speichern,
          name="klient_abwesenheit_speichern"),

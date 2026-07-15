@@ -4,12 +4,13 @@ from datetime import date
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError, transaction
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 
 from . import services, services_belegung
-from .models import (Angebot, AngebotsTyp, Erreichbarkeit, Belegung,
+from .models import (Angebot, AngebotsTyp, Erreichbarkeit, Belegung, Zimmer,
                      KlientAbwesenheit, AbwesenheitsartKlient, Leistungskatalog,
                      Klient, Status)
 
@@ -88,6 +89,63 @@ def angebote(request):
     })
 
 
+def _zimmer_fuer(angebot, zid):
+    return angebot.zimmer.filter(pk=_int0(zid)).first() if zid else None
+
+
+@login_required
+def zimmer(request, pk):
+    """Zimmer-/Platzverwaltung eines Angebots: Kapazität, aktuelle Belegung, freie Plätze."""
+    if not services.ist_leitung(request.user):
+        return HttpResponseForbidden()
+    angebot = get_object_or_404(_meine_angebote(request), pk=pk)
+    if request.method == "POST":
+        name = (request.POST.get("name") or "").strip()
+        if not name:
+            messages.error(request, "Bitte eine Zimmer-Nr / Bezeichnung angeben.")
+            return redirect("nachweis:zimmer", pk=angebot.pk)
+        zid = request.POST.get("id")
+        z = get_object_or_404(angebot.zimmer, pk=_int0(zid)) if zid else Zimmer(angebot=angebot)
+        z.name = name[:40]
+        z.plaetze = max(1, min(_int0(request.POST.get("plaetze")) or 1, 20))
+        z.etage = (request.POST.get("etage") or "").strip()[:40]
+        z.notiz = (request.POST.get("notiz") or "").strip()[:120]
+        z.aktiv = request.POST.get("aktiv") == "on"
+        try:
+            with transaction.atomic():
+                z.save()
+        except IntegrityError:
+            messages.error(request, "In diesem Angebot gibt es bereits ein Zimmer mit dieser Nr.")
+            return redirect("nachweis:zimmer", pk=angebot.pk)
+        messages.success(request, f"Zimmer „{z.name}“ gespeichert.")
+        return redirect("nachweis:zimmer", pk=angebot.pk)
+    heute = date.today()
+    zlist = list(angebot.zimmer.prefetch_related("belegungen__klient"))
+    for z in zlist:
+        z.bewohner = [b.klient for b in z.belegungen.all() if b.belegt_am(heute)]
+        z.frei = max(0, z.plaetze - len(z.bewohner))
+    bearbeiten = next((z for z in zlist if str(z.id) == request.GET.get("edit", "")), None)
+    return render(request, "nachweis/zimmer.html", {
+        "aktiv": "belegungsliste", "angebot": angebot, "zimmer": zlist,
+        "plaetze_gesamt": sum(z.plaetze for z in zlist if z.aktiv),
+        "frei_gesamt": sum(z.frei for z in zlist if z.aktiv),
+        "bearbeiten": bearbeiten,
+    })
+
+
+@require_POST
+@login_required
+def zimmer_loeschen(request):
+    if not services.ist_leitung(request.user):
+        return HttpResponseForbidden()
+    z = get_object_or_404(Zimmer.objects.filter(angebot__in=_meine_angebote(request)),
+                          pk=_int0(request.POST.get("id")))
+    apk = z.angebot_id
+    z.delete()                 # SET_NULL an Belegung.zimmer -> Belegungen bleiben erhalten
+    messages.success(request, "Zimmer gelöscht (Belegungen bleiben, Zuordnung entfällt).")
+    return redirect("nachweis:zimmer", pk=apk)
+
+
 @login_required
 def belegungskalender(request, pk):
     """Anwesenheits-Matrix eines Angebots (Bewohner × Tage) mit Summen, Betrag
@@ -123,6 +181,7 @@ def belegungskalender(request, pk):
         "zeilen": zeilen, "gesamt": gesamt, "warnungen": warnungen,
         "arten": AbwesenheitsartKlient.objects.filter(aktiv=True),
         "kandidaten": kandidaten, "heute": date.today().isoformat(),
+        "zimmerliste": angebot.zimmer.filter(aktiv=True),
         "auslastung": (round(gesamt["belegt"] / (angebot.plaetze * n_tage) * 100, 1)
                        if angebot.plaetze else None),
     })
@@ -149,6 +208,8 @@ def belegung_speichern(request):
             return redirect("nachweis:belegungskalender", pk=b.angebot_id)
         b.auszug = auszug
         b.platz = (request.POST.get("platz") or b.platz or "").strip()[:40]
+        if "zimmer" in request.POST:
+            b.zimmer = _zimmer_fuer(b.angebot, request.POST.get("zimmer"))
         b.save()
         if auszug:
             # Offene Abwesenheiten enden spätestens mit dem Auszug – sonst verbrauchen
@@ -177,7 +238,8 @@ def belegung_speichern(request):
                                 f"Einzug am {einzug:%d.%m.%Y} überschneidet.")
         return redirect("nachweis:belegungskalender", pk=angebot.pk)
     Belegung.objects.create(klient=klient, angebot=angebot, einzug=einzug,
-                            platz=(request.POST.get("platz") or "").strip()[:40])
+                            platz=(request.POST.get("platz") or "").strip()[:40],
+                            zimmer=_zimmer_fuer(angebot, request.POST.get("zimmer")))
     messages.success(request, f"{klient.name} eingezogen zum {einzug:%d.%m.%Y}.")
     return redirect("nachweis:belegungskalender", pk=angebot.pk)
 

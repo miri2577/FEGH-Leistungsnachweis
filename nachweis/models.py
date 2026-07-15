@@ -1566,7 +1566,9 @@ class Belegung(models.Model):
     Aufnahme- und Entlasstag zählen je als voller Belegungstag (BRV Jug)."""
     klient = models.ForeignKey(Klient, on_delete=models.CASCADE, related_name="belegungen")
     angebot = models.ForeignKey(Angebot, on_delete=models.PROTECT, related_name="belegungen")
-    platz = models.CharField("Platz/Zimmer", max_length=40, blank=True)
+    platz = models.CharField("Platz/Zimmer (Freitext)", max_length=40, blank=True)
+    zimmer = models.ForeignKey("Zimmer", on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name="belegungen", verbose_name="Zimmer")
     einzug = models.DateField()
     auszug = models.DateField(null=True, blank=True)
     kommentar = models.CharField(max_length=200, blank=True)
@@ -1585,6 +1587,31 @@ class Belegung(models.Model):
         if tag < self.einzug:
             return False
         return self.auszug is None or tag <= self.auszug
+
+
+class Zimmer(models.Model):
+    """Zimmer/Platz einer (stationären) Wohnform mit Kapazität (Einzel-/Doppelzimmer).
+    Grundlage der Zimmer-/Platzbelegung und Auslastung je Angebot."""
+    angebot = models.ForeignKey(Angebot, on_delete=models.CASCADE, related_name="zimmer")
+    name = models.CharField("Zimmer-Nr / Name", max_length=40)
+    plaetze = models.PositiveSmallIntegerField("Plätze", default=1)
+    etage = models.CharField("Etage / Bereich", max_length=40, blank=True)
+    notiz = models.CharField(max_length=120, blank=True)
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Zimmer"
+        verbose_name_plural = "Zimmer"
+        ordering = ["angebot", "name"]
+        constraints = [models.UniqueConstraint(fields=["angebot", "name"],
+                                               name="ein_zimmer_je_angebot_name")]
+
+    def __str__(self):
+        return f"{self.name} ({self.angebot.name})"
+
+    def belegt_am(self, tag) -> int:
+        """Anzahl belegter Plätze an einem Tag."""
+        return sum(1 for b in self.belegungen.all() if b.belegt_am(tag))
 
 
 class AbwesenheitsBasis(models.TextChoices):

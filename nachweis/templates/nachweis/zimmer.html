@@ -1,0 +1,68 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Zimmer · {{ angebot.name }} · FEGH{% endblock %}
+{% block extrastyle %}
+  .z-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;padding:18px}
+  .z-form .full{grid-column:1 / -1}
+  .z-form input{width:100%}
+  .belg{display:inline-block;padding:1px 9px;border-radius:999px;font-size:11px;font-weight:700}
+  .belg.voll{background:var(--badbg);color:var(--bad)} .belg.frei{background:var(--okbg);color:var(--ok)}
+  .belg.teil{background:var(--warnbg);color:var(--warn)}
+  @media(max-width:600px){.z-form{grid-template-columns:1fr}}
+{% endblock %}
+{% block content %}
+  <div style="margin-bottom:8px"><a class="btn ghost" href="{% url 'nachweis:belegungskalender' angebot.id %}">← Belegungskalender</a></div>
+  <h1 class="page">Zimmer · {{ angebot.name }}</h1>
+  <p class="sub">Zimmer-/Platzverwaltung: {{ plaetze_gesamt }} Plätze gesamt · <b>{{ frei_gesamt }} frei</b> (heute).</p>
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg);color:var(--bad){% elif 'info' in msg.tags %}var(--warnbg);color:var(--warn){% else %}var(--okbg);color:var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <div class="panel">
+    <div class="head"><h2>Zimmer</h2><span class="muted">{{ zimmer|length }}</span></div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Zimmer</th><th>Etage</th><th class="num">Plätze</th><th>Belegung (heute)</th><th class="num">frei</th><th></th></tr></thead>
+        <tbody>
+          {% for z in zimmer %}
+          <tr {% if not z.aktiv %}style="opacity:.5"{% endif %}>
+            <td><b>{{ z.name }}</b>{% if z.notiz %}<br><span class="muted" style="font-size:12px">{{ z.notiz }}</span>{% endif %}</td>
+            <td class="muted">{{ z.etage|default:"—" }}</td>
+            <td class="num">{{ z.plaetze }}</td>
+            <td>{% for k in z.bewohner %}{{ k.name }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted">—</span>{% endfor %}</td>
+            <td class="num"><span class="belg {% if z.frei == 0 %}voll{% elif z.frei == z.plaetze %}frei{% else %}teil{% endif %}">{{ z.frei }}</span></td>
+            <td style="white-space:nowrap">
+              <a class="btn ghost" style="padding:3px 8px;font-size:12px" href="?edit={{ z.id }}">Bearbeiten</a>
+              <form method="post" action="{% url 'nachweis:zimmer_loeschen' %}" style="display:inline" onsubmit="return confirm('Zimmer löschen? Belegungen bleiben, verlieren aber die Zimmer-Zuordnung.')">
+                {% csrf_token %}<input type="hidden" name="id" value="{{ z.id }}">
+                <button class="btn ghost" style="padding:3px 8px;font-size:12px;color:var(--bad)">✕</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="muted" style="text-align:center;padding:18px">Noch keine Zimmer – unten anlegen.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% with z=bearbeiten %}
+  <div class="panel" style="max-width:700px">
+    <div class="head"><h2>{% if bearbeiten %}Zimmer bearbeiten{% else %}Zimmer anlegen{% endif %}</h2></div>
+    <form method="post" action="{% url 'nachweis:zimmer' angebot.id %}">
+      {% csrf_token %}
+      {% if bearbeiten %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">{% endif %}
+      <div class="z-form">
+        <div><label class="fld">Zimmer-Nr / Name *</label><input type="text" name="name" value="{{ z.name|default:'' }}" required></div>
+        <div><label class="fld">Plätze</label><input type="number" name="plaetze" value="{{ z.plaetze|default:'1' }}" min="1" max="20"></div>
+        <div><label class="fld">Etage / Bereich</label><input type="text" name="etage" value="{{ z.etage|default:'' }}"></div>
+        <div><label class="fld">Notiz</label><input type="text" name="notiz" value="{{ z.notiz|default:'' }}"></div>
+        <div class="full"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><input type="checkbox" name="aktiv" style="width:auto" {% if z.aktiv or not bearbeiten %}checked{% endif %}> aktiv (belegbar)</label></div>
+        <div class="full" style="margin-top:4px">
+          <button class="btn" type="submit">Speichern</button>
+          {% if bearbeiten %}<a class="btn ghost" href="{% url 'nachweis:zimmer' angebot.id %}">Abbrechen</a>{% endif %}
+        </div>
+      </div>
+    </form>
+  </div>
+  {% endwith %}
+{% endblock %}

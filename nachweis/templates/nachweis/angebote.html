@@ -37,6 +37,7 @@
             <td class="muted">{{ a.katalog.name|default:"—"|truncatechars:36 }}</td>
             <td style="white-space:nowrap">
               <a class="btn ghost" style="padding:4px 10px;font-size:12px" href="{% url 'nachweis:belegungskalender' a.id %}">Belegung</a>
+              <a class="btn ghost" style="padding:4px 10px;font-size:12px" href="{% url 'nachweis:zimmer' a.id %}">Zimmer</a>
               <a class="btn ghost" style="padding:4px 10px;font-size:12px" href="?edit={{ a.id }}">Bearbeiten</a>
             </td>
           </tr>
