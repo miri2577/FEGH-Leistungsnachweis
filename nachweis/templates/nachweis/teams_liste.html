@@ -25,6 +25,7 @@
           <input type="text" name="name" value="{{ bearbeiten.name|default:'' }}" required></div>
         <div class="f"><label>Typ</label>
           <select name="typ">{% for v,l in typen %}<option value="{{ v }}" {% if bearbeiten.typ == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+        {% if bearbeiten %}<div class="f"><label>Fachkraftquote %</label><input type="number" name="fachkraftquote" value="{{ bearbeiten.fachkraftquote }}" min="0" max="100" style="width:80px" title="Mindestanteil Fachkraft-Stunden je Tag im Dienstplan (0 = aus)"></div>{% endif %}
         {% if bearbeiten %}<div class="f"><label>Aktiv</label><input type="checkbox" name="aktiv" {% if bearbeiten.aktiv %}checked{% endif %} style="width:auto;transform:scale(1.3)"></div>{% endif %}
         <button class="btn" type="submit">{% if bearbeiten %}Speichern{% else %}Anlegen{% endif %}</button>
         {% if bearbeiten %}<a class="btn ghost" href="{% url 'nachweis:teams_liste' %}">Abbrechen</a>{% endif %}

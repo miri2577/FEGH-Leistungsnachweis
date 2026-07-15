@@ -191,3 +191,53 @@ class PlanungsmatrixTests(DienstplanBasis):
         self.assertEqual(resp.status_code, 302)
         z = Schichtart.objects.get(name="Zwischendienst")
         self.assertEqual(z.dauer_stunden, Decimal("8.000"))
+
+
+class DienstplanPruefungTests(TestCase):
+    """ArbZG (Höchstarbeitszeit § 3, Ruhezeit § 5) + Fachkraftquote auf dem SOLL-Plan."""
+    def setUp(self):
+        self.team = Team.objects.create(name="TPruef", typ=Teamtyp.BEW, fachkraftquote=50)
+        self.fk = Mitarbeiter.objects.create(
+            user=User.objects.create_user("fkp", password="x"), name="Fach",
+            rolle=Rolle.USER, team=self.team, kuerzel="f", fachkraft=True)
+        self.hk = Mitarbeiter.objects.create(
+            user=User.objects.create_user("hkp", password="x"), name="Hilf",
+            rolle=Rolle.USER, team=self.team, kuerzel="h", fachkraft=False)
+        self.p_frueh = Schichtart.objects.create(name="P-Früh", kuerzel="PF", beginn=time(6, 0), ende=time(14, 0))
+        self.p_lang = Schichtart.objects.create(name="P-Lang", kuerzel="PL", beginn=time(6, 0), ende=time(18, 30))
+        self.p_spaet = Schichtart.objects.create(name="P-Spät", kuerzel="PS", beginn=time(14, 0), ende=time(22, 0))
+
+    def _p(self):
+        from . import services
+        return services.dienstplan_pruefung(self.team, 2026, 6)
+
+    def test_hoechstarbeitszeit(self):
+        Dienst.objects.create(mitarbeiter=self.fk, datum=date(2026, 6, 2), schichtart=self.p_lang)   # 12,5 h
+        self.assertTrue(any(w["art"] == "Höchstarbeitszeit" for w in self._p()["arbzg"]))
+
+    def test_ruhezeit_verstoss(self):
+        Dienst.objects.create(mitarbeiter=self.fk, datum=date(2026, 6, 2), schichtart=self.p_spaet)  # bis 22:00
+        Dienst.objects.create(mitarbeiter=self.fk, datum=date(2026, 6, 3), schichtart=self.p_frueh)  # ab 06:00 → 8 h
+        self.assertTrue(any(w["art"] == "Ruhezeit" for w in self._p()["arbzg"]))
+
+    def test_ruhezeit_ok_bei_11h(self):
+        neun = Schichtart.objects.create(name="P-Neun", kuerzel="PN", beginn=time(9, 0), ende=time(17, 0))
+        Dienst.objects.create(mitarbeiter=self.fk, datum=date(2026, 6, 2), schichtart=self.p_spaet)  # bis 22:00
+        Dienst.objects.create(mitarbeiter=self.fk, datum=date(2026, 6, 3), schichtart=neun)          # ab 09:00 → 11 h
+        self.assertFalse(any(w["art"] == "Ruhezeit" for w in self._p()["arbzg"]))
+
+    def test_fachkraftquote_unterschritten(self):
+        Dienst.objects.create(mitarbeiter=self.fk, datum=date(2026, 6, 5), schichtart=self.p_frueh)  # 8 h Fachkraft
+        Dienst.objects.create(mitarbeiter=self.hk, datum=date(2026, 6, 5), schichtart=self.p_lang)   # 12,5 h Hilfskraft
+        fach = self._p()["fachkraft"]
+        self.assertTrue(fach)
+        self.assertEqual(fach[0]["datum"], date(2026, 6, 5))
+
+    def test_fachkraftquote_erfuellt(self):
+        Dienst.objects.create(mitarbeiter=self.fk, datum=date(2026, 6, 6), schichtart=self.p_frueh)
+        self.assertEqual(self._p()["fachkraft"], [])
+
+    def test_quote_aus_keine_pruefung(self):
+        self.team.fachkraftquote = 0; self.team.save()
+        Dienst.objects.create(mitarbeiter=self.hk, datum=date(2026, 6, 7), schichtart=self.p_frueh)
+        self.assertEqual(self._p()["fachkraft"], [])

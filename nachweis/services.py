@@ -762,6 +762,61 @@ def fehlzeiten_statistik(mitarbeitende, jahr: int, heute=None):
     return out
 
 
+def dienstplan_pruefung(team, jahr: int, monat: int):
+    """ArbZG- und Fachkraftquoten-Prüfung des geplanten Dienstplans (SOLL) eines Teams
+    im Monat. Rückgabe: {"arbzg": [{ma, datum, art, detail}], "fachkraft": [{datum, ist,
+    soll}], "quote": %}. arbzg = Höchstarbeitszeit (§ 3, >10 h/Tag) + Ruhezeit (§ 5, <11 h)."""
+    from calendar import monthrange
+    from datetime import datetime, timedelta
+    from itertools import groupby
+    from .models import Dienst
+    von = date(jahr, monat, 1)
+    bis = date(jahr, monat, monthrange(jahr, monat)[1])
+    dienste = list(Dienst.objects.filter(mitarbeiter__team=team, datum__gte=von, datum__lte=bis)
+                   .select_related("schichtart", "mitarbeiter").order_by("mitarbeiter_id", "datum"))
+    arbzg = []
+    for _mid, gr in groupby(dienste, key=lambda d: d.mitarbeiter_id):
+        ma_dienste = list(gr)
+        ma = ma_dienste[0].mitarbeiter
+        # § 3 ArbZG: Höchstarbeitszeit je Tag (Summe der Dienste) über 10 h
+        tages_std = {}
+        for d in ma_dienste:
+            tages_std[d.datum] = tages_std.get(d.datum, Decimal("0")) + d.schichtart.dauer_stunden
+        for tag, std in tages_std.items():
+            if std > Decimal("10"):
+                arbzg.append({"ma": ma.name, "datum": tag, "art": "Höchstarbeitszeit",
+                              "detail": f"{std} h geplant (§ 3 ArbZG: max. 10 h)"})
+        # § 5 ArbZG: 11 h Ruhezeit zwischen aufeinanderfolgenden Diensten
+        seq = sorted(ma_dienste, key=lambda d: (d.datum, d.schichtart.beginn))
+        for a, b in zip(seq, seq[1:]):
+            sa = a.schichtart
+            end1 = datetime.combine(a.datum, sa.ende)
+            if sa.ende <= sa.beginn:                 # über Mitternacht
+                end1 += timedelta(days=1)
+            start2 = datetime.combine(b.datum, b.schichtart.beginn)
+            gap = (start2 - end1).total_seconds() / 3600
+            if 0 <= gap < 11:
+                arbzg.append({"ma": ma.name, "datum": b.datum, "art": "Ruhezeit",
+                              "detail": f"nur {gap:.1f} h Ruhe vor Dienstbeginn (§ 5 ArbZG: 11 h)"})
+    # Fachkraftquote je Tag (team-weit, nur wenn eine Quote gesetzt ist)
+    fachkraft = []
+    if team.fachkraftquote:
+        tag_std = {}
+        for d in dienste:
+            g, f = tag_std.setdefault(d.datum, [Decimal("0"), Decimal("0")])
+            std = d.schichtart.dauer_stunden
+            tag_std[d.datum][0] = g + std
+            tag_std[d.datum][1] = f + (std if d.mitarbeiter.fachkraft else Decimal("0"))
+        for tag in sorted(tag_std):
+            gesamt, fk = tag_std[tag]
+            if gesamt > 0:
+                pct = (fk / gesamt * 100).quantize(Decimal("0.1"))
+                if pct < team.fachkraftquote:
+                    fachkraft.append({"datum": tag, "ist": pct, "soll": team.fachkraftquote})
+    arbzg.sort(key=lambda x: (x["datum"], x["ma"]))
+    return {"arbzg": arbzg, "fachkraft": fachkraft, "quote": team.fachkraftquote}
+
+
 def dienst_ist_abgleich(mitarbeitende, jahr: int, monat: int):
     """SOLL (Dienstplan) vs. IST (Arbeitszeit) je MA im Monat + ArbZG-Ruhezeit-Prüfung.
     Ruhezeit: § 5 ArbZG verlangt i. d. R. 11 h ununterbrochene Ruhe zwischen zwei

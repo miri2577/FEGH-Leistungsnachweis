@@ -43,10 +43,12 @@ def dienst_abgleich(request):
     monat = min(12, max(1, _int0(request.GET.get("monat")) or date.today().month))
     mitarbeitende = list(Mitarbeiter.objects.filter(team=team, aktiv=True).order_by("name", "vorname"))
     zeilen = services.dienst_ist_abgleich(mitarbeitende, jahr, monat)
+    pruefung = services.dienstplan_pruefung(team, jahr, monat)
     return render(request, "nachweis/dienst_abgleich.html", {
         "aktiv": "dienstabgleich", "team": team, "teams": teams,
         "jahr": jahr, "monat": monat, "monat_name": MONATSNAMEN[monat],
         "monate": [(m, MONATSNAMEN[m]) for m in range(1, 13)], "zeilen": zeilen,
+        "pruefung": pruefung,
     })
 
 

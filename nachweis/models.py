@@ -92,6 +92,9 @@ class Team(models.Model):
     name = models.CharField(max_length=80, unique=True)
     typ = models.CharField(max_length=20, choices=Teamtyp.choices, default=Teamtyp.BEW)
     aktiv = models.BooleanField(default=True)
+    # Fachkraftquote für die Dienstplan-Prüfung: Mindestanteil Fachkraft-Stunden je Tag.
+    # 0 = keine Prüfung (Berlin EGH häufig 50 %).
+    fachkraftquote = models.PositiveSmallIntegerField("Fachkraftquote (%)", default=0)
 
     class Meta:
         verbose_name = "Team"
@@ -124,6 +127,8 @@ class Mitarbeiter(models.Model):
     wochenstunden = models.DecimalField("Wochen-Soll (Std)", max_digits=4, decimal_places=1,
                                         default=Decimal("39.0"))
     urlaubstage = models.PositiveSmallIntegerField("Urlaubstage/Jahr", default=30)
+    # Qualifikation für die Fachkraftquote im Dienstplan (Fachkraft vs. Hilfskraft/Assistenz).
+    fachkraft = models.BooleanField("Fachkraft", default=True)
 
     @property
     def ist_leitung(self):

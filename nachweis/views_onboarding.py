@@ -74,10 +74,16 @@ def team_speichern(request):
         messages.error(request, "Bitte Name und Typ angeben.")
         return redirect("nachweis:teams_liste")
     tid = request.POST.get("id")
+    def _quote(v):
+        try:
+            return max(0, min(100, int(v)))
+        except (TypeError, ValueError):
+            return 0
     if tid:
         t = get_object_or_404(Team, pk=tid)
         t.name, t.typ = name, typ
         t.aktiv = request.POST.get("aktiv") == "on"
+        t.fachkraftquote = _quote(request.POST.get("fachkraftquote"))
         t.save()
         messages.success(request, f"Team „{name}“ gespeichert.")
     else:
@@ -215,6 +221,8 @@ def mitarbeiter_bearbeiten(request, pk):
             m.urlaubstage = int(request.POST.get("urlaubstage") or m.urlaubstage)
         except (TypeError, ValueError):
             pass
+        if not selbst:
+            m.fachkraft = request.POST.get("fachkraft") == "on"
         m.save()
         if not selbst:
             # Geleitete Teams nur für Rolle Leitung; sonst leeren.
