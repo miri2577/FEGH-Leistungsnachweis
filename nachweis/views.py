@@ -131,6 +131,7 @@ def mein_ueberblick(request):
         "stempel": services.stempel_status(me) if (me and me.ist_verwaltung) else None,
         "offene_antraege": me.abwesenheiten.filter(status=AbwesenheitStatus.BEANTRAGT).count() if me else 0,
         "letzte_dokus": letzte_dokus,
+        "vorkommnisse": services.offene_vorkommnisse(request.user),
     })
 
 

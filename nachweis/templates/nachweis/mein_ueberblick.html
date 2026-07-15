@@ -100,6 +100,23 @@
     </div>
   </div>
 
+  <!-- Offene Vorkommnisse: sofort sichtbar beim Öffnen (meldepflichtige zuerst, rot) -->
+  {% if vorkommnisse %}
+  <div class="panel" style="margin-bottom:16px;{% if vorkommnisse.0.meldung_faellig %}border-left:3px solid var(--bad){% endif %}">
+    <div class="head"><h2 style="font-size:16px">⚠ Offene Vorkommnisse</h2>
+      <a href="{% url 'nachweis:vorkommnisse' %}" style="font-size:13px">alle ansehen →</a></div>
+    <div class="body" style="padding:0">
+      {% for v in vorkommnisse %}
+      <a href="{% url 'nachweis:vorkommnisse' %}" style="display:flex;align-items:center;gap:12px;padding:9px 18px;border-top:1px solid var(--line);font-size:13.5px;color:inherit;text-decoration:none">
+        {% if v.meldung_faellig %}<span style="background:var(--badbg);color:var(--bad);border-radius:999px;font-size:11px;font-weight:700;padding:1px 9px;flex:0 0 auto;white-space:nowrap">Meldung fällig</span>
+        {% else %}<span style="background:var(--warnbg);color:var(--warn);border-radius:999px;font-size:11px;font-weight:700;padding:1px 9px;flex:0 0 auto;white-space:nowrap">{{ v.get_status_display }}</span>{% endif %}
+        <span style="flex:1;min-width:0"><b>{{ v.get_kategorie_display }}</b> · {{ v.datum|date:"d.m.Y" }}{% if v.klient %} · {{ v.klient.name }}{% endif %} <span class="muted">({{ v.team.name }})</span></span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <!-- kleine KPI-Reihe + Stempeluhr (feste Breiten, links gepackt) -->
   <div class="grid-cards">
     {% if stempel %}

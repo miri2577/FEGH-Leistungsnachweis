@@ -120,6 +120,44 @@ class VorkommnisTests(QMBasis):
         self.assertFalse(hasattr(h, "massnahmen"))
 
 
+class DashboardVorkommnisseTests(QMBasis):
+    """Offene Vorkommnisse werden auf „Mein Überblick" angezeigt."""
+    def test_dashboard_zeigt_offene_ohne_abgeschlossene(self):
+        Vorkommnis.objects.create(datum=date.today(), kategorie="gewalt", team=self.team,
+                                  beschreibung="x", erstellt_von=self.ma)
+        Vorkommnis.objects.create(datum=date.today(), kategorie="unfall", team=self.team,
+                                  beschreibung="y", erstellt_von=self.ma,
+                                  status=VorkommnisStatus.ABGESCHLOSSEN)
+        self.client.force_login(self.lu)
+        r = self.client.get(reverse("nachweis:start"))
+        self.assertEqual(len(r.context["vorkommnisse"]), 1)
+        self.assertContains(r, "Offene Vorkommnisse")
+
+    def test_meldepflichtig_zuerst(self):
+        from . import services
+        Vorkommnis.objects.create(datum=date(2026, 7, 10), kategorie="gewalt", team=self.team,
+                                  beschreibung="a", erstellt_von=self.ma,
+                                  gemeldet_am=date(2026, 7, 10), gemeldet_an="WTG")
+        faellig = Vorkommnis.objects.create(datum=date(2026, 7, 1), kategorie="unfall",
+                                            team=self.team, beschreibung="b", erstellt_von=self.ma)
+        self.assertEqual(services.offene_vorkommnisse(self.lu)[0], faellig)
+
+    def test_fremdteam_nicht_sichtbar(self):
+        tb = Team.objects.create(name="TB2", typ=Teamtyp.values[0])
+        Vorkommnis.objects.create(datum=date.today(), kategorie="gewalt", team=tb, beschreibung="z")
+        self.client.force_login(self.lu)
+        self.assertEqual(len(self.client.get(reverse("nachweis:start")).context["vorkommnisse"]), 0)
+
+    def test_verwaltung_sieht_keine(self):
+        from . import services
+        Vorkommnis.objects.create(datum=date.today(), kategorie="gewalt", team=self.team,
+                                  beschreibung="x", erstellt_von=self.ma)
+        vw = User.objects.create_user("vwd", password="x")
+        Mitarbeiter.objects.create(user=vw, name="V", rolle=Rolle.USER, kuerzel="v",
+                                   team=Team.objects.create(name="VW2", typ=Teamtyp.VERWALTUNG))
+        self.assertEqual(services.offene_vorkommnisse(vw), [])
+
+
 class DatevExportTests(TestCase):
     def setUp(self):
         vw = Team.objects.create(name="Verwaltung", typ=Teamtyp.VERWALTUNG)

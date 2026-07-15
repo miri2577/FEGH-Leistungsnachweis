@@ -206,6 +206,23 @@ def berichte_faellig(klienten, stichtag=None):
     return [k for k in klienten.exclude(kue_bis__isnull=True) if k.bericht_offen(stichtag)]
 
 
+def offene_vorkommnisse(user, limit: int = 8):
+    """Offene (nicht abgeschlossene) Vorkommnisse fürs Dashboard – gescopt wie der
+    Nav-Badge: Leitung = Team, sonst selbst erfasste; Verwaltung/Admin: keine.
+    Meldepflichtige ohne dokumentierte Meldung zuerst, danach nach Datum (neueste)."""
+    me = mitarbeiter_fuer(user)
+    if not me or ohne_klientenarbeit(user):
+        return []
+    from .models import Vorkommnis, VorkommnisStatus
+    q = (Vorkommnis.objects.exclude(status=VorkommnisStatus.ABGESCHLOSSEN)
+         .select_related("team", "klient"))
+    q = (q.filter(team__in=teams_fuer(user)) if ist_leitung(user)
+         else q.filter(erstellt_von=me))
+    liste = list(q.order_by("-datum", "-id")[:30])
+    liste.sort(key=lambda v: not v.meldung_faellig)     # meldepflichtig-ohne-Meldung zuerst (stabil)
+    return liste[:limit]
+
+
 def bewilligung_fristen(klienten, stichtag=None, vorlauf_tage: int = 70):
     """Kontingent-/Fristenüberwachung (Slice 1b) für die Leitung: Klient*innen in Betreuung,
     deren aktive Bewilligung in ≤ vorlauf_tage ausläuft ODER die KEINE aktive Bewilligung
