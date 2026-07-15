@@ -16,6 +16,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.mail import EmailMessage
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
@@ -239,23 +240,85 @@ def rechnung_detail(request, pk):
     })
 
 
+def _weasy_pdf(request, template, ctx):
+    """Rendert ein Template zu PDF-Bytes (WeasyPrint). Gibt None zurück, wenn die
+    Engine auf diesem Server nicht verfügbar ist (Windows-Dev ohne WeasyPrint-Runtime)."""
+    html = render_to_string(template, ctx, request)
+    try:
+        from weasyprint import HTML
+    except Exception:
+        return None
+    return HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()
+
+
+def _rechnung_pdf_ctx(r):
+    return {"r": r, "positionen": _positionen(r), "monatsname": MONATSNAMEN[r.monat],
+            "p18": services.paragraf18_aufstellung(r),
+            "absender": getattr(settings, "RECHNUNG_ABSENDER", "")}
+
+
 @login_required
 def rechnung_pdf(request, pk):
     if not services.darf_abrechnen(request.user):
         return redirect("nachweis:start")
     r = get_object_or_404(Rechnung, pk=pk)
-    html = render_to_string("nachweis/rechnung_pdf.html", {
-        "r": r, "positionen": _positionen(r), "monatsname": MONATSNAMEN[r.monat],
-        "p18": services.paragraf18_aufstellung(r),
-        "absender": getattr(settings, "RECHNUNG_ABSENDER", "")}, request)
-    try:
-        from weasyprint import HTML
-    except Exception:
+    pdf = _weasy_pdf(request, "nachweis/rechnung_pdf.html", _rechnung_pdf_ctx(r))
+    if pdf is None:
         return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
-    pdf = HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()
     resp = HttpResponse(pdf, content_type="application/pdf")
     resp["Content-Disposition"] = f'inline; filename="Rechnung_{r.nummer}.pdf"'
     return resp
+
+
+@require_POST
+@login_required
+def rechnung_mail(request, pk):
+    """Rechnung als PDF-Anhang per E-Mail an den Kostenträger senden; Versand
+    (Wer/Wann/Wohin) am Beleg protokollieren. Der Versand einer Entwurfsrechnung
+    stellt sie zugleich (sie liegt danach beim Kostenträger)."""
+    if not services.darf_abrechnen(request.user):
+        return HttpResponseForbidden()
+    r = get_object_or_404(Rechnung, pk=pk)
+    ziel = reverse("nachweis:rechnung_detail", args=[r.id])
+    if r.status == Rechnungsstatus.STORNIERT:
+        messages.error(request, "Eine stornierte Rechnung wird nicht versendet.")
+        return redirect(ziel)
+    email = (request.POST.get("email") or "").strip() or (r.kostentraeger.email if r.kostentraeger else "")
+    if not email:
+        messages.error(request, "Keine Empfänger-E-Mail hinterlegt – bitte beim Kostenträger "
+                                "eintragen oder im Feld angeben.")
+        return redirect(ziel)
+    if not settings.EMAIL_AKTIV:
+        messages.error(request, "Der E-Mail-Versand ist auf diesem Server nicht konfiguriert "
+                                "(SMTP-Zugangsdaten fehlen).")
+        return redirect(ziel)
+    pdf = _weasy_pdf(request, "nachweis/rechnung_pdf.html", _rechnung_pdf_ctx(r))
+    if pdf is None:
+        messages.error(request, "Die PDF-Engine (WeasyPrint) ist auf diesem Server nicht "
+                                "verfügbar – Versand abgebrochen.")
+        return redirect(ziel)
+    betreff = f"Rechnung {r.nummer} – {MONATSNAMEN[r.monat]} {r.jahr}"
+    text = (f"Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie die Rechnung {r.nummer} "
+            f"für den Leistungsmonat {MONATSNAMEN[r.monat]} {r.jahr} über {r.betrag} €.\n\n"
+            f"Mit freundlichen Grüßen")
+    msg = EmailMessage(betreff, text, settings.DEFAULT_FROM_EMAIL, [email])
+    msg.attach(f"Rechnung_{r.nummer}.pdf", pdf, "application/pdf")
+    try:
+        if not msg.send():
+            raise RuntimeError("Der Mailserver nahm die Nachricht nicht an.")
+    except Exception as e:
+        messages.error(request, f"Versand fehlgeschlagen: {e}")
+        return redirect(ziel)
+    r.gesendet_am = timezone.now()
+    r.gesendet_an = email
+    r.gesendet_von = services.mitarbeiter_fuer(request.user)
+    felder = ["gesendet_am", "gesendet_an", "gesendet_von"]
+    if r.status == Rechnungsstatus.ENTWURF:
+        r.status = Rechnungsstatus.GESTELLT
+        felder.append("status")
+    r.save(update_fields=felder)
+    messages.success(request, f"Rechnung {r.nummer} an {email} versendet.")
+    return redirect(ziel)
 
 
 @login_required
@@ -602,3 +665,44 @@ def mahnung_druck(request, pk):
         "monatsname": MONATSNAMEN[r.monat],
         "steller": Rechnungssteller.load(),
     })
+
+
+@require_POST
+@login_required
+def mahnung_mail(request, pk):
+    """Mahnschreiben als PDF-Anhang per E-Mail an den Kostenträger senden."""
+    if not services.darf_abrechnen(request.user):
+        return HttpResponseForbidden()
+    m = get_object_or_404(Mahnung.objects.select_related("rechnung", "rechnung__kostentraeger"), pk=pk)
+    r = m.rechnung
+    ziel = reverse("nachweis:mahnung_druck", args=[m.id])
+    email = (request.POST.get("email") or "").strip() or (r.kostentraeger.email if r.kostentraeger else "")
+    if not email:
+        messages.error(request, "Keine Empfänger-E-Mail hinterlegt – bitte beim Kostenträger eintragen.")
+        return redirect(ziel)
+    if not settings.EMAIL_AKTIV:
+        messages.error(request, "Der E-Mail-Versand ist auf diesem Server nicht konfiguriert.")
+        return redirect(ziel)
+    ctx = {"m": m, "r": r, "offen": r.offener_betrag, "bezahlt": r.bezahlt_summe,
+           "monatsname": MONATSNAMEN[r.monat], "steller": Rechnungssteller.load()}
+    pdf = _weasy_pdf(request, "nachweis/mahnung_druck.html", ctx)
+    if pdf is None:
+        messages.error(request, "Die PDF-Engine (WeasyPrint) ist nicht verfügbar – Versand abgebrochen.")
+        return redirect(ziel)
+    betreff = f"{m.get_stufe_display()} – Rechnung {r.nummer}"
+    text = (f"Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie zur Rechnung {r.nummer} "
+            f"({MONATSNAMEN[r.monat]} {r.jahr}) eine {m.get_stufe_display()} über den offenen "
+            f"Betrag von {r.offener_betrag} €.\n\nMit freundlichen Grüßen")
+    msg = EmailMessage(betreff, text, settings.DEFAULT_FROM_EMAIL, [email])
+    msg.attach(f"{m.get_stufe_display().replace(' ', '_')}_{r.nummer}.pdf", pdf, "application/pdf")
+    try:
+        if not msg.send():
+            raise RuntimeError("Der Mailserver nahm die Nachricht nicht an.")
+    except Exception as e:
+        messages.error(request, f"Versand fehlgeschlagen: {e}")
+        return redirect(ziel)
+    m.gesendet_am = timezone.now()
+    m.gesendet_an = email
+    m.save(update_fields=["gesendet_am", "gesendet_an"])
+    messages.success(request, f"{m.get_stufe_display()} an {email} versendet.")
+    return redirect(ziel)

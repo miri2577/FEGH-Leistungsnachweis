@@ -878,6 +878,12 @@ class Rechnung(models.Model):
     erstellt_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True, blank=True,
                                      related_name="rechnungen")
     erstellt = models.DateTimeField(auto_now_add=True)
+    # Elektronischer Versand (Nachweis Wer/Wann/Wohin – der Beleg selbst ist aus dem
+    # festgeschriebenen Snapshot jederzeit reproduzierbar, daher keine PDF-Kopie nötig).
+    gesendet_am = models.DateTimeField("per E-Mail gesendet am", null=True, blank=True)
+    gesendet_an = models.EmailField("gesendet an", blank=True)
+    gesendet_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True, blank=True,
+                                     related_name="+")
     # Vollständige Versionshistorie (jede Änderung als Snapshot, inkl. Nutzer) –
     # revisionssicher für Kostenträger-Prüfungen (§ 128 SGB IX).
     history = HistoricalRecords()
@@ -991,6 +997,8 @@ class Mahnung(models.Model):
     erstellt_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True, blank=True,
                                      related_name="+")
     erstellt = models.DateTimeField(auto_now_add=True)
+    gesendet_am = models.DateTimeField("per E-Mail gesendet am", null=True, blank=True)
+    gesendet_an = models.EmailField("gesendet an", blank=True)
 
     class Meta:
         verbose_name = "Mahnung"
@@ -1102,6 +1110,8 @@ class Kostentraeger(models.Model):
     adresse = models.TextField("Anschrift", blank=True)
     ansprechpartner = models.CharField(max_length=140, blank=True)
     leitweg_id = models.CharField("Leitweg-ID (XRechnung)", max_length=60, blank=True)
+    email = models.EmailField("Rechnungs-E-Mail", blank=True,
+                              help_text="Empfänger für den elektronischen Rechnungs-/Mahnungsversand")
     zahlungsziel_tage = models.PositiveSmallIntegerField("Zahlungsziel (Tage)", default=30)
     debitorenkonto = models.CharField("DATEV Debitorenkonto", max_length=9, blank=True,
                                       help_text="für den Buchungsstapel-Export (P4b)")

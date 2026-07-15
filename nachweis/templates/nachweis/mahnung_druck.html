@@ -21,6 +21,13 @@
   <div class="noprint">
     <button onclick="window.print()" style="padding:8px 16px;cursor:pointer">🖨️ Drucken</button>
     <a href="{% url 'nachweis:rechnung_detail' r.id %}" style="margin-left:10px">← zurück zur Rechnung</a>
+    <form method="post" action="{% url 'nachweis:mahnung_mail' m.id %}" style="display:inline-flex;gap:6px;align-items:center;margin-left:14px"
+          onsubmit="return confirm('{{ m.get_stufe_display }} per E-Mail an den Kostenträger senden?')">{% csrf_token %}
+      <input type="email" name="email" value="{{ r.kostentraeger.email|default:'' }}" placeholder="rechnung@bezirksamt.de"
+             style="padding:6px 8px" {% if not r.kostentraeger.email %}required{% endif %}>
+      <button type="submit" style="padding:8px 16px;cursor:pointer">✉️ Per E-Mail senden</button>
+    </form>
+    {% if m.gesendet_am %}<span style="margin-left:10px;color:#0a7d3e;font-size:9.5pt">✓ gesendet {{ m.gesendet_am|date:"d.m.Y H:i" }} an {{ m.gesendet_an }}</span>{% endif %}
   </div>
 
   <div class="top">

@@ -5,14 +5,17 @@ sowie die Betragsberechnung (FLS × FLS-Preis) und Storno (Positionen wieder fre
 """
 from datetime import date, time
 from decimal import Decimal
+from unittest.mock import patch
 
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.contrib.auth import get_user_model
+
+LOCMEM = "django.core.mail.backends.locmem.EmailBackend"
 
 from . import services
 from .models import (Team, Teamtyp, Mitarbeiter, Klient, Rolle, Status, Leistung,
                      Leistungsart, Parameter, Monatsfreigabe, Rechnung, Freigabestatus,
-                     Gruppe)
+                     Gruppe, Rechnungsstatus)
 
 User = get_user_model()
 
@@ -385,3 +388,100 @@ class Paragraf18Tests(TestCase):
         self.assertEqual(a["ptl_betrag"], mf.ptl_betrag)          # Betrag festgeschrieben
         self.assertEqual((a["ptl_std"] * a["ptl_preis"]).quantize(Decimal("0.01")),
                          a["ptl_betrag"])                          # Stückpreis passt zum Betrag
+
+
+class MailVersandTests(TestCase):
+    """Rechnungs-/Mahnungsversand per E-Mail (PDF-Anhang, Versand protokolliert)."""
+    def setUp(self):
+        from .models import Kostentraeger
+        self.team = Team.objects.create(name="TM", typ=Teamtyp.BEW)
+        Parameter.objects.create(jahr=2026, fls_preis=Decimal("50"))
+        uv = User.objects.create_user("vmail", password="x")
+        Mitarbeiter.objects.create(user=uv, name="V", rolle=Rolle.USER, kuerzel="v",
+                                   team=Team.objects.create(name="VWm", typ=Teamtyp.VERWALTUNG))
+        self.uv = uv
+        uu = User.objects.create_user("umail", password="x")
+        Mitarbeiter.objects.create(user=uu, name="U", rolle=Rolle.USER, team=self.team, kuerzel="u")
+        self.uu = uu
+        self.kt = Kostentraeger.objects.create(name="Bezirksamt X", email="rechnung@ba.de")
+        self.r = Rechnung.objects.create(nummer="2026-7001", empfaenger="Bezirksamt X",
+                                         kostentraeger=self.kt, jahr=2026, monat=6,
+                                         datum=date(2026, 7, 1), betrag=Decimal("500.00"),
+                                         status=Rechnungsstatus.ENTWURF)
+
+    def _cl(self, u):
+        c = Client(); c.force_login(u); return c
+
+    @override_settings(EMAIL_AKTIV=True, EMAIL_BACKEND=LOCMEM)
+    @patch("nachweis.views_abrechnung._weasy_pdf", return_value=b"%PDF-1.4 fake")
+    def test_rechnung_mail_versendet_und_protokolliert(self, _pdf):
+        from django.core import mail
+        self._cl(self.uv).post(f"/rechnungen/{self.r.id}/mail/", {})
+        self.assertEqual(len(mail.outbox), 1)
+        msg = mail.outbox[0]
+        self.assertEqual(msg.to, ["rechnung@ba.de"])
+        self.assertEqual(len(msg.attachments), 1)                 # PDF hängt an
+        self.assertIn(self.r.nummer, msg.subject)
+        self.r.refresh_from_db()
+        self.assertIsNotNone(self.r.gesendet_am)
+        self.assertEqual(self.r.gesendet_an, "rechnung@ba.de")
+        self.assertEqual(self.r.status, Rechnungsstatus.GESTELLT)  # Versand stellt zugleich
+
+    @override_settings(EMAIL_AKTIV=True, EMAIL_BACKEND=LOCMEM)
+    @patch("nachweis.views_abrechnung._weasy_pdf", return_value=b"%PDF")
+    def test_mail_override_empfaenger(self, _pdf):
+        from django.core import mail
+        self._cl(self.uv).post(f"/rechnungen/{self.r.id}/mail/", {"email": "spezial@ba.de"})
+        self.assertEqual(mail.outbox[0].to, ["spezial@ba.de"])
+
+    def test_mail_nur_verwaltung(self):
+        resp = self._cl(self.uu).post(f"/rechnungen/{self.r.id}/mail/", {})
+        self.assertEqual(resp.status_code, 403)
+
+    @override_settings(EMAIL_AKTIV=True, EMAIL_BACKEND=LOCMEM)
+    @patch("nachweis.views_abrechnung._weasy_pdf", return_value=b"%PDF")
+    def test_ohne_empfaenger_kein_versand(self, _pdf):
+        from django.core import mail
+        self.kt.email = ""; self.kt.save()
+        self._cl(self.uv).post(f"/rechnungen/{self.r.id}/mail/", {})
+        self.assertEqual(len(mail.outbox), 0)
+        self.r.refresh_from_db()
+        self.assertIsNone(self.r.gesendet_am)
+
+    @override_settings(EMAIL_AKTIV=True, EMAIL_BACKEND=LOCMEM)
+    @patch("nachweis.views_abrechnung._weasy_pdf", return_value=None)
+    def test_ohne_pdf_engine_kein_versand(self, _pdf):
+        from django.core import mail
+        self._cl(self.uv).post(f"/rechnungen/{self.r.id}/mail/", {})
+        self.assertEqual(len(mail.outbox), 0)
+        self.r.refresh_from_db()
+        self.assertIsNone(self.r.gesendet_am)
+
+    @override_settings(EMAIL_AKTIV=True, EMAIL_BACKEND=LOCMEM)
+    @patch("nachweis.views_abrechnung._weasy_pdf", return_value=b"%PDF")
+    def test_storniert_wird_nicht_versendet(self, _pdf):
+        from django.core import mail
+        self.r.status = Rechnungsstatus.STORNIERT; self.r.save()
+        self._cl(self.uv).post(f"/rechnungen/{self.r.id}/mail/", {})
+        self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(EMAIL_AKTIV=False, EMAIL_BACKEND=LOCMEM)
+    @patch("nachweis.views_abrechnung._weasy_pdf", return_value=b"%PDF")
+    def test_ohne_smtp_konfig_kein_versand(self, _pdf):
+        from django.core import mail
+        self._cl(self.uv).post(f"/rechnungen/{self.r.id}/mail/", {})
+        self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(EMAIL_AKTIV=True, EMAIL_BACKEND=LOCMEM)
+    @patch("nachweis.views_abrechnung._weasy_pdf", return_value=b"%PDF")
+    def test_mahnung_mail(self, _pdf):
+        from django.core import mail
+        from .models import Mahnung
+        self.r.status = Rechnungsstatus.GESTELLT; self.r.save()
+        m = Mahnung.objects.create(rechnung=self.r, stufe=1, datum=date(2026, 8, 1), frist_tage=14)
+        self._cl(self.uv).post(f"/mahnung/{m.id}/mail/", {})
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(mail.outbox[0].attachments), 1)
+        m.refresh_from_db()
+        self.assertIsNotNone(m.gesendet_am)
+        self.assertEqual(m.gesendet_an, "rechnung@ba.de")

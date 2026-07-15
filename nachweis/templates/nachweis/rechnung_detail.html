@@ -49,6 +49,14 @@
     <a class="btn" href="{% url 'nachweis:rechnung_xrechnung' r.id %}" title="XRechnung 3.0 (UBL-XML) für die Einreichung über OZG-RE / xrechnung-bdr.de">XRechnung (XML)</a>
     {% endif %}
     <a class="btn ghost" href="{% url 'nachweis:rechnungssteller' %}" title="Absender-/Steuerdaten für die E-Rechnung pflegen">Rechnungssteller</a>
+    {% if r.status != 'storniert' %}
+    <form method="post" action="{% url 'nachweis:rechnung_mail' r.id %}" style="display:inline-flex;gap:6px;align-items:center"
+          onsubmit="return confirm('Rechnung {{ r.nummer }} per E-Mail an den Kostenträger senden?')">{% csrf_token %}
+      <input type="email" name="email" value="{{ r.kostentraeger.email|default:'' }}" placeholder="rechnung@bezirksamt.de"
+             style="width:210px;padding:5px 8px;font-size:12px" {% if not r.kostentraeger.email %}required{% endif %}>
+      <button class="btn" type="submit">Per E-Mail senden</button>
+    </form>{% endif %}
+    {% if r.gesendet_am %}<span class="muted" style="font-size:12px">✓ gesendet {{ r.gesendet_am|date:"d.m.Y H:i" }} an {{ r.gesendet_an }}</span>{% endif %}
     {% if r.status != 'gestellt' and r.status != 'storniert' %}
     <form method="post" action="{% url 'nachweis:rechnung_status' r.id %}">{% csrf_token %}<input type="hidden" name="status" value="gestellt"><button class="btn ghost" type="submit">Als gestellt markieren</button></form>{% endif %}
     {% if r.typ != 'gutschrift' and r.status != 'bezahlt' and r.status != 'storniert' %}

@@ -189,6 +189,8 @@ EMAIL_PORT = int(os.environ.get("DJANGO_EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.environ.get("DJANGO_EMAIL_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("DJANGO_EMAIL_PASSWORD", "")
 EMAIL_USE_TLS = os.environ.get("DJANGO_EMAIL_TLS", "1") == "1"
+# Harte Obergrenze, damit ein hängender Mailserver den Web-Request nicht blockiert.
+EMAIL_TIMEOUT = int(os.environ.get("DJANGO_EMAIL_TIMEOUT", "20"))
 DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_FROM_EMAIL", "FEGH-Leistungsnachweis <noreply@localhost>")
 # E-Mail-Versand nur, wenn konfiguriert (Konsole zählt als "verfügbar" für Dev-Test)
 EMAIL_AKTIV = bool(EMAIL_HOST) or EMAIL_BACKEND.endswith("console.EmailBackend")

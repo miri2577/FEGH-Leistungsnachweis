@@ -114,6 +114,7 @@ urlpatterns = [
     path("rechnungen/neu/", views_abrechnung.rechnung_neu, name="rechnung_neu"),
     path("rechnungen/<int:pk>/", views_abrechnung.rechnung_detail, name="rechnung_detail"),
     path("rechnungen/<int:pk>/pdf/", views_abrechnung.rechnung_pdf, name="rechnung_pdf"),
+    path("rechnungen/<int:pk>/mail/", views_abrechnung.rechnung_mail, name="rechnung_mail"),
     path("rechnungen/<int:pk>/csv/", views_abrechnung.rechnung_csv, name="rechnung_csv"),
     path("rechnungen/<int:pk>/eabrechnung/", views_abrechnung.rechnung_eabrechnung,
          name="rechnung_eabrechnung"),
@@ -138,6 +139,7 @@ urlpatterns = [
     path("zahlung/loeschen/", views_abrechnung.zahlung_loeschen, name="zahlung_loeschen"),
     path("rechnungen/<int:pk>/mahnung/", views_abrechnung.mahnung_erstellen, name="mahnung_erstellen"),
     path("mahnung/<int:pk>/druck/", views_abrechnung.mahnung_druck, name="mahnung_druck"),
+    path("mahnung/<int:pk>/mail/", views_abrechnung.mahnung_mail, name="mahnung_mail"),
 
     # Kasse (Kassenbuch + Zählprotokoll)
     path("kasse/", views_kasse.kasse, name="kasse"),
