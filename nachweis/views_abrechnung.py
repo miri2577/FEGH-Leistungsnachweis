@@ -748,3 +748,56 @@ def mahnung_mail(request, pk):
     m.save(update_fields=["gesendet_am", "gesendet_an"])
     messages.success(request, f"{m.get_stufe_display()} an {email} versendet.")
     return redirect(ziel)
+
+
+@login_required
+def zahlungsabgleich(request):
+    """camt.053-Kontoauszug hochladen und Zahlungen automatisch den offenen Rechnungen
+    zuordnen. Konservativ: bucht nur bei eindeutiger Rechnungsnummer im Verwendungszweck
+    und Betrag ≤ offener Betrag; Duplikate und Unklares werden nur gemeldet."""
+    if not services.darf_abrechnen(request.user):
+        return redirect("nachweis:start")
+    ergebnis = None
+    if request.method == "POST" and request.FILES.get("datei"):
+        from . import camt
+        roh = request.FILES["datei"].read(3 * 1024 * 1024)     # max 3 MB
+        eintraege = camt.parse_camt(roh)
+        if eintraege is None:
+            messages.error(request, "Die Datei ist keine gültige camt.053-XML.")
+            return redirect("nachweis:zahlungsabgleich")
+        ergebnis = _camt_verbuchen(request, camt, eintraege)
+    return render(request, "nachweis/zahlungsabgleich.html",
+                  {"aktiv": "abrechnung", "ergebnis": ergebnis})
+
+
+def _camt_verbuchen(request, camt, eintraege):
+    me = services.mitarbeiter_fuer(request.user)
+    gebucht, offen = [], []
+    for e in eintraege:
+        nummer = camt.finde_rechnungsnummer(e["verwendungszweck"])
+        r = Rechnung.objects.filter(nummer=nummer).first() if nummer else None
+        try:
+            datum = date.fromisoformat(e["datum"]) if e["datum"] else date.today()
+        except (ValueError, TypeError):
+            datum = date.today()
+        if not (r and r.ist_offen):
+            offen.append({"betrag": e["betrag"], "zweck": e["verwendungszweck"][:90],
+                          "grund": "keine Rechnungsnummer erkannt" if not nummer
+                                   else "Rechnung nicht offen/nicht gefunden"})
+        elif e["betrag"] > r.offener_betrag + Decimal("0.01"):
+            offen.append({"betrag": e["betrag"], "zweck": r.nummer,
+                          "grund": f"Betrag > offener Betrag ({r.offener_betrag} €)"})
+        elif Zahlung.objects.filter(rechnung=r, betrag=e["betrag"], datum=datum).exists():
+            offen.append({"betrag": e["betrag"], "zweck": r.nummer,
+                          "grund": "bereits gebucht (Duplikat übersprungen)"})
+        else:
+            Zahlung.objects.create(rechnung=r, datum=datum, betrag=e["betrag"],
+                                   notiz="camt.053-Import", erfasst_von=me)
+            gebucht.append({"nummer": r.nummer, "betrag": e["betrag"], "datum": datum})
+    if gebucht:
+        messages.success(request, f"{len(gebucht)} Zahlung(en) automatisch gebucht.")
+    if offen:
+        messages.info(request, f"{len(offen)} Eingang/Eingänge nicht zugeordnet – bitte manuell prüfen.")
+    if not eintraege:
+        messages.info(request, "Keine Gutschriften (CRDT) im Kontoauszug gefunden.")
+    return {"gebucht": gebucht, "offen": offen}

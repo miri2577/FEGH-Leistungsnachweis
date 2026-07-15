@@ -132,6 +132,7 @@ urlpatterns = [
     path("rechnungen/<int:pk>/gutschrift/", views_abrechnung.rechnung_gutschrift, name="rechnung_gutschrift"),
     path("rechnungssteller/", views_abrechnung.rechnungssteller, name="rechnungssteller"),
     path("offene-posten/", views_abrechnung.offene_posten, name="offene_posten"),
+    path("zahlungsabgleich/", views_abrechnung.zahlungsabgleich, name="zahlungsabgleich"),
     path("datev/", views_abrechnung.datev_export, name="datev_export"),
 
     # QM: Vorkommnis-Meldewesen (§ 37a SGB IX / WTG / § 8a SGB VIII)
