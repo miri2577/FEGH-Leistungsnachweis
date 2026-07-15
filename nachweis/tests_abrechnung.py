@@ -203,3 +203,185 @@ class AbrechnungTests(TestCase):
         mf.refresh_from_db()
         self.assertEqual(mf.status, Freigabestatus.FREIGEGEBEN)      # wieder frei
         self.assertIsNone(mf.rechnung_id)
+
+
+class Paragraf18Tests(TestCase):
+    """§ 18 Abs. 3/4 Anlage 4 örV: Erbringungsfiktion (Soll statt Ist), PTL, a–k-Aufstellung."""
+    def setUp(self):
+        from .models import Bewilligung
+        self.team = Team.objects.create(name="T18", typ=Teamtyp.BEW)
+        self.p = Parameter.objects.create(jahr=2026, fls_preis=Decimal("50"),
+                                          erbringungsfiktion=True)
+        u = User.objects.create_user("l18", password="x")
+        self.lu = Mitarbeiter.objects.create(user=u, name="L", rolle=Rolle.LEITUNG, kuerzel="l")
+        self.lu.leitet.set([self.team])
+        self.k = Klient.objects.create(nachname="K", team=self.team, bezugsbetreuer=self.lu,
+                                       status=Status.BETREUUNG, al=Decimal("10"))
+        Leistung.objects.create(datum=date(2026, 6, 10), klient=self.k, leistungsart=Leistungsart.FS,
+                                betreuer=self.lu, beginn=time(9, 0), ende=time(12, 0))   # 3 h Ist
+
+    def _al(self, wert):
+        Klient.objects.filter(pk=self.k.pk).update(al=Decimal(wert))
+        self.k.refresh_from_db()
+
+    def _mf(self):
+        mf = Monatsfreigabe.objects.create(klient=self.k, jahr=2026, monat=6)
+        services.freigabe_snapshot(mf)
+        mf.save()
+        return mf
+
+    def test_erbringungsfiktion_bucht_soll(self):
+        mf = self._mf()
+        self.assertEqual(mf.soll_fls, Decimal("10"))
+        self.assertEqual(mf.fls_summe, Decimal("3.000"))          # Ist nachrichtlich
+        self.assertEqual(mf.abrechenbare_fls, Decimal("10"))      # Soll abgerechnet
+        self.assertEqual(mf.betrag, Decimal("500.00"))            # 10 × 50 (kLE 0)
+
+    def test_ohne_fiktion_bucht_ist(self):
+        self.p.erbringungsfiktion = False
+        self.p.save()
+        mf = self._mf()
+        self.assertEqual(mf.abrechenbare_fls, Decimal("3.000"))
+        self.assertEqual(mf.betrag, Decimal("150.00"))            # 3 × 50
+
+    def test_ptl_a_wird_berechnet_und_addiert(self):
+        from .models import Bewilligung
+        self.p.ptl_preis = Decimal("100")
+        self.p.save()
+        Bewilligung.objects.create(klient=self.k, fls_woche=Decimal("2"), ptl="A",
+                                   gueltig_von=date(2026, 1, 1), status="aktiv")
+        mf = self._mf()
+        self.assertAlmostEqual(float(mf.ptl_stunden), 4.348, places=2)   # 1 h/Woche × 4,3482
+        self.assertGreater(mf.ptl_betrag, Decimal("0"))
+        # Gesamt = FLS-/kLE-Anteil (abrechenbar × Satz) + PTL-Betrag
+        fls_anteil = services.betrag_fuer(mf.abrechenbare_fls, 2026, mf.kle_summe)
+        self.assertEqual(mf.betrag, fls_anteil + mf.ptl_betrag)
+
+    def test_aufstellung_a_bis_k(self):
+        mf = self._mf()
+        r = Rechnung.objects.create(nummer="2026-9001", empfaenger="Bezirksamt", jahr=2026,
+                                    monat=6, datum=date(2026, 7, 1), betrag=mf.betrag)
+        Monatsfreigabe.objects.filter(pk=mf.pk).update(rechnung=r)
+        a = services.paragraf18_aufstellung(r)
+        self.assertEqual(a["soll"], Decimal("10"))                # d
+        self.assertEqual(a["ist"], Decimal("3.000"))             # e
+        self.assertEqual(a["abrechenbar"], Decimal("10"))
+        self.assertTrue(a["nach_soll"])
+        self.assertEqual(a["zwischensumme"], Decimal("10"))      # g (10 FLS + 0 kLE)
+        self.assertEqual(a["zwischenbetrag"], Decimal("500.00")) # h
+        self.assertEqual(a["rechnungsbetrag"], Decimal("500.00"))# k
+
+    def test_detail_zeigt_aufstellung(self):
+        mf = self._mf()
+        r = Rechnung.objects.create(nummer="2026-9002", empfaenger="Bezirksamt", jahr=2026,
+                                    monat=6, datum=date(2026, 7, 1), betrag=mf.betrag)
+        Monatsfreigabe.objects.filter(pk=mf.pk).update(rechnung=r)
+        # Verwaltung darf abrechnen -> Detailseite mit a–k-Aufstellung
+        uv = User.objects.create_user("v18", password="x")
+        Mitarbeiter.objects.create(user=uv, name="V", rolle=Rolle.USER,
+                                   team=Team.objects.create(name="VW18", typ=Teamtyp.VERWALTUNG),
+                                   kuerzel="v")
+        c = Client(); c.force_login(uv)
+        resp = c.get(f"/rechnungen/{r.id}/")
+        self.assertContains(resp, "Aufstellung der Monatsrechnung")
+        self.assertContains(resp, "Erbringungsfiktion")
+
+    # --- Regression (adversarialer Geld-Review): Snapshot bewertet den ---------
+    # --- LEISTUNGSMONAT, nicht den (späteren) Freigabezeitpunkt ---------------
+    def test_ptl_folgt_leistungsmonat_nicht_heute(self):
+        """PTL wird zum Leistungsmonat aufgelöst: eine im Folgemonat auslaufende
+        PTL-Bewilligung zählt für ihren Monat, nicht für spätere (Befund 1/6)."""
+        from .models import Bewilligung
+        self.p.ptl_preis = Decimal("100"); self.p.save()
+        Bewilligung.objects.create(klient=self.k, fls_woche=Decimal("2"), ptl="B",
+                                   gueltig_von=date(2026, 1, 1), gueltig_bis=date(2026, 3, 31),
+                                   status="aktiv")
+        Bewilligung.objects.create(klient=self.k, fls_woche=Decimal("2"), ptl="",
+                                   gueltig_von=date(2026, 4, 1), status="aktiv")
+        mf_maerz = Monatsfreigabe.objects.create(klient=self.k, jahr=2026, monat=3)
+        services.freigabe_snapshot(mf_maerz)
+        mf_mai = Monatsfreigabe.objects.create(klient=self.k, jahr=2026, monat=5)
+        services.freigabe_snapshot(mf_mai)
+        self.assertGreater(mf_maerz.ptl_stunden, Decimal("0"))   # PTL B galt im März
+        self.assertEqual(mf_mai.ptl_stunden, Decimal("0"))       # ab April keine PTL
+
+    def test_soll_folgt_monats_bewilligung(self):
+        """Soll/abrechenbare FLS stammen aus der zum Monat gültigen Bewilligung –
+        ein späterer Änderungsbescheid verändert den Alt-Monat nicht (Befund 2)."""
+        from .models import Bewilligung
+        Bewilligung.objects.create(klient=self.k, fls_woche=Decimal("2"),
+                                   gueltig_von=date(2026, 1, 1), gueltig_bis=date(2026, 3, 31),
+                                   status="aktiv")
+        b2 = Bewilligung.objects.create(klient=self.k, fls_woche=Decimal("4"),
+                                        gueltig_von=date(2026, 4, 1), status="aktiv")
+        mf_maerz = Monatsfreigabe.objects.create(klient=self.k, jahr=2026, monat=3)
+        services.freigabe_snapshot(mf_maerz)
+        mf_mai = Monatsfreigabe.objects.create(klient=self.k, jahr=2026, monat=5)
+        services.freigabe_snapshot(mf_mai)
+        self.assertLess(mf_maerz.soll_fls, mf_mai.soll_fls)      # März 2, Mai 4 FLS/Woche
+        self.assertEqual(mf_mai.soll_fls, b2.al_monat)
+
+    def test_kle_folgt_kue_ende(self):
+        """kLE-Pauschale nur für Monate bis zum KÜ-Ende (monatsscharf, Befund 4)."""
+        self.p.kle_je_tag = Decimal("0.5"); self.p.save()
+        Klient.objects.filter(pk=self.k.pk).update(kue_bis=date(2026, 6, 30))
+        self.k.refresh_from_db()
+        mf_juni = Monatsfreigabe.objects.create(klient=self.k, jahr=2026, monat=6)
+        services.freigabe_snapshot(mf_juni)
+        mf_juli = Monatsfreigabe.objects.create(klient=self.k, jahr=2026, monat=7)
+        services.freigabe_snapshot(mf_juli)
+        self.assertGreater(mf_juni.kle_summe, Decimal("0"))      # KÜ deckt Juni
+        self.assertEqual(mf_juli.kle_summe, Decimal("0"))        # nach KÜ-Ende keine kLE
+
+    def test_nach_soll_flag_nur_bei_fiktion(self):
+        """Der Fiktionshinweis folgt dem festgeschriebenen Flag, nicht der zufälligen
+        Gleichheit Ist == Soll (Befund 3)."""
+        self.p.erbringungsfiktion = False; self.p.save()
+        self._al("3")                                   # Soll == Ist (3 h), aber keine Fiktion
+        mf = self._mf()
+        r = Rechnung.objects.create(nummer="2026-9003", empfaenger="Bezirksamt", jahr=2026,
+                                    monat=6, datum=date(2026, 7, 1), betrag=mf.betrag)
+        Monatsfreigabe.objects.filter(pk=mf.pk).update(rechnung=r)
+        a = services.paragraf18_aufstellung(r)
+        self.assertEqual(a["abrechenbar"], a["soll"])   # Werte gleich …
+        self.assertFalse(a["nach_soll"])                # … aber KEINE Erbringungsfiktion
+
+    def test_zwischenbetrag_reconciliert_mit_rechnungsbetrag(self):
+        """h + PTL (+ Tagessatz) == k, auch wenn positionsweise Rundung vom Aggregat
+        abweicht (round-then-sum ≠ sum-then-round, Befund 5)."""
+        self.p.fls_preis = Decimal("1")
+        self.p.kle_je_tag = Decimal("0.333500")         # × 30 Tage = 10,005 h/Monat -> 10,01 € je Pos.
+        self.p.save()
+        Klient.objects.filter(pk=self.k.pk).update(al=Decimal("0"))
+        self.k.refresh_from_db()
+        k2 = Klient.objects.create(nachname="R2", team=self.team, bezugsbetreuer=self.lu,
+                                   status=Status.BETREUUNG, al=Decimal("0"))
+        mfs = []
+        for kl in (self.k, k2):
+            mf = Monatsfreigabe.objects.create(klient=kl, jahr=2026, monat=6)
+            services.freigabe_snapshot(mf); mf.save()
+            mfs.append(mf)
+        gesamt = sum((mf.betrag for mf in mfs), Decimal("0"))
+        r = Rechnung.objects.create(nummer="2026-9006", empfaenger="Bezirksamt", jahr=2026,
+                                    monat=6, datum=date(2026, 7, 1), betrag=gesamt)
+        Monatsfreigabe.objects.filter(pk__in=[m.pk for m in mfs]).update(rechnung=r)
+        a = services.paragraf18_aufstellung(r)
+        self.assertEqual(gesamt, Decimal("20.02"))                       # 2 × 10,01 (positionsweise)
+        self.assertEqual(a["zwischenbetrag"] + a["ptl_betrag"], a["rechnungsbetrag"])
+
+    def test_ptl_preis_immun_gegen_spaetere_parameteraenderung(self):
+        """Nach dem Abrechnen geänderte PTL-Sätze verändern den Beleg nicht – der
+        Stückpreis wird aus dem Snapshot rückgerechnet (Befund 7)."""
+        from .models import Bewilligung
+        self.p.ptl_preis = Decimal("100"); self.p.save()
+        Bewilligung.objects.create(klient=self.k, fls_woche=Decimal("2"), ptl="A",
+                                   gueltig_von=date(2026, 1, 1), status="aktiv")
+        mf = self._mf()
+        r = Rechnung.objects.create(nummer="2026-9005", empfaenger="Bezirksamt", jahr=2026,
+                                    monat=6, datum=date(2026, 7, 1), betrag=mf.betrag)
+        Monatsfreigabe.objects.filter(pk=mf.pk).update(rechnung=r)
+        self.p.ptl_preis = Decimal("999"); self.p.save()          # nachträgliche Änderung
+        a = services.paragraf18_aufstellung(r)
+        self.assertEqual(a["ptl_betrag"], mf.ptl_betrag)          # Betrag festgeschrieben
+        self.assertEqual((a["ptl_std"] * a["ptl_preis"]).quantize(Decimal("0.01")),
+                         a["ptl_betrag"])                          # Stückpreis passt zum Betrag

@@ -227,6 +227,7 @@ def rechnung_detail(request, pk):
         })
     return render(request, "nachweis/rechnung_detail.html", {
         "aktiv": "abrechnung", "r": r, "positionen": _positionen(r),
+        "p18": services.paragraf18_aufstellung(r),
         "monatsname": MONATSNAMEN[r.monat], "RS": Rechnungsstatus,
         "absender": getattr(settings, "RECHNUNG_ABSENDER", ""),
         "zahlungen": r.zahlungen.all(), "mahnungen": r.mahnungen.all(),
@@ -245,6 +246,7 @@ def rechnung_pdf(request, pk):
     r = get_object_or_404(Rechnung, pk=pk)
     html = render_to_string("nachweis/rechnung_pdf.html", {
         "r": r, "positionen": _positionen(r), "monatsname": MONATSNAMEN[r.monat],
+        "p18": services.paragraf18_aufstellung(r),
         "absender": getattr(settings, "RECHNUNG_ABSENDER", "")}, request)
     try:
         from weasyprint import HTML

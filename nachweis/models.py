@@ -658,6 +658,18 @@ class Parameter(models.Model):
         help_text="kalkulatorische Leistungseinheit – einheitlich für alle Klient*innen, "
                   "je Kalendertag (Senats-Tool, Output 3.). Deckt fallunspezifische Zeiten, "
                   "Erreichbarkeit, Wegezeiten, Sonstiges. 0 = kLE nicht in der Abrechnung.")
+    # § 18 Abs. 4 Anlage 4 örV: Erbringungsfiktion – die bewilligten FLS „gelten als
+    # erbracht" (Klienten-Absagen gehen NICHT zulasten des LE). Ist die Fiktion an,
+    # wird das SOLL abgerechnet (IST nur nachrichtlich). Aus = IST-Abrechnung (falls
+    # der Kostenträger das verlangt).
+    # Default AUS = bisheriges Ist-Verhalten (keine stille Betragsänderung); die örV-
+    # konforme Soll-Abrechnung wird bewusst je Team-Jahr eingeschaltet.
+    erbringungsfiktion = models.BooleanField(
+        "Erbringungsfiktion (§ 18 Abs. 4: Soll abrechnen)", default=False)
+    ptl_preis = models.DecimalField(
+        "PTL-Satz € (integrierte Psychotherapie)", max_digits=8, decimal_places=4, default=0,
+        help_text="€ je Stunde für integrierte psychotherapeutische Leistung (PTL A/B). "
+                  "0 = PTL nicht in der Abrechnung.")
 
     class Meta:
         verbose_name = "Team-Parameter"
@@ -1011,6 +1023,16 @@ class Monatsfreigabe(models.Model):
     fls_gruppe = models.DecimalField("davon in Gruppe erbracht", max_digits=8, decimal_places=3, default=0)
     soll_fls = models.DecimalField("Σ FLS nach Bescheid (Monat)", max_digits=8, decimal_places=3, default=0,
                                    help_text="bewilligte FLS/Monat (§ 18 Abs. 3 Buchst. d)")
+    # § 18 Abs. 4: abrechenbare FLS = Soll (Erbringungsfiktion) oder Ist – festgeschrieben,
+    # damit ein späterer Parameter-Wechsel Bestandsrechnungen nicht verändert.
+    abrechenbare_fls = models.DecimalField("abrechenbare FLS (§ 18 Abs. 4)", max_digits=8,
+                                           decimal_places=3, default=0)
+    ptl_stunden = models.DecimalField("PTL Std/Monat", max_digits=7, decimal_places=3, default=0)
+    ptl_betrag = models.DecimalField("PTL Betrag €", max_digits=12, decimal_places=2, default=0)
+    # § 18 Abs. 4: festgeschrieben, ob dieser Monat nach der Erbringungsfiktion (Soll)
+    # abgerechnet wurde – der Rechnungsbeleg leitet den Fiktionshinweis daraus ab, nicht
+    # aus einer zufälligen Wertgleichheit von Ist und Soll.
+    abgerechnet_nach_soll = models.BooleanField("nach Soll abgerechnet (§ 18 Abs. 4)", default=False)
     vorschuss = models.DecimalField("bewilligter Vorschuss €", max_digits=12, decimal_places=2, default=0,
                                     help_text="(Soll-FLS + Ø-kLE/Monat) × FLS-Satz (§ 18 Abs. 2)")
     kle_summe = models.DecimalField("Σ kLE (festgeschrieben, Std)", max_digits=8, decimal_places=3, default=0,
@@ -1180,6 +1202,11 @@ class Bewilligung(models.Model):
     kle_tag = models.DecimalField("kLE/Tag", max_digits=7, decimal_places=6,
                                   default=0, validators=[MinValueValidator(Decimal("0"))])
     hbg = models.PositiveSmallIntegerField("HBG (Herkunft)", null=True, blank=True)
+    # § 18 Abs. 3 i/j: integrierte Psychotherapeutische Leistung (PTL) – A = 60 Min/Woche,
+    # B = 120 Min/Woche, je Leistungsberechtigtem nur eine Variante (oder keine).
+    ptl = models.CharField("Psychotherapie (PTL)", max_length=1, default="",
+                           choices=[("", "keine"), ("A", "PTL A (60 Min/Woche)"),
+                                    ("B", "PTL B (120 Min/Woche)")], blank=True)
     status = models.CharField(max_length=12, choices=BewilligungStatus.choices,
                               default=BewilligungStatus.AKTIV)
     vorgaenger = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True,

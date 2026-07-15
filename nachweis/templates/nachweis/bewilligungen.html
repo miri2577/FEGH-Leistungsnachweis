@@ -84,6 +84,10 @@
         <div></div>
         <div><label class="fld">FLS/Woche (bewilligt)</label><input type="text" name="fls_woche" id="b-fls" value="{{ b.fls_woche|default:'0' }}"></div>
         <div><label class="fld">kLE/Tag</label><input type="text" name="kle_tag" id="b-kle" value="{{ b.kle_tag|default:'0' }}"></div>
+        <div><label class="fld">Psychotherapie (PTL) <span class="muted" style="font-weight:400">(§ 18 i/j)</span></label>
+          <select name="ptl"><option value="" {% if not b.ptl %}selected{% endif %}>keine</option>
+            <option value="A" {% if b.ptl == 'A' %}selected{% endif %}>PTL A (60 Min/Woche)</option>
+            <option value="B" {% if b.ptl == 'B' %}selected{% endif %}>PTL B (120 Min/Woche)</option></select></div>
         <div class="full"><label class="fld">Kommentar</label><input type="text" name="kommentar" value="{{ b.kommentar|default:'' }}"></div>
 
         <div class="full" style="margin-top:4px">

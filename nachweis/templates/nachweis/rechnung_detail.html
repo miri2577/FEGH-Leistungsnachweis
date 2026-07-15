@@ -98,6 +98,28 @@
         <tr class="sum"><td colspan="6">Gesamtbetrag</td><td class="num">{{ r.betrag|floatformat:2 }} €</td></tr>
       </tbody>
     </table>
+
+    {% if r.typ != 'gutschrift' %}
+    <h3 style="font-size:14px;margin:20px 0 6px;color:var(--brand-d)">§ 18 Abs. 3 Anlage 4 örV – Aufstellung der Monatsrechnung (a–k)</h3>
+    <table class="doc" style="max-width:560px">
+      <tbody style="font-size:12.5px">
+        <tr><td>a) Abrechnungszeitraum</td><td class="num">{{ monatsname }} {{ p18.jahr }}</td></tr>
+        <tr><td>b) € je Fachleistungsstunde / kLE</td><td class="num">{{ p18.preis|floatformat:4 }} €</td></tr>
+        <tr><td>c) Bewilligter Vorschuss</td><td class="num">{{ p18.vorschuss|floatformat:2 }} €</td></tr>
+        <tr><td>d) Σ FLS nach Bescheid (Soll)</td><td class="num">{{ p18.soll|floatformat:3 }} h</td></tr>
+        <tr><td>e) Σ FLS Ist – davon einzeln / in Gruppe</td><td class="num">{{ p18.ist|floatformat:3 }} h &nbsp;<span class="muted">({{ p18.ist_einzeln|floatformat:2 }} / {{ p18.ist_gruppe|floatformat:2 }})</span></td></tr>
+        <tr><td>f) Anzahl kLE</td><td class="num">{{ p18.kle|floatformat:3 }}</td></tr>
+        <tr><td>g) Zwischensumme (Menge Std + kLE)</td><td class="num">{{ p18.zwischensumme|floatformat:3 }}</td></tr>
+        <tr><td>h) Zwischenbetrag</td><td class="num">{{ p18.zwischenbetrag|floatformat:2 }} €</td></tr>
+        {% if p18.ptl_std %}<tr><td>i/j) PTL (Psychotherapie): {{ p18.ptl_std|floatformat:2 }} h × {{ p18.ptl_preis|floatformat:2 }} €</td><td class="num">{{ p18.ptl_betrag|floatformat:2 }} €</td></tr>{% endif %}
+        <tr class="sum"><td>k) Rechnungsbetrag</td><td class="num">{{ p18.rechnungsbetrag|floatformat:2 }} €</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:11.5px;color:var(--muted);max-width:560px">
+      {% if p18.nach_soll %}<b>Erbringungsfiktion (§ 18 Abs. 4):</b> Abgerechnet wird das bewilligte Soll (d); das Ist (e) ist nachrichtlich – Klient*innen-Absagen gehen nicht zulasten des Leistungserbringers. Bei organisatorischem Versagen ist das Soll um die nicht erbrachten Stunden zu kürzen.{% else %}Abgerechnet wird das erbrachte Ist (e).{% endif %}
+      kLE sind je Leistungsberechtigtem in der vereinbarten Menge stets vollständig abrechenbar (§ 18 Abs. 1 b), ohne Einzelnachweis.{% if p18.tagessatz_dabei %} Tagessatz-Positionen fließen zusätzlich in den Rechnungsbetrag (k).{% endif %}
+    </p>
+    {% endif %}
     {% if r.notiz %}<p style="font-size:12.5px;color:var(--muted)">Notiz: {{ r.notiz }}</p>{% endif %}
     <p class="legal">Leistung nach SGB IX (Eingliederungshilfe), Fachleistungsstunden. Umsatzsteuerbefreit gem. § 4 Nr. 16 UStG (soweit zutreffend – Trägerangabe).
       Elektronische Übermittlung (XRechnung/Fachverfahren) nach Abstimmung mit dem Kostenträger.</p>

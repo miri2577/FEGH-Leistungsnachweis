@@ -313,6 +313,8 @@ def bewilligung_speichern(request):
     b.fls_woche = _dec(request.POST.get("fls_woche"))
     b.kle_tag = _dec(request.POST.get("kle_tag"))
     b.hbg = _int_or_none(request.POST.get("hbg"))
+    _ptl = request.POST.get("ptl") or ""
+    b.ptl = _ptl if _ptl in ("A", "B") else ""
     st = request.POST.get("status")
     b.status = st if st in BewilligungStatus.values else BewilligungStatus.AKTIV
     _vg = request.POST.get("vorgaenger")
@@ -350,6 +352,8 @@ def parameter(request):
             p.teamsitzung_wochentag = _int_or_none(request.POST.get("teamsitzung_wochentag")) or 3
             p.fls_preis = _dec(request.POST.get("fls_preis"))
             p.kle_je_tag = _dec(request.POST.get("kle_je_tag"))
+            p.ptl_preis = _dec(request.POST.get("ptl_preis"))
+            p.erbringungsfiktion = request.POST.get("erbringungsfiktion") == "on"
             p.save()
             # HBG-Tabelle (FLS/Woche je HBG 1–12, aus dem Senats-Tool Output 5.)
             for hbg in range(1, 13):

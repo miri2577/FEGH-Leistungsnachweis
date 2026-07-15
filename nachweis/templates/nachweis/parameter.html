@@ -39,6 +39,10 @@
         <div><label class="fld">FLS-Satz € <span class="muted" style="font-weight:400">(Senats-Tool, Output 3.)</span></label><input type="text" name="fls_preis" value="{{ p.fls_preis }}"></div>
         <div><label class="fld">kLE je Tag (Std) <span class="muted" style="font-weight:400">(Output 3.)</span></label><input type="text" name="kle_je_tag" value="{{ p.kle_je_tag }}">
           {% if kle_monat %}<span class="muted" style="font-size:12px">≈ {{ kle_monat }} Std/Monat je Klient*in</span>{% endif %}</div>
+        <div><label class="fld">PTL-Satz € <span class="muted" style="font-weight:400">(Psychotherapie, § 18 i/j; 0 = aus)</span></label><input type="text" name="ptl_preis" value="{{ p.ptl_preis }}"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:20px">
+          <input type="checkbox" name="erbringungsfiktion" id="p-fiktion" {% if p.erbringungsfiktion %}checked{% endif %} style="width:auto">
+          <label for="p-fiktion" style="font-size:13px">Erbringungsfiktion (§ 18 Abs. 4): <b>Soll</b> abrechnen (Ist nachrichtlich)</label></div>
 
         <div class="full" style="grid-column:1 / -1;margin-top:6px">
           <label class="fld">Individuelle FLS pro Woche je HBG <span class="muted" style="font-weight:400">(Senats-Tool, Output 5. – Vorbelegung für die Belegungsliste)</span></label>

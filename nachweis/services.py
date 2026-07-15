@@ -1074,6 +1074,7 @@ def freigabe_snapshot(mf) -> None:
     sonst die § 18-Struktur des Berliner BEW: Ist-FLS (einzeln/Gruppe), Soll nach
     Bescheid, kLE-Pauschale (× Kalendertage, nur in Betreuung), Vorschuss, Betrag."""
     from . import services_belegung
+    from calendar import monthrange
     ts = services_belegung.tagessatz_monat(mf.klient, mf.jahr, mf.monat)
     if ts is not None:
         mf.abrechnungsart = "tagessatz"
@@ -1082,15 +1083,96 @@ def freigabe_snapshot(mf) -> None:
         mf.betrag = ts["betrag"]
         mf.fls_einzeln = mf.fls_gruppe = mf.fls_summe = Decimal("0")
         mf.soll_fls = mf.kle_summe = mf.vorschuss = Decimal("0")
+        mf.abrechenbare_fls = mf.ptl_stunden = mf.ptl_betrag = Decimal("0")
+        mf.abgerechnet_nach_soll = False
         return
+    # Stichtag = letzter Tag des Abrechnungsmonats. Bewilligung, Soll, PTL und kLE werden
+    # zum LEISTUNGSMONAT bewertet – nicht zum (u. U. Wochen späteren) Freigabezeitpunkt,
+    # sonst würde ein zwischenzeitlicher Bescheids-/Statuswechsel einen Alt-Monat verfälschen.
+    monatsanfang = date(mf.jahr, mf.monat, 1)
+    stichtag = date(mf.jahr, mf.monat, monthrange(mf.jahr, mf.monat)[1])
+    bew = mf.klient.aktive_bewilligung(stichtag)
     mf.abrechnungsart = "fls"
     mf.fls_einzeln, mf.fls_gruppe = fls_ist_split(mf.klient, mf.jahr, mf.monat)
     mf.fls_summe = mf.fls_einzeln + mf.fls_gruppe
-    mf.soll_fls = mf.klient.al or Decimal("0")
+    # Soll = bewilligte FLS/Monat der zum Leistungsmonat gültigen Bewilligung; ohne formale
+    # Bewilligung der abwärtskompatible Cache klient.al.
+    mf.soll_fls = bew.al_monat if bew else (mf.klient.al or Decimal("0"))
     mf.vorschuss = vorschuss_monat(mf.klient, mf.jahr)
-    mf.kle_summe = (kle_monat_stunden(mf.jahr, mf.monat)
-                    if mf.klient.status == Status.BETREUUNG else Decimal("0"))
-    mf.betrag = betrag_fuer(mf.fls_summe, mf.jahr, mf.kle_summe)
+    # kLE-Pauschale nur, wenn im Leistungsmonat betreut. Mit KÜ-Enddatum monatsscharf
+    # (Monat ≤ KÜ-Ende); ohne Datum Rückfall auf den aktuellen Betreuungsstatus.
+    if mf.klient.kue_bis:
+        in_betreuung = mf.klient.kue_bis >= monatsanfang
+    else:
+        in_betreuung = mf.klient.status == Status.BETREUUNG
+    mf.kle_summe = kle_monat_stunden(mf.jahr, mf.monat) if in_betreuung else Decimal("0")
+    # § 18 Abs. 4 Erbringungsfiktion: bewilligte FLS gelten als erbracht -> Soll abrechnen
+    # (Ist bleibt nachrichtlich in fls_summe). Aus = Ist-Abrechnung. Der Zustand wird
+    # festgeschrieben, damit ein späterer Parameter-Wechsel den Beleg nicht umdeutet.
+    p = get_parameter(mf.jahr)
+    mf.abgerechnet_nach_soll = bool(p.erbringungsfiktion)
+    mf.abrechenbare_fls = mf.soll_fls if p.erbringungsfiktion else mf.fls_summe
+    # § 18 Abs. 3 i/j: integrierte Psychotherapie (PTL) aus der zum Leistungsmonat gültigen Bewilligung
+    mf.ptl_stunden, mf.ptl_betrag = _ptl_snapshot(bew, p)
+    mf.betrag = betrag_fuer(mf.abrechenbare_fls, mf.jahr, mf.kle_summe) + mf.ptl_betrag
+
+
+def _ptl_snapshot(bew, parameter):
+    """PTL-Monatsstunden + Betrag aus der (zum Leistungsmonat gültigen) Bewilligung
+    (A=60, B=120 Min/Woche). `bew` ist bereits stichtagsscharf aufgelöst."""
+    std_woche = {"A": Decimal("1"), "B": Decimal("2")}.get(bew.ptl if bew else "", Decimal("0"))
+    if not std_woche:
+        return Decimal("0"), Decimal("0")
+    std_monat = (std_woche * WOCHEN_JE_MONAT).quantize(Q3, ROUND_HALF_UP)
+    return std_monat, (std_monat * (parameter.ptl_preis or Decimal("0"))).quantize(E2, ROUND_HALF_UP)
+
+
+def paragraf18_aufstellung(rechnung):
+    """Aggregierte a–k-Aufstellung der Monatsrechnung nach § 18 Abs. 3 Anlage 4 örV.
+    Summiert die FLS-/kLE-/PTL-Positionen zur Rechnungsebene. Tagessatz-Positionen (M3)
+    tragen nur zum Rechnungsbetrag (k) bei. Werte stammen aus den festgeschriebenen
+    Positions-Snapshots (nicht neu berechnet)."""
+    preis = fls_preis(rechnung.jahr)
+    pos = list(rechnung.positionen.all())
+    fls = [p for p in pos if p.abrechnungsart != "tagessatz"]
+
+    def s(attr, quelle=None):
+        return sum((getattr(p, attr) for p in (quelle if quelle is not None else fls)), Decimal("0"))
+
+    soll = s("soll_fls")
+    ist_einzeln, ist_gruppe = s("fls_einzeln"), s("fls_gruppe")
+    abrechenbar = s("abrechenbare_fls")
+    kle = s("kle_summe")
+    ptl_std, ptl_betrag = s("ptl_stunden", pos), s("ptl_betrag", pos)
+    tagessatz_betrag = sum((p.betrag for p in pos if p.abrechnungsart == "tagessatz"), Decimal("0"))
+    zwischensumme = abrechenbar + kle                       # g – Menge (Std + kLE)
+    # h stimmt centgenau mit k überein: Rechnungsbetrag abzüglich PTL (i/j) und
+    # Tagessatz-Anteile = Σ der positionsweise gerundeten FLS/kLE-Beträge. So gibt es
+    # keinen Aggregat-Rundungsdrift (round-then-sum ≠ sum-then-round) bei Sammelrechnungen.
+    zwischenbetrag = (rechnung.betrag or Decimal("0")) - ptl_betrag - tagessatz_betrag   # h – €
+    # § 18 Abs. 4: der Fiktionshinweis hängt am festgeschriebenen Flag, nicht an
+    # zufälliger Wertgleichheit von Ist und Soll.
+    nach_soll = any(getattr(p, "abgerechnet_nach_soll", False) for p in fls)
+    # PTL-Stückpreis aus dem Snapshot rückableiten (immun gegen spätere Parameter-Änderung),
+    # damit ptl_std × ptl_preis = ptl_betrag auf dem Beleg aufgeht.
+    ptl_preis = ((ptl_betrag / ptl_std).quantize(Decimal("0.0001"), ROUND_HALF_UP)
+                 if ptl_std else get_parameter(rechnung.jahr).ptl_preis)
+    return {
+        "monat": rechnung.monat, "jahr": rechnung.jahr,            # a
+        "preis": preis,                                            # b
+        "vorschuss": s("vorschuss"),                               # c
+        "soll": soll,                                              # d (Σ FLS nach Bescheid)
+        "ist": ist_einzeln + ist_gruppe,                           # e (Σ FLS Ist)
+        "ist_einzeln": ist_einzeln, "ist_gruppe": ist_gruppe,      # e – davon
+        "abrechenbar": abrechenbar, "nach_soll": nach_soll,
+        "kle": kle,                                                # f (Anzahl kLE)
+        "zwischensumme": zwischensumme,                            # g
+        "zwischenbetrag": zwischenbetrag,                          # h
+        "ptl_std": ptl_std, "ptl_betrag": ptl_betrag,              # i/j
+        "ptl_preis": ptl_preis,
+        "rechnungsbetrag": rechnung.betrag,                        # k
+        "tagessatz_dabei": any(p.abrechnungsart == "tagessatz" for p in pos),
+    }
 
 
 def abrechnungsuebersicht(klienten, jahr: int, monat: int):
