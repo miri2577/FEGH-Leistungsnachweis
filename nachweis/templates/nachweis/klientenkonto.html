@@ -1,0 +1,69 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Barbetrag · {{ klient.name }} · FEGH{% endblock %}
+{% block extrastyle %}
+  .kk-add{display:flex;gap:8px;align-items:end;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line)}
+  .kk-add label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+  .kk-add input,.kk-add select{padding:6px 8px;border:1px solid var(--border);border-radius:7px}
+  .saldo{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+  .saldo.neg{color:var(--bad)}
+  .ein{color:var(--ok);font-weight:600} .aus{color:var(--bad);font-weight:600}
+{% endblock %}
+{% block content %}
+  {% include "nachweis/_fallakte_kopf.html" with fa_tab="konto" %}
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg);color:var(--bad){% else %}var(--okbg);color:var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <p class="sub" style="margin-top:0">Treuhänderisch geführtes Barbetrags-/Verwahrgeld – getrennt von der Einrichtungskasse, prüfungsrelevant. Auszahlungen als negativer Betrag erfassen.</p>
+
+  {% for k in konten %}
+  <div class="panel">
+    <div class="head">
+      <h2 style="font-size:16px">{{ k.get_typ_display }}{% if k.bezeichnung %} · {{ k.bezeichnung }}{% endif %}{% if not k.aktiv %} <span class="muted">(inaktiv)</span>{% endif %}</h2>
+      <span class="saldo {% if k.saldo_wert < 0 %}neg{% endif %}">{{ k.saldo_wert|floatformat:2 }} €</span>
+    </div>
+    <div class="body" style="padding:0">
+      <table class="grid" style="margin:0">
+        <thead><tr><th>Datum</th><th>Zweck</th><th>Beleg</th><th class="num">Betrag</th><th></th></tr></thead>
+        <tbody>
+          {% for b in k.buchungsliste %}
+          <tr>
+            <td style="white-space:nowrap">{{ b.datum|date:"d.m.Y" }}</td>
+            <td>{{ b.zweck }}</td>
+            <td class="muted">{{ b.beleg_nr|default:"—" }}</td>
+            <td class="num {% if b.betrag < 0 %}aus{% else %}ein{% endif %}">{{ b.betrag|floatformat:2 }} €</td>
+            <td style="width:1%"><form method="post" action="{% url 'nachweis:kontobuchung_loeschen' klient.id %}" style="display:inline" onsubmit="return confirm('Buchung löschen?')">{% csrf_token %}<input type="hidden" name="id" value="{{ b.id }}"><button class="btn ghost" style="padding:2px 8px;font-size:12px;color:var(--bad)">✕</button></form></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="muted" style="text-align:center;padding:14px">Noch keine Buchungen.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <form method="post" action="{% url 'nachweis:kontobuchung_speichern' klient.id %}" class="kk-add">
+        {% csrf_token %}<input type="hidden" name="konto" value="{{ k.id }}">
+        <label>Datum<input type="date" name="datum" value="{{ heute }}"></label>
+        <label>Betrag € (− = Auszahlung)<input type="text" name="betrag" placeholder="z. B. -12,50" style="width:120px" required></label>
+        <label style="flex:1;min-width:180px">Zweck<input type="text" name="zweck" required></label>
+        <label>Beleg-Nr<input type="text" name="beleg_nr" style="width:100px"></label>
+        <button class="btn" type="submit">Buchen</button>
+      </form>
+      {% if not k.buchungsliste %}
+      <div style="padding:0 14px 12px"><form method="post" action="{% url 'nachweis:konto_loeschen' klient.id %}" style="display:inline" onsubmit="return confirm('Leeres Konto löschen?')">{% csrf_token %}<input type="hidden" name="id" value="{{ k.id }}"><button class="btn ghost" style="color:var(--bad);font-size:12px;padding:4px 10px">Konto löschen</button></form></div>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div class="panel"><div class="body"><p class="muted" style="padding:6px">Noch kein Konto angelegt.</p></div></div>
+  {% endfor %}
+
+  <div class="panel" style="max-width:520px">
+    <div class="head"><h2>Konto anlegen</h2></div>
+    <form method="post" action="{% url 'nachweis:konto_anlegen' klient.id %}" style="padding:16px;display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+      {% csrf_token %}
+      <label style="font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px">Typ
+        <select name="typ" style="padding:7px 9px;border:1px solid var(--border);border-radius:8px">{% for v,l in typen %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></label>
+      <label style="font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px">Bezeichnung (optional)
+        <input type="text" name="bezeichnung" style="padding:7px 9px;border:1px solid var(--border);border-radius:8px"></label>
+      <button class="btn" type="submit">Anlegen</button>
+    </form>
+  </div>
+{% endblock %}

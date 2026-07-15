@@ -1990,6 +1990,56 @@ class Dokument(models.Model):
             datei.delete(save=False)
 
 
+class KlientenkontoTyp(models.TextChoices):
+    BARBETRAG = "barbetrag", "Barbetrag"
+    VERWAHRGELD = "verwahrgeld", "Verwahr-/Verfügungsgeld"
+    SONSTIG = "sonstig", "Sonstiges Treuhandkonto"
+
+
+class Klientenkonto(models.Model):
+    """Treuhänderisches Geldkonto einer/eines Leistungsberechtigten (Barbetrag,
+    Verwahr-/Verfügungsgeld) in besonderen Wohnformen – vom betreuenden Team geführt,
+    getrennt von der Einrichtungskasse. Prüfungsrelevant."""
+    klient = models.ForeignKey(Klient, on_delete=models.CASCADE, related_name="konten")
+    typ = models.CharField(max_length=12, choices=KlientenkontoTyp.choices,
+                           default=KlientenkontoTyp.BARBETRAG)
+    bezeichnung = models.CharField("Bezeichnung", max_length=80, blank=True)
+    aktiv = models.BooleanField(default=True)
+    erstellt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Klientenkonto"
+        verbose_name_plural = "Klientenkonten"
+        ordering = ["typ", "bezeichnung"]
+
+    def __str__(self):
+        return f"{self.get_typ_display()} · {self.klient}"
+
+    @property
+    def saldo(self) -> Decimal:
+        return sum((b.betrag for b in self.buchungen.all()), Decimal("0"))
+
+
+class Kontobuchung(models.Model):
+    """Einzelbuchung auf einem Klientenkonto: + = Einzahlung, − = Auszahlung."""
+    konto = models.ForeignKey(Klientenkonto, on_delete=models.CASCADE, related_name="buchungen")
+    datum = models.DateField("Datum")
+    betrag = models.DecimalField("Betrag € (+/−)", max_digits=10, decimal_places=2)
+    zweck = models.CharField("Zweck / Verwendung", max_length=160)
+    beleg_nr = models.CharField("Beleg-Nr", max_length=40, blank=True)
+    erfasst_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="+")
+    erstellt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Kontobuchung"
+        verbose_name_plural = "Kontobuchungen"
+        ordering = ["-datum", "-id"]
+
+    def __str__(self):
+        return f"{self.datum} · {self.betrag} € · {self.zweck}"
+
+
 class QualifikationArt(models.TextChoices):
     QUALIFIKATION = "quali", "Berufsqualifikation / Abschluss"
     FORTBILDUNG = "fortbildung", "Fortbildung"
