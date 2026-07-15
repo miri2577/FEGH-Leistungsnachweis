@@ -208,8 +208,11 @@ def _positionen(r):
     """Reduzierte Positions-Projektion (nur Abrechnungsdaten, § 18-Struktur).
     Tagessatz-Positionen (M3) tragen art/tage/verguetet statt der FLS-Spalten."""
     return [{"name": p.klient.name, "az": p.klient.person_id,
-             "soll": p.soll_fls, "einzeln": p.fls_einzeln, "gruppe": p.fls_gruppe,
+             "soll": p.soll_fls, "abrechenbar": p.abrechenbare_fls,
+             "einzeln": p.fls_einzeln, "gruppe": p.fls_gruppe,
              "fls": p.fls_summe, "kle": p.kle_summe, "vorschuss": p.vorschuss,
+             "ptl_std": p.ptl_stunden, "ptl_betrag": p.ptl_betrag,
+             "nach_soll": p.abgerechnet_nach_soll,
              "art": p.abrechnungsart, "tage": p.belegungstage,
              "verguetet": p.verguetet_tage,
              "betrag": p.betrag}
@@ -358,21 +361,30 @@ def rechnung_eabrechnung(request, pk):
     if not services.darf_abrechnen(request.user):
         return redirect("nachweis:start")
     r = get_object_or_404(Rechnung, pk=pk)
+    a = services.paragraf18_aufstellung(r)               # aggregierte a–k-Werte (konsistent zum Beleg)
     satz = services.fls_preis(r.jahr)
     resp = HttpResponse(content_type="text/csv; charset=utf-8-sig")
     resp["Content-Disposition"] = f'attachment; filename="eAbrechnung_{r.nummer}.csv"'
     w = csv.writer(resp, delimiter=";")
-    w.writerow(["a_Zeitraum", "Kennzeichen", "b_EUR_je_Std_kLE", "c_Vorschuss_EUR",
-                "d_FLS_Soll_Monat", "e_FLS_Ist", "e1_einzeln_erbracht", "e2_Gruppe_erbracht",
-                "f_Anzahl_kLE", "g_Zwischensumme_Std", "h_Zwischenbetrag_EUR",
-                "k_Rechnungsbetrag_EUR"])
+    # Vollständige § 18-Abs.-3-Pflichtinhalte a–k je Position + GESAMT-Zeile. Alle Felder
+    # liegen damit für das Mapping in das finale eAbrechnungs-Format (OPEN/PROSOZ) vor.
+    w.writerow(["a_Zeitraum", "Kennzeichen", "b_EUR_je_Std", "c_Vorschuss_EUR",
+                "d_FLS_Soll_Monat", "d2_abrechenbare_FLS", "e_FLS_Ist", "e1_einzeln_erbracht",
+                "e2_Gruppe_erbracht", "f_Anzahl_kLE", "g_Zwischensumme_Std", "h_Zwischenbetrag_EUR",
+                "i_PTL_Std", "j_PTL_EUR", "k_Rechnungsbetrag_EUR", "Erbringungsfiktion"])
     for p in _positionen(r):
-        zwsumme = p["fls"] + p["kle"]
+        zwsumme = p["abrechenbar"] + p["kle"]
+        h_betrag = p["betrag"] - p["ptl_betrag"]         # FLS/kLE-Anteil (ohne PTL)
         w.writerow([r.monat_text, _csv_safe(p["az"] or p["name"]), f"{satz}", f'{p["vorschuss"]}',
-                    f'{p["soll"]}', f'{p["fls"]}', f'{p["einzeln"]}', f'{p["gruppe"]}',
-                    f'{p["kle"]}', f"{zwsumme}", f'{p["betrag"]}', f'{p["betrag"]}'])
-    w.writerow([r.monat_text, "GESAMT", f"{satz}", "", "", "", "", "", "", "", "",
-                f"{r.betrag}"])
+                    f'{p["soll"]}', f'{p["abrechenbar"]}', f'{p["fls"]}', f'{p["einzeln"]}',
+                    f'{p["gruppe"]}', f'{p["kle"]}', f"{zwsumme}", f"{h_betrag}",
+                    f'{p["ptl_std"]}', f'{p["ptl_betrag"]}', f'{p["betrag"]}',
+                    "Soll" if p["nach_soll"] else "Ist"])
+    w.writerow([r.monat_text, "GESAMT", f'{a["preis"]}', f'{a["vorschuss"]}', f'{a["soll"]}',
+                f'{a["abrechenbar"]}', f'{a["ist"]}', f'{a["ist_einzeln"]}', f'{a["ist_gruppe"]}',
+                f'{a["kle"]}', f'{a["zwischensumme"]}', f'{a["zwischenbetrag"]}',
+                f'{a["ptl_std"]}', f'{a["ptl_betrag"]}', f'{a["rechnungsbetrag"]}',
+                "Soll" if a["nach_soll"] else "Ist"])
     return resp
 
 

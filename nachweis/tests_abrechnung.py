@@ -181,6 +181,9 @@ class AbrechnungTests(TestCase):
         inhalt = resp.content.decode("utf-8-sig")
         self.assertIn("a_Zeitraum", inhalt)                   # § 18 Abs. 3 Buchst. a
         self.assertIn("f_Anzahl_kLE", inhalt)                 # Buchst. f
+        self.assertIn("i_PTL_Std", inhalt)                    # Buchst. i/j (Psychotherapie)
+        self.assertIn("d2_abrechenbare_FLS", inhalt)          # § 18 Abs. 4 (abrechenbare FLS)
+        self.assertIn("Erbringungsfiktion", inhalt)           # Ist/Soll-Kennzeichnung
         self.assertIn("k_Rechnungsbetrag_EUR", inhalt)        # Buchst. k
         self.assertIn("AZ-1", inhalt)                         # Kennzeichen statt Name
         # User darf nicht exportieren
