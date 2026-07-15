@@ -1963,6 +1963,37 @@ class Dokument(models.Model):
             datei.delete(save=False)
 
 
+class QualifikationArt(models.TextChoices):
+    QUALIFIKATION = "quali", "Berufsqualifikation / Abschluss"
+    FORTBILDUNG = "fortbildung", "Fortbildung"
+    ZERTIFIKAT = "zertifikat", "Zertifikat / Nachweis"
+    PFLICHT = "pflicht", "Pflichtunterweisung"
+
+
+class Qualifikation(models.Model):
+    """Fortbildung/Qualifikation/Zertifikat einer/eines Mitarbeiter*in mit optionaler
+    Ablauf-/Auffrischungsfrist – Grundlage für Fachkraftnachweise und Fristen-Erinnerung."""
+    mitarbeiter = models.ForeignKey(Mitarbeiter, on_delete=models.CASCADE,
+                                    related_name="qualifikationen")
+    art = models.CharField(max_length=12, choices=QualifikationArt.choices,
+                           default=QualifikationArt.FORTBILDUNG)
+    bezeichnung = models.CharField("Bezeichnung", max_length=160)
+    erworben_am = models.DateField("erworben am", null=True, blank=True)
+    gueltig_bis = models.DateField("gültig/Auffrischung bis", null=True, blank=True)
+    pflicht = models.BooleanField("Pflichtfortbildung", default=False)
+    notiz = models.CharField("Notiz", max_length=200, blank=True)
+    erstellt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Qualifikation"
+        verbose_name_plural = "Qualifikationen"
+        ordering = ["gueltig_bis", "bezeichnung"]
+        indexes = [models.Index(fields=["mitarbeiter", "gueltig_bis"])]
+
+    def __str__(self):
+        return f"{self.bezeichnung} ({self.mitarbeiter})"
+
+
 class KontaktRolle(models.TextChoices):
     ANGEHOERIGE = "angehoerige", "Angehörige*r"
     BETREUUNG = "betreuung", "gesetzliche Betreuung"

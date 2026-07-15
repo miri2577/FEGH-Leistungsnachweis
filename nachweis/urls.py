@@ -5,7 +5,7 @@ from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse
                views_abrechnung, views_feld, views_ziele, views_berichte,
                views_controlling, views_belegung, views_qm, views_dienstplan,
                views_dokumente, views_loeschfristen, views_fallakte, views_wohnkosten,
-               views_bedarf, views_kontakte)
+               views_bedarf, views_kontakte, views_qualifikation)
 
 app_name = "nachweis"
 
@@ -71,6 +71,9 @@ urlpatterns = [
     path("kontakte/<int:pk>/", views_kontakte.kontakte, name="kontakte"),
     path("kontakte/<int:pk>/speichern/", views_kontakte.kontakt_speichern, name="kontakt_speichern"),
     path("kontakte/<int:pk>/loeschen/", views_kontakte.kontakt_loeschen, name="kontakt_loeschen"),
+    path("qualifikationen/", views_qualifikation.qualifikationen, name="qualifikationen"),
+    path("qualifikationen/speichern/", views_qualifikation.qualifikation_speichern, name="qualifikation_speichern"),
+    path("qualifikationen/loeschen/", views_qualifikation.qualifikation_loeschen, name="qualifikation_loeschen"),
 
     # Berichte (Phase 2)
     path("berichte/<int:pk>/", views_berichte.berichte, name="berichte"),

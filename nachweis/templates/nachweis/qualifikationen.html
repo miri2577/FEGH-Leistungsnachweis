@@ -1,0 +1,97 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Qualifikationen · FEGH{% endblock %}
+{% block extrastyle %}
+  .q-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;padding:18px}
+  .q-form .full{grid-column:1 / -1}
+  .q-form input,.q-form select{width:100%}
+  .qst{display:inline-block;padding:1px 9px;border-radius:999px;font-size:11px;font-weight:700}
+  .qst.abgelaufen{background:var(--badbg);color:var(--bad)}
+  .qst.laeuft_ab{background:var(--warnbg);color:var(--warn)}
+  .qst.gueltig{background:var(--okbg);color:var(--ok)}
+  .qst.dauerhaft{background:#eef2f5;color:#697786}
+  .filter{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:12px}
+  @media(max-width:600px){.q-form{grid-template-columns:1fr}}
+{% endblock %}
+{% block content %}
+  <h1 class="page">Fortbildungen &amp; Qualifikationen</h1>
+  <p class="sub">Berufsqualifikationen, Fortbildungen, Zertifikate und Pflichtunterweisungen mit Auffrischungs-/Ablauffristen – Grundlage für den Fachkraftnachweis gegenüber dem Kostenträger.</p>
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg);color:var(--bad){% else %}var(--okbg);color:var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  {% if faellig %}
+  <div class="panel" style="border-left:3px solid var(--warn)">
+    <div class="head"><h2 style="font-size:15px">Fällig / abgelaufen</h2><span class="muted">{{ faellig|length }}</span></div>
+    <div class="body" style="font-size:13px">
+      {% for q in faellig %}
+      <div style="padding:3px 0">
+        <span class="qst {{ q.status }}">{% if q.status == 'abgelaufen' %}abgelaufen{% else %}{{ q.tage }} T{% endif %}</span>
+        <b>{{ q.mitarbeiter.name }}</b> – {{ q.bezeichnung }} {% if q.gueltig_bis %}<span class="muted">(bis {{ q.gueltig_bis|date:"d.m.Y" }})</span>{% endif %}{% if q.pflicht %} <span class="muted" title="Pflichtfortbildung">Pflicht</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="get" class="filter">
+    <label style="font-size:12px;color:var(--muted)">Mitarbeiter*in
+      <select name="ma" onchange="this.form.submit()" style="padding:7px 9px;border:1px solid var(--border);border-radius:8px">
+        <option value="">— alle —</option>
+        {% for m in mitarbeitende %}<option value="{{ m.id }}" {% if ma_filter == m.id|stringformat:'s' %}selected{% endif %}>{{ m.name }}{% if m.vorname %}, {{ m.vorname }}{% endif %}</option>{% endfor %}
+      </select></label>
+  </form>
+
+  <div class="panel">
+    <div class="head"><h2>Qualifikationen</h2><span class="muted">{{ quals|length }}</span></div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Status</th><th>Mitarbeiter*in</th><th>Art</th><th>Bezeichnung</th><th>erworben</th><th>gültig bis</th><th></th></tr></thead>
+        <tbody>
+          {% for q in quals %}
+          <tr>
+            <td><span class="qst {{ q.status }}">{% if q.status == 'abgelaufen' %}abgelaufen{% elif q.status == 'laeuft_ab' %}{{ q.tage }} T{% elif q.status == 'dauerhaft' %}dauerhaft{% else %}gültig{% endif %}</span>{% if q.pflicht %} <span class="muted" title="Pflicht">•</span>{% endif %}</td>
+            <td>{{ q.mitarbeiter.name }}</td>
+            <td class="muted">{{ q.get_art_display }}</td>
+            <td><b>{{ q.bezeichnung }}</b>{% if q.notiz %}<br><span class="muted" style="font-size:12px">{{ q.notiz }}</span>{% endif %}</td>
+            <td class="muted">{{ q.erworben_am|date:"d.m.Y"|default:"—" }}</td>
+            <td class="muted">{{ q.gueltig_bis|date:"d.m.Y"|default:"—" }}</td>
+            <td style="white-space:nowrap">
+              <a class="btn ghost" style="padding:3px 8px;font-size:12px" href="?edit={{ q.id }}">Bearbeiten</a>
+              <form method="post" action="{% url 'nachweis:qualifikation_loeschen' %}" style="display:inline" onsubmit="return confirm('Qualifikation löschen?')">
+                {% csrf_token %}<input type="hidden" name="id" value="{{ q.id }}">
+                <button class="btn ghost" style="padding:3px 8px;font-size:12px;color:var(--bad)">✕</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="muted" style="text-align:center;padding:18px">Noch keine Qualifikationen erfasst – unten anlegen.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% with q=bearbeiten %}
+  <div class="panel" style="max-width:760px">
+    <div class="head"><h2>{% if bearbeiten %}Qualifikation bearbeiten{% else %}Qualifikation anlegen{% endif %}</h2></div>
+    <form method="post" action="{% url 'nachweis:qualifikation_speichern' %}">
+      {% csrf_token %}
+      {% if bearbeiten %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">{% endif %}
+      <div class="q-form">
+        <div><label class="fld">Mitarbeiter*in *</label>
+          <select name="mitarbeiter" required><option value="">—</option>{% for m in mitarbeitende %}<option value="{{ m.id }}" {% if q.mitarbeiter_id == m.id %}selected{% endif %}>{{ m.name }}{% if m.vorname %}, {{ m.vorname }}{% endif %}</option>{% endfor %}</select></div>
+        <div><label class="fld">Art</label>
+          <select name="art">{% for v,l in arten %}<option value="{{ v }}" {% if q.art == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+        <div class="full"><label class="fld">Bezeichnung *</label><input type="text" name="bezeichnung" value="{{ q.bezeichnung|default:'' }}" required placeholder="z. B. Erste-Hilfe, Deeskalation, Pflegebasiskurs"></div>
+        <div><label class="fld">erworben am</label><input type="date" name="erworben_am" value="{{ q.erworben_am|date:'Y-m-d' }}"></div>
+        <div><label class="fld">gültig / Auffrischung bis</label><input type="date" name="gueltig_bis" value="{{ q.gueltig_bis|date:'Y-m-d' }}"></div>
+        <div class="full"><label class="fld">Notiz</label><input type="text" name="notiz" value="{{ q.notiz|default:'' }}"></div>
+        <div class="full"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><input type="checkbox" name="pflicht" style="width:auto" {% if q.pflicht %}checked{% endif %}> Pflichtfortbildung</label></div>
+        <div class="full" style="margin-top:4px">
+          <button class="btn" type="submit">Speichern</button>
+          {% if bearbeiten %}<a class="btn ghost" href="{% url 'nachweis:qualifikationen' %}">Abbrechen</a>{% endif %}
+        </div>
+      </div>
+    </form>
+  </div>
+  {% endwith %}
+{% endblock %}
