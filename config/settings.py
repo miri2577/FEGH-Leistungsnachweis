@@ -117,6 +117,10 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+# Portable Demo: alternative SQLite-Datei per Umgebungsvariable (Start-Demo.bat legt eine
+# frische Arbeitskopie an; das Original auf dem Stick bleibt unberührt).
+if os.environ.get("DEMO_DB"):
+    DATABASES['default']['NAME'] = os.environ['DEMO_DB']
 
 
 # Password validation

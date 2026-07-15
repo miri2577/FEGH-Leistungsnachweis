@@ -19,7 +19,7 @@ from nachweis.models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
                              Leistungsart, Rolle, Status, Team, Teamtyp, Arbeitszeit,
                              Abwesenheit, AbwesenheitArt, AbwesenheitStatus, Stempelung,
                              Kasse, Kassenmonat, Kassenbuchung, Zaehlprotokoll, Termin,
-                             Monatsfreigabe, Rechnung)
+                             Monatsfreigabe, Rechnung, Vorkommnis, Angebot)
 
 JAHR = 2026
 RNG = random.Random(42)
@@ -90,9 +90,12 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         if not opts["keep"]:
             # Monatsfreigabe/Rechnung zuerst (Monatsfreigabe.klient ist PROTECT).
+            # Klient VOR Angebot (Belegung.angebot ist PROTECT, hängt aber an Klient-CASCADE);
+            # Vorkommnis/Angebot VOR Team (team ist PROTECT). Klientenkonto/FEM/Kontaktperson/
+            # Belegung/Ziel/Bericht kaskadieren mit dem Klienten.
             for M in (Monatsfreigabe, Rechnung, Zaehlprotokoll, Kassenbuchung, Kassenmonat,
                       Kasse, Termin, Stempelung, Arbeitszeit, Abwesenheit, Leistung, Gruppe,
-                      Klient, Mitarbeiter, Team, Parameter):
+                      Klient, Vorkommnis, Angebot, Mitarbeiter, Team, Parameter):
                 M.objects.all().delete()
             # 2FA-Geräte zurücksetzen -> Demo-Logins bleiben ohne 2FA nutzbar (OTP_REQUIRED=0)
             try:
@@ -417,6 +420,128 @@ class Command(BaseCommand):
                 freigegeben[:2], freigegeben[0].klient.kostentraeger or BEZIRKE[0],
                 JAHR, MONAT_ABR, date(JAHR, 7, 1), berger, notiz="Sammelrechnung (Demo)")
             n_rech = 1
+
+        # ================= Reichhaltige Demodaten (Fach-/Stationär-Module, alle FIKTIV) =========
+        from nachweis.models import (Kostentraeger, KostentraegerTyp, AngebotsTyp, Erreichbarkeit,
+                                     Zimmer, Belegung, VorkommnisKategorie, VorkommnisStatus,
+                                     Qualifikation, QualifikationArt, Kontaktperson, KontaktRolle,
+                                     Klientenkonto, KlientenkontoTyp, Kontobuchung, FEM, FEMArt,
+                                     Ziel, ZielArt, ZielStatus)
+        from django.utils import timezone as _tz3
+
+        # Kostenträger (Bezirksämter) mit E-Mail/Leitweg-ID -> Mail-Versand, XRechnung, Zahlungsabgleich
+        for name in dict.fromkeys(BEZIRKE):
+            slug = name.split()[-1].lower().replace("ö", "oe").replace("ü", "ue")
+            Kostentraeger.objects.get_or_create(name=name, defaults={
+                "typ": KostentraegerTyp.BEZIRKSAMT,
+                "email": f"leistungsabrechnung@{slug}.berlin.example",
+                "leitweg_id": f"11-{RNG.randint(1000, 9999)}-{RNG.randint(10, 99)}",
+                "adresse": f"{name}\nMusterstr. 1\n10000 Berlin"})
+
+        # Anschrift + gesetzliche Betreuung bei einigen Klient*innen
+        strassen = ["Lindenweg", "Ahornstr.", "Seestr.", "Parkallee", "Buchenweg", "Amselgasse"]
+        for i, k in enumerate(klienten[:14]):
+            k.strasse = f"{RNG.choice(strassen)} {RNG.randint(1, 80)}"
+            k.plz, k.ort = f"1{RNG.randint(0, 4)}{RNG.randint(100, 999)}", "Berlin"
+            if i % 3 == 0:
+                k.betreuung_name = f"Betreuungsverein {RNG.choice(['Mitte', 'Nord', 'Süd'])} e. V."
+                k.betreuung_telefon = f"030-{RNG.randint(200000, 999999)}"
+                k.betreuung_umfang = RNG.choice(["Vermögens- und Gesundheitssorge",
+                                                 "Aufenthaltsbestimmung, Behördenangelegenheiten"])
+                k.betreuung_bis = heute + timedelta(days=RNG.choice([40, 120, 300]))
+            k.save()
+
+        wg_klienten = [k for k in klienten if k.team == team_wg and k.status == Status.BETREUUNG]
+
+        # Wohnform (stationär) mit Zimmern + Belegungen
+        angebot = Angebot.objects.create(
+            name="Wohnform Lindenhof", team=team_wg, typ=AngebotsTyp.BESONDERE_WOHNFORM,
+            erreichbarkeit=Erreichbarkeit.TAG_NACHT, plaetze=8, adresse="Lindenhof 5, 12000 Berlin")
+        zimmer = [Zimmer.objects.create(angebot=angebot, name=nr, plaetze=pl, etage=et)
+                  for nr, pl, et in [("101", 1, "EG"), ("102", 2, "EG"), ("103", 1, "1. OG"),
+                                     ("104", 1, "1. OG"), ("105", 2, "1. OG")]]
+        for idx, k in enumerate(wg_klienten):
+            Belegung.objects.create(klient=k, angebot=angebot, zimmer=zimmer[idx % len(zimmer)],
+                                    einzug=heute - timedelta(days=RNG.randint(60, 600)))
+
+        # Vorkommnisse: eines meldepflichtig OFFEN (Dashboard/Nav rot), eines abgeschlossen
+        if wg_klienten:
+            Vorkommnis.objects.create(
+                datum=heute - timedelta(days=1), kategorie=VorkommnisKategorie.GEWALT,
+                team=team_wg, klient=wg_klienten[0], erstellt_von=betr_wg[0],
+                beschreibung="Verbaler Konflikt zwischen zwei Bewohner*innen im Gemeinschaftsraum.",
+                sofortmassnahmen="Personen getrennt, Einzelgespräche geführt.")
+        Vorkommnis.objects.create(
+            datum=heute - timedelta(days=20), kategorie=VorkommnisKategorie.UNFALL,
+            team=team_tbew, klient=klienten[1], erstellt_von=betr_tbew[0],
+            beschreibung="Sturz im Bad, keine Verletzung.", status=VorkommnisStatus.ABGESCHLOSSEN,
+            gemeldet_am=heute - timedelta(days=19), gemeldet_an="WTG-Aufsicht",
+            massnahmen="Rutschmatte angebracht, Betreuung sensibilisiert.",
+            abgeschlossen_am=heute - timedelta(days=15), abgeschlossen_von=berger)
+
+        # Qualifikationen (eine läuft bald ab -> Fällig-Panel)
+        n_qual = 0
+        for m in [m for m in mitarbeiter if m.rolle == Rolle.USER and m.team != team_vw][:5]:
+            Qualifikation.objects.create(mitarbeiter=m, art=QualifikationArt.QUALIFIKATION,
+                                         bezeichnung="Staatl. anerk. Heilerziehungspfleger*in",
+                                         erworben_am=date(2015, 6, 30))
+            Qualifikation.objects.create(mitarbeiter=m, art=QualifikationArt.FORTBILDUNG, pflicht=True,
+                                         bezeichnung="Erste-Hilfe-Auffrischung",
+                                         gueltig_bis=heute + timedelta(days=RNG.choice([15, 25, 400])))
+            n_qual += 2
+
+        # Kontaktpersonen bei einigen Klient*innen
+        for k in klienten[:8]:
+            Kontaktperson.objects.create(klient=k, rolle=KontaktRolle.ANGEHOERIGE,
+                                         name=f"{RNG.choice(VORNAMEN)} {k.nachname}",
+                                         funktion=RNG.choice(["Mutter", "Bruder", "Tochter", "Vater"]),
+                                         telefon=f"030-{RNG.randint(100000, 999999)}", notfall=True)
+            Kontaktperson.objects.create(klient=k, rolle=KontaktRolle.ARZT,
+                                         name=f"Dr. {RNG.choice(NACHNAMEN)}", funktion="Hausärztliche Praxis",
+                                         telefon=f"030-{RNG.randint(100000, 999999)}")
+
+        # Barbetragskonten mit Buchungen (positiver Saldo)
+        for k in wg_klienten[:4]:
+            konto = Klientenkonto.objects.create(klient=k, typ=KlientenkontoTyp.BARBETRAG)
+            Kontobuchung.objects.create(konto=konto, datum=heute - timedelta(days=30),
+                                        betrag=Decimal("125.00"), zweck="Barbetrag Monat",
+                                        beleg_nr=f"B{RNG.randint(100, 999)}", erfasst_von=betr_wg[0])
+            for _ in range(RNG.randint(2, 4)):
+                Kontobuchung.objects.create(konto=konto, datum=heute - timedelta(days=RNG.randint(1, 25)),
+                                            betrag=Decimal(str(RNG.choice([-5, -8, -12, -20]))),
+                                            zweck=RNG.choice(["Kiosk", "Friseur", "Ausflug", "Hygieneartikel"]),
+                                            erfasst_von=betr_wg[0])
+
+        # FEM: eine laufend (Genehmigung läuft bald ab -> Warnung), eine beendet
+        if wg_klienten:
+            FEM.objects.create(klient=wg_klienten[0], art=FEMArt.BETTGITTER,
+                               beginn=_tz3.now() - timedelta(days=10), grund="Erhebliche Sturzgefahr nachts.",
+                               angeordnet_von="Dr. Vogel / gesetzl. Betreuung", genehmigung_az="XVII 123/26",
+                               genehmigt_bis=heute + timedelta(days=20), einwilligung=True,
+                               gemeldet_am=heute - timedelta(days=9), erfasst_von=betr_wg[0])
+            if len(wg_klienten) > 1:
+                FEM.objects.create(klient=wg_klienten[1], art=FEMArt.TUER,
+                                   beginn=_tz3.now() - timedelta(days=40), ende=_tz3.now() - timedelta(days=30),
+                                   grund="Weglauftendenz mit Selbstgefährdung.", genehmigung_az="XVII 90/26",
+                                   erfasst_von=betr_wg[0])
+
+        # Teilhabe: ein paar Ziele je aktiver Klient*in (Teilhabe-Reiter)
+        ZIELE = ["Eigenständige Haushaltsführung stärken", "Tagesstruktur stabilisieren",
+                 "Soziale Kontakte aufbauen", "Umgang mit Ämtern selbständig bewältigen",
+                 "Medikamenteneinnahme eigenverantwortlich"]
+        n_ziel = 0
+        for k in [k for k in klienten if k.status == Status.BETREUUNG][:12]:
+            for titel in RNG.sample(ZIELE, RNG.randint(1, 3)):
+                Ziel.objects.create(klient=k, art=RNG.choice([ZielArt.HANDLUNGSZIEL, ZielArt.RICHTUNGSZIEL]),
+                                    titel=titel, status=ZielStatus.AKTIV)
+                n_ziel += 1
+
+        self.stdout.write(self.style.SUCCESS(
+            f"Stationär/QM-Demo: {Kostentraeger.objects.count()} Kostenträger, "
+            f"1 Wohnform ({len(zimmer)} Zimmer, {len(wg_klienten)} Belegungen), "
+            f"{Vorkommnis.objects.count()} Vorkommnisse, {n_qual} Qualifikationen, "
+            f"{Kontaktperson.objects.count()} Kontakte, {Klientenkonto.objects.count()} Barbetragskonten, "
+            f"{FEM.objects.count()} FEM, {n_ziel} Ziele."))
 
         self.stdout.write(self.style.SUCCESS(
             f"Fertig: {len(mitarbeiter)} Mitarbeiter, {len(klienten)} Klienten, "
