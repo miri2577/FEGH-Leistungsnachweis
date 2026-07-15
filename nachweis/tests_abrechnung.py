@@ -491,6 +491,58 @@ class MailVersandTests(TestCase):
         self.assertEqual(m.gesendet_an, "rechnung@ba.de")
 
 
+class RechnungslaufTests(TestCase):
+    """Ein-Klick-Rechnungslauf: je Kostenträger eine Sammelrechnung, atomar,
+    Nachweise ohne Kostenträger übersprungen."""
+    def setUp(self):
+        self.team = Team.objects.create(name="TR", typ=Teamtyp.BEW)
+        Parameter.objects.create(jahr=2026, fls_preis=Decimal("50"))
+        uv = User.objects.create_user("vlauf", password="x")
+        Mitarbeiter.objects.create(user=uv, name="V", rolle=Rolle.USER, kuerzel="v",
+                                   team=Team.objects.create(name="VWl", typ=Teamtyp.VERWALTUNG))
+        self.uv = uv
+        uu = User.objects.create_user("ulauf", password="x")
+        self.mu = Mitarbeiter.objects.create(user=uu, name="U", rolle=Rolle.USER,
+                                             team=self.team, kuerzel="u")
+        self.uu = uu
+        self.k1 = Klient.objects.create(nachname="A", team=self.team, bezugsbetreuer=self.mu,
+                                        status=Status.BETREUUNG, kostentraeger="Bezirksamt Mitte")
+        self.k2 = Klient.objects.create(nachname="B", team=self.team, bezugsbetreuer=self.mu,
+                                        status=Status.BETREUUNG, kostentraeger="Bezirksamt Nord")
+        self.k3 = Klient.objects.create(nachname="C", team=self.team, bezugsbetreuer=self.mu,
+                                        status=Status.BETREUUNG, kostentraeger="")   # ohne KT
+        for k, betr in ((self.k1, "100"), (self.k2, "200"), (self.k3, "50")):
+            Monatsfreigabe.objects.create(klient=k, jahr=2026, monat=6,
+                                          status=Freigabestatus.FREIGEGEBEN,
+                                          betrag=Decimal(betr), fls_summe=Decimal("2"))
+
+    def _cl(self, u):
+        c = Client(); c.force_login(u); return c
+
+    def test_lauf_erstellt_je_kostentraeger(self):
+        self._cl(self.uv).post("/rechnungslauf/", {"jahr": 2026, "monat": 6, "datum": "2026-07-01"})
+        self.assertEqual(Rechnung.objects.count(), 2)          # k3 ohne KT übersprungen
+        self.assertEqual(sorted(r.betrag for r in Rechnung.objects.all()),
+                         [Decimal("100"), Decimal("200")])
+        self.assertEqual(Monatsfreigabe.objects.get(klient=self.k1).status, Freigabestatus.ABGERECHNET)
+        self.assertEqual(Monatsfreigabe.objects.get(klient=self.k3).status, Freigabestatus.FREIGEGEBEN)
+
+    def test_zweiter_lauf_erzeugt_keine_dubletten(self):
+        self._cl(self.uv).post("/rechnungslauf/", {"jahr": 2026, "monat": 6, "datum": "2026-07-01"})
+        self._cl(self.uv).post("/rechnungslauf/", {"jahr": 2026, "monat": 6, "datum": "2026-07-01"})
+        self.assertEqual(Rechnung.objects.count(), 2)          # keine erneute Fakturierung
+
+    def test_nur_verwaltung(self):
+        r = self._cl(self.uu).post("/rechnungslauf/", {"jahr": 2026, "monat": 6})
+        self.assertEqual(r.status_code, 403)
+        self.assertEqual(Rechnung.objects.count(), 0)
+
+    def test_service_gruppiert_und_ueberspringt(self):
+        erstellt, ohne = services.rechnungslauf(2026, 6, date(2026, 7, 1), self.mu)
+        self.assertEqual(len(erstellt), 2)
+        self.assertEqual(ohne, 1)
+
+
 class EditLockTests(TestCase):
     """Harte Festschreibung: eingereichte/abgerechnete Monate sind gegen Änderung gesperrt
     (Nachweis-Druck = Original)."""

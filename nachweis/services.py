@@ -1327,6 +1327,26 @@ def rechnung_erstellen(freigaben, empfaenger, jahr, monat, datum, ersteller,
     return r
 
 
+def rechnungslauf(jahr, monat, datum, ersteller):
+    """Ein-Klick-Rechnungslauf: erzeugt je Kostenträger EINE Sammelrechnung aus allen
+    freigegebenen Monatsnachweisen des Monats – atomar (alles oder nichts). Nachweise
+    OHNE Kostenträger werden übersprungen (kein Rechnungsempfänger).
+    Rückgabe (erstellte_rechnungen, uebersprungen)."""
+    from django.db import transaction
+    gruppen, ohne = {}, 0
+    for mf in offene_abrechnung(jahr, monat):
+        kt = (mf.klient.kostentraeger or "").strip()
+        if not kt:
+            ohne += 1
+            continue
+        gruppen.setdefault(kt, []).append(mf)
+    erstellt = []
+    with transaction.atomic():
+        for kt, gr in sorted(gruppen.items()):
+            erstellt.append(rechnung_erstellen(gr, kt, jahr, monat, datum, ersteller))
+    return erstellt, ohne
+
+
 def gutschrift_erstellen(rechnung, ersteller):
     """Storniert eine GESTELLTE Rechnung beleghaft: erzeugt eine Gutschrift (eigene Nummer,
     negativer Betrag, `storno_zu`), setzt das Original auf 'storniert' und gibt die

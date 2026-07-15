@@ -204,6 +204,31 @@ def rechnung_neu(request):
     return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
 
 
+@require_POST
+@login_required
+def rechnungslauf_ausfuehren(request):
+    """Ein-Klick-Rechnungslauf: je Kostenträger eine Sammelrechnung aus allen
+    freigegebenen Nachweisen des Monats (die Übersicht darüber = Erlösvorschau)."""
+    if not services.darf_abrechnen(request.user):
+        return HttpResponseForbidden()
+    jahr, monat = _jahr(request), _monat(request)
+    try:
+        datum = date.fromisoformat(request.POST.get("datum") or "")
+    except ValueError:
+        datum = date.today()
+    me = services.mitarbeiter_fuer(request.user)
+    erstellt, ohne = services.rechnungslauf(jahr, monat, datum, me)
+    if erstellt:
+        summe = sum((r.betrag for r in erstellt), Decimal("0"))
+        msg = f"Rechnungslauf: {len(erstellt)} Rechnung(en) über {summe} € erstellt."
+        if ohne:
+            msg += f" {ohne} Nachweis(e) ohne Kostenträger übersprungen (bitte einzeln zuordnen)."
+        messages.success(request, msg)
+    else:
+        messages.info(request, "Keine abrechenbaren Nachweise mit Kostenträger gefunden.")
+    return redirect(f"{reverse('nachweis:rechnungen')}?jahr={jahr}&monat={monat}")
+
+
 def _positionen(r):
     """Reduzierte Positions-Projektion (nur Abrechnungsdaten, § 18-Struktur).
     Tagessatz-Positionen (M3) tragen art/tage/verguetet statt der FLS-Spalten."""

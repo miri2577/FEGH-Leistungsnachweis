@@ -53,6 +53,16 @@
   {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:9px 14px;border-radius:9px;margin:12px 0">{{ msg }}</div>{% endfor %}
 
   <h2 style="font-size:16px;margin:20px 0 4px">Bereit zur Abrechnung <span class="muted" style="font-weight:400;font-size:14px">· {{ offen_summe|floatformat:2 }} €</span></h2>
+  {% if gruppen %}
+  <form method="post" action="{% url 'nachweis:rechnungslauf_ausfuehren' %}" style="margin:8px 0 14px"
+        onsubmit="return confirm('Ein-Klick-Rechnungslauf: für alle {{ gruppen|length }} Kostenträger je eine Sammelrechnung über zusammen {{ offen_summe|floatformat:2 }} € erstellen?')">
+    {% csrf_token %}
+    <input type="hidden" name="jahr" value="{{ jahr }}"><input type="hidden" name="monat" value="{{ monat }}">
+    <input type="hidden" name="datum" value="{{ heute }}">
+    <button class="btn" type="submit">⚡ Alle abrechnen · {{ gruppen|length }} Rechnung(en) · {{ offen_summe|floatformat:2 }} €</button>
+    <span class="muted" style="font-size:12.5px;margin-left:8px">Die Aufstellung unten ist die Erlösvorschau; erst nach dem Klick werden die Rechnungen erzeugt.</span>
+  </form>
+  {% endif %}
   {% for g in gruppen %}
   <div class="kt-card">
     <div class="kt-head">

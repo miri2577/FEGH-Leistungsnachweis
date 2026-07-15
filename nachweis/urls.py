@@ -115,6 +115,7 @@ urlpatterns = [
     path("abrechnung/aktion/", views_abrechnung.freigabe_aktion, name="freigabe_aktion"),
     path("rechnungen/", views_abrechnung.rechnungen, name="rechnungen"),
     path("rechnungen/neu/", views_abrechnung.rechnung_neu, name="rechnung_neu"),
+    path("rechnungslauf/", views_abrechnung.rechnungslauf_ausfuehren, name="rechnungslauf_ausfuehren"),
     path("rechnungen/<int:pk>/", views_abrechnung.rechnung_detail, name="rechnung_detail"),
     path("rechnungen/<int:pk>/pdf/", views_abrechnung.rechnung_pdf, name="rechnung_pdf"),
     path("rechnungen/<int:pk>/mail/", views_abrechnung.rechnung_mail, name="rechnung_mail"),
