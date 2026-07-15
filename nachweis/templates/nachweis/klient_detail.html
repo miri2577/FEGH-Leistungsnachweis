@@ -58,6 +58,8 @@
         <div><span class="muted">KÜ bis:</span> {{ klient.kue_bis|date:"d.m.Y"|default:"—" }}</div>
         {% if aktive_bewilligung %}<div><span class="muted">Kostenträger:</span> {{ aktive_bewilligung.kostentraeger.name|default:klient.kostentraeger|default:"—" }}</div>{% endif %}
         <div><span class="muted">…versendet am:</span> {{ klient.versendet_am|date:"d.m.Y"|default:"—" }}</div>
+        {% if klient.strasse or klient.ort %}<div><span class="muted">Anschrift:</span> {{ klient.strasse }}{% if klient.plz or klient.ort %}, {{ klient.plz }} {{ klient.ort }}{% endif %}</div>{% endif %}
+        {% if klient.betreuung_name %}<div><span class="muted">Gesetzl. Betreuung:</span> {{ klient.betreuung_name }}{% if klient.betreuung_telefon %} · {{ klient.betreuung_telefon }}{% endif %}{% if klient.betreuung_umfang %} <span class="muted">({{ klient.betreuung_umfang }})</span>{% endif %}{% if klient.betreuung_bis %} · bis {{ klient.betreuung_bis|date:"d.m.Y" }}{% endif %}</div>{% endif %}
       </div>
     </div>
   </div>

@@ -66,6 +66,17 @@
         <div><label class="fld">Kostenträger <span class="muted" style="font-weight:400">(Rechnungsempfänger)</span></label><input type="text" name="kostentraeger" value="{{ klient.kostentraeger|default:'' }}" placeholder="z. B. Bezirksamt …"></div>
         <div class="full"><label class="fld">Kommentar</label><textarea name="kommentar">{{ klient.kommentar|default:'' }}</textarea></div>
 
+        <div class="sec">Anschrift <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">(für Selbstzahler-/WBVG-Korrespondenz)</span></div>
+        <div class="full"><label class="fld">Straße + Nr.</label><input type="text" name="strasse" value="{{ klient.strasse|default:'' }}"></div>
+        <div><label class="fld">PLZ</label><input type="text" name="plz" value="{{ klient.plz|default:'' }}"></div>
+        <div><label class="fld">Ort</label><input type="text" name="ort" value="{{ klient.ort|default:'' }}"></div>
+
+        <div class="sec">Gesetzliche Betreuung <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">(§§ 1814 ff. BGB)</span></div>
+        <div><label class="fld">Betreuer*in / Betreuungsverein</label><input type="text" name="betreuung_name" value="{{ klient.betreuung_name|default:'' }}"></div>
+        <div><label class="fld">Kontakt (Tel./E-Mail)</label><input type="text" name="betreuung_telefon" value="{{ klient.betreuung_telefon|default:'' }}"></div>
+        <div><label class="fld">Aufgabenkreise</label><input type="text" name="betreuung_umfang" value="{{ klient.betreuung_umfang|default:'' }}" placeholder="z. B. Vermögenssorge, Gesundheitssorge"></div>
+        <div><label class="fld">bestellt bis</label><input type="date" name="betreuung_bis" value="{{ klient.betreuung_bis|date:'Y-m-d' }}"></div>
+
         <div class="full" style="margin-top:6px">
           <button class="btn" type="submit">Speichern</button>
           <a class="btn ghost" href="{% url 'nachweis:belegungsliste' %}">Abbrechen</a>

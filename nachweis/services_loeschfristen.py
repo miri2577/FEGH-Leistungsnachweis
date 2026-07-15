@@ -258,7 +258,13 @@ def _pseudonymisiere_stammdaten(klient, heute=None):
     klient.thfd = ""
     klient.kommentar = ""
     klient.kostentraeger = ""
+    # Anschrift + gesetzliche Betreuung (personenbeziehbar) mit anonymisieren
+    klient.strasse = klient.plz = klient.ort = ""
+    klient.betreuung_name = klient.betreuung_telefon = klient.betreuung_umfang = ""
+    klient.betreuung_bis = None
     klient.anonymisiert_am = timezone.now()
     klient.save(update_fields=["nachname", "vorname", "kuerzel", "geburtsdatum",
                                "person_id", "thfd", "kommentar", "kostentraeger",
+                               "strasse", "plz", "ort", "betreuung_name",
+                               "betreuung_telefon", "betreuung_umfang", "betreuung_bis",
                                "anonymisiert_am"])

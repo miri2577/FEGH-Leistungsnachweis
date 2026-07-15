@@ -96,6 +96,10 @@ class AnonymisierungTests(LoeschBasis):
     def _voll_klient(self):
         k = self._klient(kue_bis=date(2013, 1, 1), person_id="AZ-123", vorname="Anna",
                          geburtsdatum=date(1990, 5, 5), kommentar="privat")
+        k.strasse = "Musterweg 3"; k.plz = "10115"; k.ort = "Berlin"
+        k.betreuung_name = "Betreuungsverein e.V."; k.betreuung_telefon = "030-123"
+        k.betreuung_umfang = "Vermögenssorge"; k.betreuung_bis = date(2027, 1, 1)
+        k.save()
         Leistung.objects.create(datum=date(2012, 6, 1), klient=k, leistungsart=Leistungsart.FS,
                                 betreuer=self.betr, dokumentation="Verlauf", notiz="Notiz")
         Monatsfreigabe.objects.create(klient=k, jahr=2012, monat=6, betrag=100)
@@ -139,6 +143,10 @@ class AnonymisierungTests(LoeschBasis):
         self.assertEqual(k.vorname, "")
         self.assertIsNone(k.geburtsdatum)
         self.assertEqual(k.person_id, "")
+        # Anschrift + gesetzliche Betreuung mit anonymisiert
+        self.assertEqual(k.strasse, ""); self.assertEqual(k.plz, ""); self.assertEqual(k.ort, "")
+        self.assertEqual(k.betreuung_name, ""); self.assertEqual(k.betreuung_telefon, "")
+        self.assertEqual(k.betreuung_umfang, ""); self.assertIsNone(k.betreuung_bis)
         self.assertIsNotNone(k.anonymisiert_am)
         # Review HOCH: kein Klartext-Name mehr im Auditlog des Klienten
         ct = ContentType.objects.get_for_model(Klient)

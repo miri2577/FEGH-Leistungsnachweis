@@ -181,6 +181,15 @@ class Klient(models.Model):
     kostentraeger = models.CharField("Kostenträger", max_length=120, blank=True,
                                      help_text="Bezirksamt / überörtlicher Träger – Rechnungsempfänger für die Abrechnung")
     kommentar = models.TextField(blank=True)
+    # Anschrift (für Selbstzahler-/WBVG-Korrespondenz und Rechnungsadresse)
+    strasse = models.CharField("Straße + Nr.", max_length=160, blank=True)
+    plz = models.CharField("PLZ", max_length=10, blank=True)
+    ort = models.CharField("Ort", max_length=100, blank=True)
+    # Gesetzliche/rechtliche Betreuung (§§ 1814 ff. BGB)
+    betreuung_name = models.CharField("gesetzliche Betreuung", max_length=140, blank=True)
+    betreuung_telefon = models.CharField("Betreuung – Kontakt", max_length=80, blank=True)
+    betreuung_umfang = models.CharField("Aufgabenkreise", max_length=200, blank=True)
+    betreuung_bis = models.DateField("Betreuung bestellt bis", null=True, blank=True)
     # Löschkonzept: gesetzt, sobald der Datensatz voll-anonymisiert wurde – schließt ihn
     # aus der Fälligkeits-/Anonymisierungs-Logik aus (keine Re-Anonymisierung).
     anonymisiert_am = models.DateTimeField("anonymisiert am", null=True, blank=True, editable=False)
