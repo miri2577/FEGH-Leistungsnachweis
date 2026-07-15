@@ -5,7 +5,8 @@ from . import (views, views_2fa, views_onboarding, views_stammdaten, views_kasse
                views_abrechnung, views_feld, views_ziele, views_berichte,
                views_controlling, views_belegung, views_qm, views_dienstplan,
                views_dokumente, views_loeschfristen, views_fallakte, views_wohnkosten,
-               views_bedarf, views_kontakte, views_qualifikation, views_klientenkonto)
+               views_bedarf, views_kontakte, views_qualifikation, views_klientenkonto,
+               views_fem)
 
 app_name = "nachweis"
 
@@ -79,6 +80,10 @@ urlpatterns = [
     path("klienten/<int:pk>/konto/buchung/", views_klientenkonto.kontobuchung_speichern, name="kontobuchung_speichern"),
     path("klienten/<int:pk>/konto/buchung/loeschen/", views_klientenkonto.kontobuchung_loeschen, name="kontobuchung_loeschen"),
     path("klienten/<int:pk>/konto/loeschen/", views_klientenkonto.konto_loeschen, name="konto_loeschen"),
+    path("klienten/<int:pk>/fem/", views_fem.fem, name="fem"),
+    path("klienten/<int:pk>/fem/speichern/", views_fem.fem_speichern, name="fem_speichern"),
+    path("klienten/<int:pk>/fem/beenden/", views_fem.fem_beenden, name="fem_beenden"),
+    path("klienten/<int:pk>/fem/loeschen/", views_fem.fem_loeschen, name="fem_loeschen"),
 
     # Berichte (Phase 2)
     path("berichte/<int:pk>/", views_berichte.berichte, name="berichte"),

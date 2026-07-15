@@ -1990,6 +1990,48 @@ class Dokument(models.Model):
             datei.delete(save=False)
 
 
+class FEMArt(models.TextChoices):
+    FIXIERUNG = "fixierung", "Fixierung / Gurt"
+    BETTGITTER = "bettgitter", "Bettgitter"
+    MEDIKAMENTOES = "medikamentoes", "Medikamentös (sedierend)"
+    TUER = "tuer", "Verschlossene Tür / Ausgangssicherung"
+    SONSTIG = "sonstig", "Sonstige"
+
+
+class FEM(models.Model):
+    """Freiheitsentziehende/-beschränkende Maßnahme (§ 1831 BGB, WTG): rechtlich sensibler
+    Pflichtbereich in stationären Wohnformen – mit richterlicher Genehmigung, Frist und
+    Meldeverfahren. Personenbeziehbar/Art-9 → team-gescopt, Löschung bei Anonymisierung."""
+    klient = models.ForeignKey(Klient, on_delete=models.CASCADE, related_name="fem_massnahmen")
+    art = models.CharField(max_length=14, choices=FEMArt.choices, default=FEMArt.FIXIERUNG)
+    beginn = models.DateTimeField("Beginn")
+    ende = models.DateTimeField("Ende", null=True, blank=True, help_text="leer = läuft noch")
+    grund = models.CharField("Grund / Gefährdung", max_length=200)
+    angeordnet_von = models.CharField("angeordnet von (Arzt/Betreuung)", max_length=140, blank=True)
+    genehmigung_az = models.CharField("richterliches Aktenzeichen (§ 1831 BGB)", max_length=80, blank=True)
+    genehmigt_bis = models.DateField("Genehmigung befristet bis", null=True, blank=True)
+    einwilligung = models.BooleanField("Einwilligung der/des Betreuten/Betreuung", default=False)
+    gemeldet_am = models.DateField("der Aufsicht (WTG) gemeldet am", null=True, blank=True)
+    notiz = models.CharField(max_length=200, blank=True)
+    erfasst_von = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="+")
+    erstellt = models.DateTimeField(auto_now_add=True)
+    history = HistoricalRecords(excluded_fields=["grund", "notiz"])
+
+    class Meta:
+        verbose_name = "Freiheitsentziehende Maßnahme"
+        verbose_name_plural = "Freiheitsentziehende Maßnahmen"
+        ordering = ["-beginn"]
+        indexes = [models.Index(fields=["klient", "beginn"])]
+
+    def __str__(self):
+        return f"{self.get_art_display()} · {self.klient} ab {self.beginn:%d.%m.%Y}"
+
+    @property
+    def laeuft(self) -> bool:
+        return self.ende is None
+
+
 class KlientenkontoTyp(models.TextChoices):
     BARBETRAG = "barbetrag", "Barbetrag"
     VERWAHRGELD = "verwahrgeld", "Verwahr-/Verfügungsgeld"
