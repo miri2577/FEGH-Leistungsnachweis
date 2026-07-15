@@ -40,9 +40,20 @@
         <div><label class="fld">kLE je Tag (Std) <span class="muted" style="font-weight:400">(Output 3.)</span></label><input type="text" name="kle_je_tag" value="{{ p.kle_je_tag }}">
           {% if kle_monat %}<span class="muted" style="font-size:12px">≈ {{ kle_monat }} Std/Monat je Klient*in</span>{% endif %}</div>
         <div><label class="fld">PTL-Satz € <span class="muted" style="font-weight:400">(Psychotherapie, § 18 i/j; 0 = aus)</span></label><input type="text" name="ptl_preis" value="{{ p.ptl_preis }}"></div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:20px">
-          <input type="checkbox" name="erbringungsfiktion" id="p-fiktion" {% if p.erbringungsfiktion %}checked{% endif %} style="width:auto">
-          <label for="p-fiktion" style="font-size:13px">Erbringungsfiktion (§ 18 Abs. 4): <b>Soll</b> abrechnen (Ist nachrichtlich)</label></div>
+        <div class="full" style="grid-column:1 / -1;margin-top:16px;border:1px solid var(--line);border-radius:10px;padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:9px">
+            <input type="checkbox" name="erbringungsfiktion" id="p-fiktion" {% if p.erbringungsfiktion %}checked{% endif %} style="width:auto">
+            <label for="p-fiktion" style="font-size:13.5px;font-weight:600">Abrechnungsmodus: Erbringungsfiktion (§ 18 Abs. 4)</label>
+            <span style="margin-left:auto;display:inline-block;padding:1px 9px;border-radius:999px;font-size:11px;font-weight:700;
+              {% if p.erbringungsfiktion %}background:var(--okbg);color:var(--ok){% else %}background:var(--warnbg);color:var(--warn){% endif %}">
+              aktuell: {% if p.erbringungsfiktion %}Soll{% else %}Ist{% endif %}</span>
+          </div>
+          <p class="muted" style="font-size:12px;margin:8px 0 0;line-height:1.5">
+            <b>Aus = Ist abrechnen:</b> es wird nur die tatsächlich dokumentierte Leistung berechnet.<br>
+            <b>Ein = Soll abrechnen:</b> das bewilligte FLS-Kontingent gilt als erbracht (§ 18 Abs. 4 – Klient*innen-Absagen gehen nicht zulasten des Leistungserbringers); das Ist wird nur nachrichtlich ausgewiesen. Bei organisatorischem Versagen ist das Soll manuell zu kürzen.<br>
+            <span style="color:var(--ok)">Jederzeit umschaltbar – die Umstellung wirkt nur auf <b>neue</b> Abrechnungen; bereits berechnete Monate bleiben festgeschrieben.</span>
+          </p>
+        </div>
 
         <div class="full" style="grid-column:1 / -1;margin-top:6px">
           <label class="fld">Individuelle FLS pro Woche je HBG <span class="muted" style="font-weight:400">(Senats-Tool, Output 5. – Vorbelegung für die Belegungsliste)</span></label>
