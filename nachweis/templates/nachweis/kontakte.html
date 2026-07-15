@@ -1,0 +1,72 @@
+{% extends "nachweis/base.html" %}
+{% block title %}Kontakte · {{ klient.name }} · FEGH{% endblock %}
+{% block extrastyle %}
+  .k-form{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;padding:18px}
+  .k-form .full{grid-column:1 / -1}
+  .k-form input,.k-form select{width:100%}
+  .rolle{display:inline-block;padding:1px 9px;border-radius:999px;font-size:11px;font-weight:700;
+    background:var(--brand-soft,#e5eef2);color:var(--brand-d,#0e7490)}
+  .rolle.notfall{background:var(--badbg);color:var(--bad)}
+  @media(max-width:600px){.k-form{grid-template-columns:1fr}}
+{% endblock %}
+{% block content %}
+  {% include "nachweis/_fallakte_kopf.html" with fa_tab="kontakte" %}
+
+  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg);color:var(--bad){% else %}var(--okbg);color:var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
+
+  <p class="sub" style="margin-top:0">Beteiligte im Umfeld der Klient*in – Angehörige, Ärzt*innen, gesetzliche Betreuung, Notfallkontakte (Beteiligtenstruktur nach BTHG).</p>
+
+  <div class="panel">
+    <div class="head"><h2>Kontakte</h2></div>
+    <div class="body">
+      <table class="grid">
+        <thead><tr><th>Rolle</th><th>Name</th><th>Funktion</th><th>Kontakt</th><th>Anschrift</th><th></th></tr></thead>
+        <tbody>
+          {% for k in kontakte %}
+          <tr>
+            <td><span class="rolle {% if k.notfall %}notfall{% endif %}">{{ k.get_rolle_display }}</span>{% if k.notfall %} <span class="muted" title="Notfallkontakt">🚑</span>{% endif %}</td>
+            <td><b>{{ k.name }}</b></td>
+            <td class="muted">{{ k.funktion|default:"—" }}</td>
+            <td>{{ k.telefon }}{% if k.telefon and k.email %}<br>{% endif %}{{ k.email }}{% if not k.telefon and not k.email %}—{% endif %}</td>
+            <td class="muted">{{ k.adresse|default:"—" }}{% if k.notiz %}<br><span style="font-size:12px">{{ k.notiz }}</span>{% endif %}</td>
+            <td style="white-space:nowrap">
+              <a class="btn ghost" style="padding:3px 8px;font-size:12px" href="?edit={{ k.id }}">Bearbeiten</a>
+              <form method="post" action="{% url 'nachweis:kontakt_loeschen' klient.id %}" style="display:inline" onsubmit="return confirm('Kontakt löschen?')">
+                {% csrf_token %}<input type="hidden" name="id" value="{{ k.id }}">
+                <button class="btn ghost" style="padding:3px 8px;font-size:12px;color:var(--bad)">✕</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="muted" style="text-align:center;padding:18px">Noch keine Kontakte – unten anlegen.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% with k=bearbeiten %}
+  <div class="panel" style="max-width:760px">
+    <div class="head"><h2>{% if bearbeiten %}Kontakt bearbeiten{% else %}Kontakt anlegen{% endif %}</h2></div>
+    <form method="post" action="{% url 'nachweis:kontakt_speichern' klient.id %}">
+      {% csrf_token %}
+      {% if bearbeiten %}<input type="hidden" name="id" value="{{ bearbeiten.id }}">{% endif %}
+      <div class="k-form">
+        <div><label class="fld">Rolle</label>
+          <select name="rolle">{% for v,l in rollen %}<option value="{{ v }}" {% if k.rolle == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+        <div><label class="fld">Name *</label><input type="text" name="name" value="{{ k.name|default:'' }}" required></div>
+        <div><label class="fld">Funktion / Beziehung</label><input type="text" name="funktion" value="{{ k.funktion|default:'' }}" placeholder="z. B. Tochter, Hausarzt, Betreuungsverein"></div>
+        <div><label class="fld">Telefon</label><input type="text" name="telefon" value="{{ k.telefon|default:'' }}"></div>
+        <div><label class="fld">E-Mail</label><input type="email" name="email" value="{{ k.email|default:'' }}"></div>
+        <div><label class="fld">Anschrift</label><input type="text" name="adresse" value="{{ k.adresse|default:'' }}"></div>
+        <div class="full"><label class="fld">Notiz</label><input type="text" name="notiz" value="{{ k.notiz|default:'' }}"></div>
+        <div class="full"><label style="display:flex;align-items:center;gap:8px;font-size:13.5px"><input type="checkbox" name="notfall" style="width:auto" {% if k.notfall %}checked{% endif %}> Notfallkontakt (im Notfall zuerst benachrichtigen)</label></div>
+        <div class="full" style="margin-top:4px">
+          <button class="btn" type="submit">Speichern</button>
+          {% if bearbeiten %}<a class="btn ghost" href="{% url 'nachweis:kontakte' klient.id %}">Abbrechen</a>{% endif %}
+        </div>
+      </div>
+    </form>
+  </div>
+  {% endwith %}
+{% endblock %}

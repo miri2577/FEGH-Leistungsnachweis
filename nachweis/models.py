@@ -1958,6 +1958,41 @@ class Dokument(models.Model):
             datei.delete(save=False)
 
 
+class KontaktRolle(models.TextChoices):
+    ANGEHOERIGE = "angehoerige", "Angehörige*r"
+    BETREUUNG = "betreuung", "gesetzliche Betreuung"
+    ARZT = "arzt", "Arzt / Ärztin / Therapie"
+    NOTFALL = "notfall", "Notfallkontakt"
+    BEHOERDE = "behoerde", "Behörde / Amt"
+    SONSTIG = "sonstig", "Sonstige*r"
+
+
+class Kontaktperson(models.Model):
+    """Beteiligte Person/Stelle im Umfeld einer Klient*in (Angehörige, Ärzte,
+    gesetzliche Betreuung, Notfallkontakt) – Beteiligtenstruktur nach BTHG.
+    Personenbeziehbar → wird beim Löschkonzept mit anonymisiert/gelöscht."""
+    klient = models.ForeignKey(Klient, on_delete=models.CASCADE, related_name="kontakte")
+    rolle = models.CharField(max_length=12, choices=KontaktRolle.choices,
+                             default=KontaktRolle.ANGEHOERIGE)
+    name = models.CharField("Name", max_length=140)
+    funktion = models.CharField("Funktion / Beziehung", max_length=120, blank=True)
+    telefon = models.CharField("Telefon", max_length=60, blank=True)
+    email = models.EmailField("E-Mail", blank=True)
+    adresse = models.CharField("Anschrift", max_length=200, blank=True)
+    notiz = models.CharField("Notiz", max_length=200, blank=True)
+    notfall = models.BooleanField("Notfallkontakt", default=False)
+    erstellt = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Kontaktperson"
+        verbose_name_plural = "Kontaktpersonen"
+        ordering = ["-notfall", "rolle", "name"]
+        indexes = [models.Index(fields=["klient", "rolle"])]
+
+    def __str__(self):
+        return f"{self.name} ({self.get_rolle_display()})"
+
+
 # ==========================================================================
 #  Löschkonzept (DSGVO Art. 5/17, § 84 SGB X): Aufbewahrungsfristen als DATEN
 #  (nicht hartkodiert) — der/die Datenschutzbeauftragte pflegt sie je Instanz.

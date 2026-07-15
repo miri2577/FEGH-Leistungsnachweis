@@ -188,7 +188,7 @@ def anonymisieren(klient, stufe="fachdaten", apply=False, heute=None) -> dict:
             lambda: [d.delete() for d in klient.dokumente.all()])
     for rel, label in (("ziele", "Ziel(e)"), ("berichte", "Bericht(e)"),
                        ("wirkungseinschaetzungen", "Wirkungseinschätzung(en)"),
-                       ("termine", "Termin(e)")):
+                       ("termine", "Termin(e)"), ("kontakte", "Kontaktperson(en)")):
         n = getattr(klient, rel).count()
         if n:
             tue(f"{n} {label} löschen", lambda r=rel: getattr(klient, r).all().delete())

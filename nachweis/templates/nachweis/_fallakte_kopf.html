@@ -55,5 +55,6 @@ Braucht `klient` im Kontext; nutzt das globale `nav_ist_leitung`.
   <a href="{% url 'nachweis:ziele' klient.id %}" class="{% if fa_tab == 'teilhabe' %}on{% endif %}">Teilhabe</a>
   <a href="{% url 'nachweis:berichte' klient.id %}" class="{% if fa_tab == 'berichte' %}on{% endif %}">Berichte</a>
   <a href="{% url 'nachweis:dokumente' klient.id %}" class="{% if fa_tab == 'dokumente' %}on{% endif %}">Dokumente</a>
+  <a href="{% url 'nachweis:kontakte' klient.id %}" class="{% if fa_tab == 'kontakte' %}on{% endif %}">Kontakte</a>
   <a href="{% url 'nachweis:klient_verlauf' klient.id %}" class="{% if fa_tab == 'verlauf' %}on{% endif %}">Verlauf</a>
 </nav>
