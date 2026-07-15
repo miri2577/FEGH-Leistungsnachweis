@@ -15,9 +15,10 @@ from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from xml.etree import ElementTree as ET
 
-from .models import Rechnungssteller
+from .models import Rechnungssteller, Rechnungstyp
 
 INVOICE_NS = "urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+CREDITNOTE_NS = "urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2"
 CAC = "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
 CBC = "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
 
@@ -77,18 +78,32 @@ def build_ubl(rechnung) -> bytes:
     kt = rechnung.kostentraeger
     positionen = _positionen(rechnung)
 
-    root = ET.Element(f"{{{INVOICE_NS}}}Invoice")
+    # Gutschriften werden als UBL-CreditNote (Typ 381) mit POSITIVEN Beträgen erzeugt –
+    # der negative Rechnungsbetrag der App wird betragsmäßig (abs) übernommen, das Vorzeichen
+    # steckt in der Dokumentart. Reguläre Rechnungen bleiben UBL-Invoice (Typ 380).
+    gutschrift = rechnung.typ == Rechnungstyp.GUTSCHRIFT
+    ns_root = CREDITNOTE_NS if gutschrift else INVOICE_NS
+    ET.register_namespace("", ns_root)
+
+    root = ET.Element(f"{{{ns_root}}}{'CreditNote' if gutschrift else 'Invoice'}")
     _sub(root, CBC, "CustomizationID", CUSTOMIZATION_ID)
     _sub(root, CBC, "ProfileID", PROFILE_ID)
     _sub(root, CBC, "ID", rechnung.nummer)                      # BT-1
     _sub(root, CBC, "IssueDate", rechnung.datum.isoformat())    # BT-2
     ziel = (kt.zahlungsziel_tage if kt and kt.zahlungsziel_tage else s.zahlungsziel_tage) or 30
-    _sub(root, CBC, "DueDate", (rechnung.datum + timedelta(days=ziel)).isoformat())  # BT-9
-    _sub(root, CBC, "InvoiceTypeCode", "380")                   # Handelsrechnung
+    if gutschrift:
+        _sub(root, CBC, "CreditNoteTypeCode", "381")            # Gutschrift (keine DueDate)
+    else:
+        _sub(root, CBC, "DueDate", (rechnung.datum + timedelta(days=ziel)).isoformat())  # BT-9
+        _sub(root, CBC, "InvoiceTypeCode", "380")               # Handelsrechnung
     if rechnung.notiz:
         _sub(root, CBC, "Note", rechnung.notiz)                 # BT-22
     _sub(root, CBC, "DocumentCurrencyCode", "EUR")              # BT-5
     _sub(root, CBC, "BuyerReference", (kt.leitweg_id if kt else "") or "")  # BT-10 Leitweg-ID
+    # Bezug auf die stornierte Originalrechnung (BG-3, für die Gutschrift maßgeblich).
+    if gutschrift and rechnung.storno_zu_id:
+        br = _sub(root, CAC, "BillingReference")
+        _sub(_sub(br, CAC, "InvoiceDocumentReference"), CBC, "ID", rechnung.storno_zu.nummer)
 
     # ---- Verkäufer (BG-4) ----
     supplier = _sub(_sub(root, CAC, "AccountingSupplierParty"), CAC, "Party")
@@ -144,7 +159,7 @@ def build_ubl(rechnung) -> bytes:
     _sub(pt, CBC, "Note", f"Zahlbar innerhalb {ziel} Tagen ohne Abzug.")
 
     # ---- Steuer (BG-23): eine Gruppe Kategorie E ----
-    netto = Decimal(rechnung.betrag or 0)
+    netto = abs(Decimal(rechnung.betrag or 0))            # Gutschrift: Betrag positiv, Art = 381
     tax_total = _sub(root, CAC, "TaxTotal")
     _sub(tax_total, CBC, "TaxAmount", _q2(0), currencyID="EUR")           # BT-110 = 0
     sub = _sub(tax_total, CAC, "TaxSubtotal")
@@ -165,11 +180,13 @@ def build_ubl(rechnung) -> bytes:
     _sub(lmt, CBC, "PayableAmount", _q2(netto), currencyID="EUR")        # BT-115
 
     # ---- Positionen (BG-25): je Monatsnachweis eine Zeile ----
+    line_tag = "CreditNoteLine" if gutschrift else "InvoiceLine"
+    qty_tag = "CreditedQuantity" if gutschrift else "InvoicedQuantity"
     for i, p in enumerate(positionen, start=1):
-        betrag = Decimal(p.betrag or 0)
-        line = _sub(root, CAC, "InvoiceLine")
+        betrag = abs(Decimal(p.betrag or 0))
+        line = _sub(root, CAC, line_tag)
         _sub(line, CBC, "ID", str(i))                                    # BT-126
-        _sub(line, CBC, "InvoicedQuantity", "1", unitCode="C62")        # BT-129/130 (C62 = Stück)
+        _sub(line, CBC, qty_tag, "1", unitCode="C62")                   # BT-129/130 (C62 = Stück)
         _sub(line, CBC, "LineExtensionAmount", _q2(betrag), currencyID="EUR")  # BT-131
         item = _sub(line, CAC, "Item")
         if getattr(p, "abrechnungsart", "fls") == "tagessatz":

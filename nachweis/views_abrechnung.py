@@ -505,11 +505,6 @@ def rechnung_xrechnung(request, pk):
         return redirect("nachweis:start")
     from . import xrechnung
     r = get_object_or_404(Rechnung, pk=pk)
-    if r.typ == Rechnungstyp.GUTSCHRIFT:
-        # XRechnung-Gutschrift ist ein eigenes UBL-Dokument (CreditNote) – noch nicht gebaut.
-        messages.info(request, "Gutschriften werden aktuell als PDF/Druck übermittelt – "
-                               "die XRechnung-Gutschrift (UBL CreditNote) folgt bei Bedarf.")
-        return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
     probleme = xrechnung.pruefe_voraussetzungen(r)
     if probleme:
         for p in probleme:
@@ -517,8 +512,10 @@ def rechnung_xrechnung(request, pk):
         messages.info(request, "Bitte Stammdaten/Leitweg-ID ergänzen, dann erneut exportieren.")
         return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
     xml = xrechnung.build_ubl(r)
+    # Gutschrift → CreditNote, sonst Invoice (der Dateiname macht das für die OZG-RE-Ablage klar).
+    art = "Gutschrift" if r.typ == Rechnungstyp.GUTSCHRIFT else "XRechnung"
     resp = HttpResponse(xml, content_type="application/xml; charset=utf-8")
-    resp["Content-Disposition"] = f'attachment; filename="XRechnung_{r.nummer}.xml"'
+    resp["Content-Disposition"] = f'attachment; filename="{art}_{r.nummer}.xml"'
     return resp
 
 
