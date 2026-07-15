@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
@@ -301,41 +301,43 @@ def api_leistung_save(request):
     # Harte Festschreibung: in einem eingereichten/freigegebenen/abgerechneten Monat
     # sind die Leistungen gesperrt. Beim Verschieben einer Zeile zählt sowohl der
     # Ziel- als auch der bisherige Monat (sonst ließe sich Ist aus dem Nachweis ziehen).
-    if services.monat_gesperrt(klient, datum.year, datum.month) or (
-            l.pk and services.monat_gesperrt(l.klient, l.datum.year, l.datum.month)):
-        return HttpResponse("Dieser Monat ist bereits eingereicht/abgerechnet – die "
-                            "Leistung ist festgeschrieben und kann nicht geändert werden.",
-                            status=409)
-
-    l.datum = datum
-    l.klient = klient
-    l.leistungsart = p["leistungsart"]
-    l.taetigkeit = (p.get("taetigkeit") or "").strip()
-    l.beginn = _parse_time(p.get("beginn"))
-    l.ende = _parse_time(p.get("ende"))
-    l.notiz = (p.get("notiz") or "").strip()
-    if "dokumentation" in p:
-        l.dokumentation = (p.get("dokumentation") or "").strip()
-    l.betreuer = services.mitarbeiter_fuer(request.user) or klient.bezugsbetreuer
-    l.save()
-    if "ziele" in p:
-        # Zielbezug der Doku: nur Ziele DIESES Klienten zulässig (kein Cross-Klient-Bezug).
-        # Bestandsschutz: das Modal zeigt nur AKTIVE Ziele als Checkboxen – Bezüge zu
-        # inzwischen erreichten/abgeschlossenen Zielen dürfen beim Speichern nicht still
-        # verschwinden (Art-9-Verlaufsdoku würde rückwirkend verfälscht). Deshalb bleiben
-        # bestehende Bezüge auf NICHT-aktive Ziele immer erhalten.
-        from .models import Ziel, ZielStatus
-        ids = [i for i in (p.get("ziele") or []) if isinstance(i, int)]
-        neue = set(Ziel.objects.filter(klient=klient, pk__in=ids)
-                   .values_list("pk", flat=True))
-        # Bestandsschutz NUR für nicht-aktive Ziele DIESES Klienten. Der filter(klient)
-        # ist zwingend: bei einem Klient-Wechsel der Zeile (Edit) hielte l.ziele sonst
-        # noch die Ziele des alten Klienten, und ohne Klient-Scoping würden sie an die
-        # jetzt fremde Klient*in gehängt (fremdes Ziel im Bericht/Verlauf).
-        bestand_inaktiv = set(l.ziele.filter(klient=klient)
-                              .exclude(status=ZielStatus.AKTIV)
-                              .values_list("pk", flat=True)) if l.pk else set()
-        l.ziele.set(Ziel.objects.filter(pk__in=neue | bestand_inaktiv))
+    # Der Klient-Row-Lock serialisiert Check+Save gegen eine gleichzeitige Freigabe (TOCTOU).
+    with transaction.atomic():
+        Klient.objects.select_for_update().filter(pk=klient.pk).first()
+        if services.monat_gesperrt(klient, datum.year, datum.month) or (
+                l.pk and services.monat_gesperrt(l.klient, l.datum.year, l.datum.month)):
+            return HttpResponse("Dieser Monat ist bereits eingereicht/abgerechnet – die "
+                                "Leistung ist festgeschrieben und kann nicht geändert werden.",
+                                status=409)
+        l.datum = datum
+        l.klient = klient
+        l.leistungsart = p["leistungsart"]
+        l.taetigkeit = (p.get("taetigkeit") or "").strip()
+        l.beginn = _parse_time(p.get("beginn"))
+        l.ende = _parse_time(p.get("ende"))
+        l.notiz = (p.get("notiz") or "").strip()
+        if "dokumentation" in p:
+            l.dokumentation = (p.get("dokumentation") or "").strip()
+        l.betreuer = services.mitarbeiter_fuer(request.user) or klient.bezugsbetreuer
+        l.save()
+        if "ziele" in p:
+            # Zielbezug der Doku: nur Ziele DIESES Klienten zulässig (kein Cross-Klient-Bezug).
+            # Bestandsschutz: das Modal zeigt nur AKTIVE Ziele als Checkboxen – Bezüge zu
+            # inzwischen erreichten/abgeschlossenen Zielen dürfen beim Speichern nicht still
+            # verschwinden (Art-9-Verlaufsdoku würde rückwirkend verfälscht). Deshalb bleiben
+            # bestehende Bezüge auf NICHT-aktive Ziele immer erhalten.
+            from .models import Ziel, ZielStatus
+            ids = [i for i in (p.get("ziele") or []) if isinstance(i, int)]
+            neue = set(Ziel.objects.filter(klient=klient, pk__in=ids)
+                       .values_list("pk", flat=True))
+            # Bestandsschutz NUR für nicht-aktive Ziele DIESES Klienten. Der filter(klient)
+            # ist zwingend: bei einem Klient-Wechsel der Zeile (Edit) hielte l.ziele sonst
+            # noch die Ziele des alten Klienten, und ohne Klient-Scoping würden sie an die
+            # jetzt fremde Klient*in gehängt (fremdes Ziel im Bericht/Verlauf).
+            bestand_inaktiv = set(l.ziele.filter(klient=klient)
+                                  .exclude(status=ZielStatus.AKTIV)
+                                  .values_list("pk", flat=True)) if l.pk else set()
+            l.ziele.set(Ziel.objects.filter(pk__in=neue | bestand_inaktiv))
     return JsonResponse(_row(l))
 
 
@@ -349,11 +351,13 @@ def api_leistung_delete(request):
     l = Leistung.objects.filter(pk=p.get("id")).first()
     if not l or l.klient not in services.klienten_fuer(request.user):
         return HttpResponseForbidden()
-    if services.monat_gesperrt(l.klient, l.datum.year, l.datum.month):
-        return HttpResponse("Dieser Monat ist bereits eingereicht/abgerechnet – die "
-                            "Leistung ist festgeschrieben und kann nicht gelöscht werden.",
-                            status=409)
-    l.delete()
+    with transaction.atomic():
+        Klient.objects.select_for_update().filter(pk=l.klient_id).first()
+        if services.monat_gesperrt(l.klient, l.datum.year, l.datum.month):
+            return HttpResponse("Dieser Monat ist bereits eingereicht/abgerechnet – die "
+                                "Leistung ist festgeschrieben und kann nicht gelöscht werden.",
+                                status=409)
+        l.delete()
     return JsonResponse({"ok": True})
 
 
@@ -572,18 +576,22 @@ def gruppe_save(request):
     ids = [i for i in request.POST.getlist("teilnehmer") if i.isdigit()]
     # nur sichtbare (eigene Team-)Klient*innen zuweisbar
     tn = list(sichtbar.filter(pk__in=ids))
+    tn_ids = [k.id for k in tn]
     # Harte Festschreibung: keine Gruppenleistung mehr in einem Monat, der für
-    # mindestens eine*n Teilnehmer*in bereits eingereicht/abgerechnet ist.
-    if services.monat_gesperrt_fuer([k.id for k in tn], datum.year, datum.month):
-        messages.error(request, "Für mindestens eine*n Teilnehmer*in ist dieser Monat bereits "
-                                "eingereicht/abgerechnet – die Gruppenleistung ist festgeschrieben.")
-        return redirect("nachweis:gruppen")
-    g = Gruppe.objects.create(
-        datum=datum, thema=thema, leistungsart=art,
-        beginn=_parse_time(request.POST.get("beginn")),
-        ende=_parse_time(request.POST.get("ende")),
-        anz_ma=max(1, _int(request.POST.get("anz_ma"), 1)))
-    g.teilnehmer.set(tn)
+    # mindestens eine*n Teilnehmer*in bereits eingereicht/abgerechnet ist. Row-Lock
+    # (pk-Reihenfolge → kein Deadlock) serialisiert gegen gleichzeitige Freigaben.
+    with transaction.atomic():
+        list(Klient.objects.select_for_update().filter(pk__in=tn_ids).order_by("pk"))
+        if services.monat_gesperrt_fuer(tn_ids, datum.year, datum.month):
+            messages.error(request, "Für mindestens eine*n Teilnehmer*in ist dieser Monat bereits "
+                                    "eingereicht/abgerechnet – die Gruppenleistung ist festgeschrieben.")
+            return redirect("nachweis:gruppen")
+        g = Gruppe.objects.create(
+            datum=datum, thema=thema, leistungsart=art,
+            beginn=_parse_time(request.POST.get("beginn")),
+            ende=_parse_time(request.POST.get("ende")),
+            anz_ma=max(1, _int(request.POST.get("anz_ma"), 1)))
+        g.teilnehmer.set(tn)
     messages.success(request, f"Gruppe {thema} gespeichert ({g.teilnehmer.count()} Teilnehmer*innen).")
     return redirect("nachweis:gruppen")
 
@@ -1333,6 +1341,17 @@ def timeline_restore(request):
     obj = model.objects.filter(pk=le.object_pk).first() if model else None
     if not obj:
         messages.error(request, "Objekt existiert nicht mehr – bitte aus dem Backup wiederherstellen.")
+        return redirect("nachweis:timeline")
+    # Auch der Break-Glass-Weg respektiert die harte Festschreibung: ein bereits
+    # eingereichter/abgerechneter Monatsnachweis wird nicht still über die Timeline verändert.
+    if isinstance(obj, Leistung) and services.monat_gesperrt(obj.klient, obj.datum.year, obj.datum.month):
+        messages.error(request, "Der Monatsnachweis ist bereits eingereicht/abgerechnet – eine "
+                                "festgeschriebene Leistung wird nicht über die Timeline zurückgesetzt.")
+        return redirect("nachweis:timeline")
+    if isinstance(obj, Gruppe) and services.monat_gesperrt_fuer(
+            list(obj.teilnehmer.values_list("id", flat=True)), obj.datum.year, obj.datum.month):
+        messages.error(request, "Der Monatsnachweis ist bereits eingereicht/abgerechnet – eine "
+                                "festgeschriebene Gruppenleistung wird nicht zurückgesetzt.")
         return redirect("nachweis:timeline")
     zurueck, skip = [], []
     for feld, paar in _log_changes(le).items():

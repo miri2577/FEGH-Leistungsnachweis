@@ -561,3 +561,74 @@ class EditLockTests(TestCase):
                     "beginn": "09:00", "ende": "10:00", "leistungsart": Leistungsart.FS,
                     "doku_minuten": "0"})
         self.assertEqual(Leistung.objects.filter(klient=self.k, datum=date(2026, 6, 10)).count(), 0)
+
+
+class TeilerFestschreibungTests(TestCase):
+    """Teamsitzung/Serien werden durch die Klientenzahl geteilt – für festgeschriebene
+    Monate bleibt der Teiler fixiert, damit der Nachweis-Druck reproduzierbar ist."""
+    def setUp(self):
+        self.team = Team.objects.create(name="TT", typ=Teamtyp.BEW)
+        u = User.objects.create_user("mteiler", password="x")
+        self.m = Mitarbeiter.objects.create(user=u, name="M", rolle=Rolle.USER,
+                                             team=self.team, kuerzel="m")
+        self.p = Parameter.objects.create(jahr=2026, fls_preis=Decimal("50"),
+                                          teamsitzung_dauer_std=Decimal("3"), teamsitzung_wochentag=3)
+        self.k = Klient.objects.create(nachname="A", team=self.team, bezugsbetreuer=self.m,
+                                       status=Status.BETREUUNG)
+        Klient.objects.create(nachname="B", team=self.team, bezugsbetreuer=self.m,
+                              status=Status.BETREUUNG)
+
+    def _snapshot(self):
+        mf = Monatsfreigabe.objects.create(klient=self.k, jahr=2026, monat=6,
+                                           status=Freigabestatus.EINGEREICHT)
+        services.freigabe_snapshot(mf); mf.save()
+        return mf
+
+    def _dritte(self):
+        Klient.objects.create(nachname="C", team=self.team, bezugsbetreuer=self.m,
+                              status=Status.BETREUUNG)
+
+    def _ts_stunden(self):
+        d = services.druck_nachweis(self.k, 2026, 6)
+        ts = [e for e in d["eintraege"] if e["bezeichnung"] == "Teamsitzung"]
+        return ts[0]["stunden"] if ts else None
+
+    def test_snapshot_speichert_teiler(self):
+        mf = self._snapshot()
+        self.assertEqual(mf.teiler_global, 2)          # 2 Klient*innen in Betreuung
+        self.assertEqual(mf.teiler_team, 2)
+
+    def test_druck_nutzt_fixierten_teiler(self):
+        self._snapshot()                               # Teiler = 2 fixiert
+        self._dritte()                                 # live-Teiler jetzt 3
+        self.assertEqual(self._ts_stunden(), Decimal("1.500"))   # 3 h ÷ 2 (fixiert)
+
+    def test_offener_monat_nutzt_live_teiler(self):
+        self._dritte()                                 # kein Snapshot -> live-Teiler 3
+        self.assertEqual(self._ts_stunden(), Decimal("1.000"))   # 3 h ÷ 3
+
+    def test_reprint_immun_gegen_teamwechsel_bei_teamserie(self):
+        """HOCH-Befund: eine team-bezogene FLS-Serie darf im Nachdruck nicht wegfallen,
+        wenn der Klient nach Freigabe das Team wechselt (Druck = eingefrorene Rechnung)."""
+        from .models import WiederkehrendeLeistung, Rhythmus, Anrechnung, Team as T
+        WiederkehrendeLeistung.objects.create(
+            bezeichnung="Fallsupervision", team=self.team, leistungsart=Leistungsart.WFS,
+            rhythmus=Rhythmus.WOECHENTLICH, wochentag=1, anrechnung=Anrechnung.TEILER,
+            dauer_std=Decimal("2"), aktiv=True, gilt_ab=date(2026, 1, 1))
+        mf = self._snapshot()
+        frozen = services.druck_nachweis(self.k, 2026, 6)["fls_summe"]
+        self.assertGreater(frozen, Decimal("0"))
+        self.assertEqual(frozen, mf.fls_summe)         # Druck == eingefrorene Rechnung
+        neues = T.objects.create(name="TX", typ=Teamtyp.BEW)
+        Klient.objects.filter(pk=self.k.pk).update(team=neues)   # Team-Wechsel nach Freigabe
+        self.k.refresh_from_db()
+        self.assertEqual(services.druck_nachweis(self.k, 2026, 6)["fls_summe"], frozen)
+
+    def test_reprint_immun_gegen_status_beendigung(self):
+        """HOCH-Befund: eine spätere Beendigung darf den bereits abgerechneten Nachweis
+        nicht auf 0 fallen lassen."""
+        self._snapshot()
+        frozen = self._ts_stunden()                    # 1,5 (Teamsitzung 3 h ÷ 2)
+        Klient.objects.filter(pk=self.k.pk).update(status=Status.BEENDIGUNG)
+        self.k.refresh_from_db()
+        self.assertEqual(self._ts_stunden(), frozen)   # trotz Beendigung unverändert

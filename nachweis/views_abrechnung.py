@@ -24,9 +24,11 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from django.db import transaction
+
 from . import services
 from .models import (Monatsfreigabe, Rechnung, Freigabestatus, Rechnungsstatus,
-                     Rechnungssteller, Zahlung, Mahnung, Mahnstufe, Rechnungstyp)
+                     Rechnungssteller, Zahlung, Mahnung, Mahnstufe, Rechnungstyp, Klient)
 
 MONATSNAMEN = ["", "Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
                "August", "September", "Oktober", "November", "Dezember"]
@@ -96,41 +98,47 @@ def freigabe_aktion(request):
     jahr, monat = _jahr(request), _monat(request)
     sichtbar = services.klienten_fuer(request.user)          # nur eigenes/geleitetes Team
     klient = get_object_or_404(sichtbar, pk=request.POST.get("klient"))
-    mf = services.freigabe_holen(klient, jahr, monat, erzeugen=True)
     me = services.mitarbeiter_fuer(request.user)
     jetzt = timezone.now()
 
-    if aktion == "fertig":
-        if mf.status == Freigabestatus.OFFEN:
-            services.freigabe_snapshot(mf)
-            mf.status = Freigabestatus.EINGEREICHT
-            mf.eingereicht_am, mf.eingereicht_von, mf.hinweis = jetzt, me, ""
-            mf.save()
-            messages.success(request, f"{klient.name}: als fertig gemeldet.")
-    elif aktion == "zurueckholen":
-        if mf.status == Freigabestatus.EINGEREICHT:
-            mf.status = Freigabestatus.OFFEN
-            mf.save()
-            messages.success(request, f"{klient.name}: zurückgeholt (wieder in Bearbeitung).")
-    elif aktion in ("freigeben", "zurueckweisen", "freigabe_zuruecknehmen"):
-        if not services.darf_freigeben(request.user):
-            return HttpResponseForbidden()
-        if aktion == "freigeben" and mf.status == Freigabestatus.EINGEREICHT:
-            services.freigabe_snapshot(mf)                   # ggf. zwischenzeitliche Änderungen
-            mf.status = Freigabestatus.FREIGEGEBEN
-            mf.freigegeben_am, mf.freigegeben_von = jetzt, me
-            mf.save()
-            messages.success(request, f"{klient.name}: freigegeben ({mf.betrag} €).")
-        elif aktion == "zurueckweisen" and mf.status == Freigabestatus.EINGEREICHT:
-            mf.status = Freigabestatus.OFFEN
-            mf.hinweis = (request.POST.get("hinweis") or "").strip()[:255]
-            mf.save()
-            messages.success(request, f"{klient.name}: an die/den Mitarbeiter*in zurückgewiesen.")
-        elif aktion == "freigabe_zuruecknehmen" and mf.status == Freigabestatus.FREIGEGEBEN:
-            mf.status = Freigabestatus.EINGEREICHT
-            mf.freigegeben_am, mf.freigegeben_von = None, None
-            mf.save()
-            messages.success(request, f"{klient.name}: Freigabe zurückgenommen.")
+    # Row-Lock auf den Klienten: serialisiert Snapshot/Statuswechsel gegen gleichzeitige
+    # Leistungs-/Gruppen-Schreibzugriffe (dieselbe Sperre in den Schreib-Views), damit
+    # keine Leistung neben einem bereits gezogenen Snapshot entsteht (TOCTOU).
+    with transaction.atomic():
+        Klient.objects.select_for_update().filter(pk=klient.pk).first()
+        mf = services.freigabe_holen(klient, jahr, monat, erzeugen=True)
+
+        if aktion == "fertig":
+            if mf.status == Freigabestatus.OFFEN:
+                services.freigabe_snapshot(mf)
+                mf.status = Freigabestatus.EINGEREICHT
+                mf.eingereicht_am, mf.eingereicht_von, mf.hinweis = jetzt, me, ""
+                mf.save()
+                messages.success(request, f"{klient.name}: als fertig gemeldet.")
+        elif aktion == "zurueckholen":
+            if mf.status == Freigabestatus.EINGEREICHT:
+                mf.status = Freigabestatus.OFFEN
+                mf.save()
+                messages.success(request, f"{klient.name}: zurückgeholt (wieder in Bearbeitung).")
+        elif aktion in ("freigeben", "zurueckweisen", "freigabe_zuruecknehmen"):
+            if not services.darf_freigeben(request.user):
+                return HttpResponseForbidden()
+            if aktion == "freigeben" and mf.status == Freigabestatus.EINGEREICHT:
+                services.freigabe_snapshot(mf)               # ggf. zwischenzeitliche Änderungen
+                mf.status = Freigabestatus.FREIGEGEBEN
+                mf.freigegeben_am, mf.freigegeben_von = jetzt, me
+                mf.save()
+                messages.success(request, f"{klient.name}: freigegeben ({mf.betrag} €).")
+            elif aktion == "zurueckweisen" and mf.status == Freigabestatus.EINGEREICHT:
+                mf.status = Freigabestatus.OFFEN
+                mf.hinweis = (request.POST.get("hinweis") or "").strip()[:255]
+                mf.save()
+                messages.success(request, f"{klient.name}: an die/den Mitarbeiter*in zurückgewiesen.")
+            elif aktion == "freigabe_zuruecknehmen" and mf.status == Freigabestatus.FREIGEGEBEN:
+                mf.status = Freigabestatus.EINGEREICHT
+                mf.freigegeben_am, mf.freigegeben_von = None, None
+                mf.save()
+                messages.success(request, f"{klient.name}: Freigabe zurückgenommen.")
     return redirect(f"{reverse('nachweis:abrechnung')}?jahr={jahr}&monat={monat}")
 
 

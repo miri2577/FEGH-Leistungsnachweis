@@ -14,8 +14,10 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from django.db import transaction
+
 from . import services
-from .models import Leistung, Termin, Leistungsart
+from .models import Leistung, Termin, Leistungsart, Klient
 
 
 def _time(s):
@@ -84,45 +86,49 @@ def feld_speichern(request):
     if not (klient and beginn and ende):
         messages.error(request, "Bitte Klient*in, Von- und Bis-Zeit angeben.")
         return redirect("nachweis:feld_heute")
-    # Harte Festschreibung: kein neuer Besuch in einem bereits eingereichten/abgerechneten Monat.
-    if services.monat_gesperrt(klient, datum.year, datum.month):
-        messages.error(request, "Dieser Monat ist bereits eingereicht/abgerechnet – "
-                                "es können keine neuen Besuche mehr erfasst werden.")
-        return redirect("nachweis:feld_heute")
-    # Bezug zum Kalender-Termin (falls aus einem Termin heraus dokumentiert) –
-    # nur eigener Termin desselben/derselben Klient*in; markiert ihn als dokumentiert.
-    tid = request.POST.get("termin")
-    termin = (Termin.objects.filter(pk=tid, mitarbeiter=me, klient=klient).first()
-              if tid and tid.isdigit() else None)
-    # 1) Der Besuch selbst (Standard FS), mit der Verlaufs-Doku.
-    leistung = Leistung.objects.create(
-        datum=datum, klient=klient, leistungsart=art, betreuer=me,
-        beginn=beginn, ende=ende, termin=termin,
-        taetigkeit=(request.POST.get("taetigkeit") or "").strip()[:120],
-        dokumentation=(request.POST.get("dokumentation") or "").strip())
-    # Optionaler Zielbezug der Verlaufsdoku (ZLP) – wie im Desktop-Doku-Modal, nur
-    # Ziele DIESER Klient*in (kein Cross-Klient-Bezug). Beim Feld-Besuch entsteht immer
-    # eine neue Leistung, daher kein Bestandsschutz nötig (nichts zu überschreiben).
-    ziel_ids = [int(i) for i in request.POST.getlist("ziele") if i.isdigit()]
-    if ziel_ids:
-        from .models import Ziel
-        leistung.ziele.set(Ziel.objects.filter(klient=klient, pk__in=ziel_ids))
-    # Optionale Unterschrift (Canvas-PNG als Data-URL) – quittiert den Besuch auf dem
-    # Gerät. Strikt validiert: nur PNG-Data-URL, max. ~200 KB (gegen Missbrauch als Speicher).
-    sig = (request.POST.get("unterschrift") or "").strip()
-    if sig.startswith("data:image/png;base64,") and len(sig) <= 200_000:
-        leistung.unterschrift = sig
-        leistung.unterschrieben_am = timezone.now()
-        leistung.save(update_fields=["unterschrift", "unterschrieben_am"])
-    # 2) Die Doku-Zeit als SEPARATER WFS-Eintrag, direkt im Anschluss (Default 15 Min).
-    doku_min = max(0, _int(request.POST.get("doku_minuten"), 15))
-    extra = ""
-    if doku_min:
-        d_ende = (datetime.combine(date.min, ende) + timedelta(minutes=doku_min)).time()
-        Leistung.objects.create(
-            datum=datum, klient=klient, leistungsart=Leistungsart.WFS, betreuer=me,
-            beginn=ende, ende=d_ende, taetigkeit="Dokumentation")
-        extra = f" + {doku_min} Min Doku (WFS)"
+    # Harte Festschreibung + Klient-Row-Lock: kein neuer Besuch in einem bereits
+    # eingereichten/abgerechneten Monat; die Sperre serialisiert Check+Anlage gegen
+    # eine gleichzeitige Freigabe (TOCTOU), analog zu Desktop-Grid und Gruppen.
+    with transaction.atomic():
+        Klient.objects.select_for_update().filter(pk=klient.pk).first()
+        if services.monat_gesperrt(klient, datum.year, datum.month):
+            messages.error(request, "Dieser Monat ist bereits eingereicht/abgerechnet – "
+                                    "es können keine neuen Besuche mehr erfasst werden.")
+            return redirect("nachweis:feld_heute")
+        # Bezug zum Kalender-Termin (falls aus einem Termin heraus dokumentiert) –
+        # nur eigener Termin desselben/derselben Klient*in; markiert ihn als dokumentiert.
+        tid = request.POST.get("termin")
+        termin = (Termin.objects.filter(pk=tid, mitarbeiter=me, klient=klient).first()
+                  if tid and tid.isdigit() else None)
+        # 1) Der Besuch selbst (Standard FS), mit der Verlaufs-Doku.
+        leistung = Leistung.objects.create(
+            datum=datum, klient=klient, leistungsart=art, betreuer=me,
+            beginn=beginn, ende=ende, termin=termin,
+            taetigkeit=(request.POST.get("taetigkeit") or "").strip()[:120],
+            dokumentation=(request.POST.get("dokumentation") or "").strip())
+        # Optionaler Zielbezug der Verlaufsdoku (ZLP) – wie im Desktop-Doku-Modal, nur
+        # Ziele DIESER Klient*in (kein Cross-Klient-Bezug). Beim Feld-Besuch entsteht immer
+        # eine neue Leistung, daher kein Bestandsschutz nötig (nichts zu überschreiben).
+        ziel_ids = [int(i) for i in request.POST.getlist("ziele") if i.isdigit()]
+        if ziel_ids:
+            from .models import Ziel
+            leistung.ziele.set(Ziel.objects.filter(klient=klient, pk__in=ziel_ids))
+        # Optionale Unterschrift (Canvas-PNG als Data-URL) – quittiert den Besuch auf dem
+        # Gerät. Strikt validiert: nur PNG-Data-URL, max. ~200 KB (gegen Missbrauch als Speicher).
+        sig = (request.POST.get("unterschrift") or "").strip()
+        if sig.startswith("data:image/png;base64,") and len(sig) <= 200_000:
+            leistung.unterschrift = sig
+            leistung.unterschrieben_am = timezone.now()
+            leistung.save(update_fields=["unterschrift", "unterschrieben_am"])
+        # 2) Die Doku-Zeit als SEPARATER WFS-Eintrag, direkt im Anschluss (Default 15 Min).
+        doku_min = max(0, _int(request.POST.get("doku_minuten"), 15))
+        extra = ""
+        if doku_min:
+            d_ende = (datetime.combine(date.min, ende) + timedelta(minutes=doku_min)).time()
+            Leistung.objects.create(
+                datum=datum, klient=klient, leistungsart=Leistungsart.WFS, betreuer=me,
+                beginn=ende, ende=d_ende, taetigkeit="Dokumentation")
+            extra = f" + {doku_min} Min Doku (WFS)"
     messages.success(
         request, f"{klient.name}: {leistung.dauer_stunden} h ({art}){extra} gespeichert – "
                  f"im Leistungsnachweis sichtbar.")

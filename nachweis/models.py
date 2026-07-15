@@ -1041,6 +1041,16 @@ class Monatsfreigabe(models.Model):
     # abgerechnet wurde – der Rechnungsbeleg leitet den Fiktionshinweis daraus ab, nicht
     # aus einer zufälligen Wertgleichheit von Ist und Soll.
     abgerechnet_nach_soll = models.BooleanField("nach Soll abgerechnet (§ 18 Abs. 4)", default=False)
+    # Festgeschriebener Teiler zum Freigabezeitpunkt (nur informativ/Audit): Teamsitzung/
+    # Serien werden durch die Zahl der betreuten Klient*innen (global bzw. je Team) geteilt.
+    teiler_global = models.PositiveSmallIntegerField("Teiler Teamsitzung/Serien (global)", default=0)
+    teiler_team = models.PositiveSmallIntegerField("Teiler team-bezogene Serien", default=0)
+    # Eingefrorene Auto-Nachweis-Zeilen (Teamsitzung + wiederkehrende Serien) zum
+    # Freigabezeitpunkt. Der Nachweis-Druck rendert sie für festgeschriebene Monate
+    # verbatim, statt sie live neu zu berechnen – so bleibt der Nachdruck identisch zum
+    # Original, unabhängig von späteren Änderungen an Team, Status, Klientenzahl oder
+    # den Serien-Stammdaten. Format: [{datum(iso), leistungsart, bezeichnung, stunden(str)}].
+    auto_zeilen = models.JSONField("Auto-Nachweis-Zeilen (festgeschrieben)", default=list, blank=True)
     vorschuss = models.DecimalField("bewilligter Vorschuss €", max_digits=12, decimal_places=2, default=0,
                                     help_text="(Soll-FLS + Ø-kLE/Monat) × FLS-Satz (§ 18 Abs. 2)")
     kle_summe = models.DecimalField("Σ kLE (festgeschrieben, Std)", max_digits=8, decimal_places=3, default=0,

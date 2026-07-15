@@ -888,11 +888,42 @@ def stempeln(mitarbeiter):
         return "kommen"
 
 
+def _auto_nachweis_zeilen(klient, jahr: int, monat: int):
+    """Auto-generierte Nachweis-Zeilen eines Monats (Teamsitzung je Do + wiederkehrende
+    Serien), live berechnet. Nur für Klient*innen in Betreuung. Rückgabe:
+    [{datum: date, leistungsart, bezeichnung, stunden: Decimal}]."""
+    p = get_parameter(jahr)
+    zeilen = []
+    if klient.status == Status.BETREUUNG:
+        n = anzahl_klienten()
+        ts = (p.teamsitzung_dauer_std / Decimal(n)).quantize(Q3, ROUND_HALF_UP) if n else Decimal("0")
+        if ts:
+            for d in teamsitzungstage(jahr, p.teamsitzung_wochentag):
+                if d.month == monat:
+                    zeilen.append({"datum": d, "leistungsart": Leistungsart.KLE,
+                                   "bezeichnung": "Teamsitzung", "stunden": ts})
+    from calendar import monthrange as _mr
+    von, bis = date(jahr, monat, 1), date(jahr, monat, _mr(jahr, monat)[1])
+    for b in serien_beitraege(klient, von, bis):
+        zeilen.append({"datum": b["datum"], "leistungsart": b["leistungsart"],
+                       "bezeichnung": b["bezeichnung"], "stunden": b["stunden"]})
+    return zeilen
+
+
+def _auto_zeilen_speichern(mf) -> list:
+    """Serialisiert die Auto-Zeilen zum Freigabezeitpunkt (JSON-fest) für den Snapshot."""
+    return [{"datum": z["datum"].isoformat(), "leistungsart": z["leistungsart"],
+             "bezeichnung": z["bezeichnung"], "stunden": str(z["stunden"])}
+            for z in _auto_nachweis_zeilen(mf.klient, mf.jahr, mf.monat)]
+
+
 def druck_nachweis(klient, jahr: int, monat: int):
     """Amtlicher Leistungsnachweis je Klient*in & Monat:
-    Einzelnachweis (manuell + Gruppen-Anteile + Teamsitzung je Do) + Kategorie-Summen + Σ FLS."""
-    p = get_parameter(jahr)
-    n = anzahl_klienten()
+    Einzelnachweis (manuell + Gruppen-Anteile + Teamsitzung je Do) + Kategorie-Summen + Σ FLS.
+    Für festgeschriebene Monate werden die manuellen Zeilen (edit-locked) und die
+    eingefrorenen Auto-Zeilen verwendet → der Nachdruck ist identisch zum Original."""
+    mf = Monatsfreigabe.objects.filter(klient=klient, jahr=jahr, monat=monat).first()
+    fixiert = bool(mf and mf.status != Freigabestatus.OFFEN)
     eintraege = []
 
     for l in klient.leistungen.filter(datum__year=jahr, datum__month=monat).exclude(auto=True):
@@ -906,21 +937,20 @@ def druck_nachweis(klient, jahr: int, monat: int):
             "datum": g.datum, "leistungsart": g.leistungsart, "bezeichnung": f"Gruppe: {g.thema}",
             "beginn": g.beginn, "ende": g.ende, "stunden": g.zeit_pro_klient, "auto": True})
 
-    ts_share = (p.teamsitzung_dauer_std / Decimal(n)).quantize(Q3, ROUND_HALF_UP) if n else Decimal("0")
-    if klient.status != Status.BETREUUNG:
-        ts_share = Decimal("0")          # Beendete erhalten keinen Teamsitzungs-Anteil
-    for d in teamsitzungstage(jahr, p.teamsitzung_wochentag):
-        if ts_share and d.month == monat:
+    # Auto-Zeilen (Teamsitzung + Serien): festgeschriebene Monate rendern den eingefrorenen
+    # Snapshot verbatim (immun gegen spätere Team-/Status-/Serien-/Klientenzahl-Änderungen),
+    # offene Monate berechnen live.
+    if fixiert and mf.auto_zeilen:
+        for z in mf.auto_zeilen:
             eintraege.append({
-                "datum": d, "leistungsart": Leistungsart.KLE, "bezeichnung": "Teamsitzung",
-                "beginn": None, "ende": None, "stunden": ts_share, "auto": True})
-
-    from calendar import monthrange as _mr
-    _mvon, _mbis = date(jahr, monat, 1), date(jahr, monat, _mr(jahr, monat)[1])
-    for b in serien_beitraege(klient, _mvon, _mbis):
-        eintraege.append({
-            "datum": b["datum"], "leistungsart": b["leistungsart"], "bezeichnung": b["bezeichnung"],
-            "beginn": None, "ende": None, "stunden": b["stunden"], "auto": True})
+                "datum": date.fromisoformat(z["datum"]), "leistungsart": z["leistungsart"],
+                "bezeichnung": z["bezeichnung"], "beginn": None, "ende": None,
+                "stunden": Decimal(z["stunden"]), "auto": True})
+    else:
+        for z in _auto_nachweis_zeilen(klient, jahr, monat):
+            eintraege.append({
+                "datum": z["datum"], "leistungsart": z["leistungsart"], "bezeichnung": z["bezeichnung"],
+                "beginn": None, "ende": None, "stunden": z["stunden"], "auto": True})
 
     eintraege.sort(key=lambda e: (e["datum"], e["beginn"] or __import__("datetime").time(0, 0)))
 
@@ -1104,6 +1134,8 @@ def freigabe_snapshot(mf) -> None:
         mf.soll_fls = mf.kle_summe = mf.vorschuss = Decimal("0")
         mf.abrechenbare_fls = mf.ptl_stunden = mf.ptl_betrag = Decimal("0")
         mf.abgerechnet_nach_soll = False
+        mf.teiler_global = mf.teiler_team = 0
+        mf.auto_zeilen = []
         return
     # Stichtag = letzter Tag des Abrechnungsmonats. Bewilligung, Soll, PTL und kLE werden
     # zum LEISTUNGSMONAT bewertet – nicht zum (u. U. Wochen späteren) Freigabezeitpunkt,
@@ -1112,6 +1144,12 @@ def freigabe_snapshot(mf) -> None:
     stichtag = date(mf.jahr, mf.monat, monthrange(mf.jahr, mf.monat)[1])
     bew = mf.klient.aktive_bewilligung(stichtag)
     mf.abrechnungsart = "fls"
+    # Teamsitzung + Serien zum Freigabezeitpunkt als Nachweis-Zeilen einfrieren (der Druck
+    # rendert sie später verbatim → Nachdruck = Original, unabhängig von späteren Team-/
+    # Status-/Serien-/Klientenzahl-Änderungen). Teiler nur noch informativ/Audit.
+    mf.teiler_global = anzahl_klienten()
+    mf.teiler_team = _team_betreuung_counts().get(mf.klient.team_id, 0)
+    mf.auto_zeilen = _auto_zeilen_speichern(mf)
     mf.fls_einzeln, mf.fls_gruppe = fls_ist_split(mf.klient, mf.jahr, mf.monat)
     mf.fls_summe = mf.fls_einzeln + mf.fls_gruppe
     # Soll = bewilligte FLS/Monat der zum Leistungsmonat gültigen Bewilligung; ohne formale
