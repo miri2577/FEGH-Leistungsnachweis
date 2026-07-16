@@ -202,22 +202,60 @@ class Command(BaseCommand):
             key = "wg" if in_wg else "tbew"
             bez = pool[cnt[key] % len(pool)]
             cnt[key] += 1
-            kue = None
-            if i % 5 == 0:
-                kue = heute + timedelta(days=RNG.choice([25, 40, 55]))     # Bericht fällig (<10 Wochen)
-            elif i % 5 == 1:
-                kue = heute + timedelta(days=RNG.choice([120, 160, 200]))  # noch nicht fällig
+            # kue_bis (KÜ-Ende / Bericht-Frist) wird jetzt aus der aktiven Bewilligung
+            # gezogen (sync_cache_aus_bewilligung); al/kle bleiben als Fallback-Kontingent.
             k = Klient.objects.create(
                 nachname=NACHNAMEN[i % len(NACHNAMEN)],
                 vorname=VORNAMEN[i % len(VORNAMEN)],
                 geburtsdatum=date(RNG.randint(1965, 2002), RNG.randint(1, 12), RNG.randint(1, 28)),
-                team=team, bezugsbetreuer=bez, al=al, kle=kle, hbg=hbg, kue_bis=kue,
+                team=team, bezugsbetreuer=bez, al=al, kle=kle, hbg=hbg,
                 status=Status.BEENDIGUNG if i in (7, 18, 30) else Status.BETREUUNG,
                 person_id=f"BE-{100000 + i}",
                 kostentraeger=BEZIRKE[i % len(BEZIRKE)],
             )
             klienten.append(k)
         betreuer = [m for m in mitarbeiter if m.rolle == Rolle.USER and m.team != team_vw]
+
+        # ---- Kostenträger (Bezirksämter) FRÜH anlegen: Bewilligungen & Rechnungen
+        # brauchen sie als FK (E-Mail/Leitweg-ID → XRechnung/Mail, Debitorenkonto → DATEV).
+        from nachweis.models import Kostentraeger, KostentraegerTyp
+        kt_by_name = {}
+        for idx_kt, name in enumerate(dict.fromkeys(BEZIRKE)):
+            slug = name.split()[-1].lower().replace("ö", "oe").replace("ü", "ue")
+            kt, _ = Kostentraeger.objects.get_or_create(name=name, defaults={
+                "typ": KostentraegerTyp.BEZIRKSAMT,
+                "email": f"leistungsabrechnung@{slug}.berlin.example",
+                "leitweg_id": f"11-{RNG.randint(1000, 9999)}-{RNG.randint(10, 99)}",
+                "debitorenkonto": str(10001 + idx_kt),
+                "adresse": f"{name}\nMusterstr. 1\n10000 Berlin"})
+            kt_by_name[name] = kt
+
+        # ---- Bewilligungen als FÜHRENDES Abrechnungsobjekt (behebt die FLS-„ohne
+        # Bewilligung"-Flut). Die allermeisten laufen lange; nur wenige laufen bald aus,
+        # sind abgelaufen oder fehlen ganz (frischer Zugang) → Fristen-Panel realistisch.
+        from nachweis.models import Bewilligung, BewilligungStatus
+        SOON = {2, 9, 14, 21, 27}      # Bewilligung läuft in < 10 Wochen aus (Bericht fällig)
+        EXPIRED = {5, 24}              # abgelaufen → Verlängerung nötig (keine aktive Bewilligung)
+        OHNE = {11}                    # frischer Zugang, Bewilligung noch nicht erteilt
+        n_bew = 0
+        for i, k in enumerate(klienten):
+            if i in OHNE:
+                continue
+            von = heute - timedelta(days=RNG.choice([180, 240, 300, 360, 420]))
+            if i in (7, 18, 30):                    # BEENDIGUNG: historisch, KÜ ausgelaufen
+                bis, st = heute - timedelta(days=RNG.choice([25, 55, 90])), BewilligungStatus.ABGELAUFEN
+            elif i in SOON:
+                bis, st = heute + timedelta(days=RNG.choice([25, 40, 55, 65])), BewilligungStatus.AKTIV
+            elif i in EXPIRED:
+                bis, st = heute - timedelta(days=RNG.choice([8, 20, 35])), BewilligungStatus.AKTIV
+            else:
+                bis, st = heute + timedelta(days=RNG.choice([250, 320, 400, 480, 540])), BewilligungStatus.AKTIV
+            Bewilligung.objects.create(
+                klient=k, kostentraeger=kt_by_name.get(k.kostentraeger),
+                aktenzeichen=k.person_id, hbg=k.hbg, status=st,
+                gueltig_von=von, gueltig_bis=bis,
+                fls_woche=FLS_WOCHE_HBG[k.hbg], kle_tag=KLE_JE_TAG)   # save() → sync_cache_aus_bewilligung
+            n_bew += 1
 
         # Leistungen: je Klient einige Einträge über Jan–Jun 2026
         n_leist = 0
@@ -421,6 +459,69 @@ class Command(BaseCommand):
                 JAHR, MONAT_ABR, date(JAHR, 7, 1), berger, notiz="Sammelrechnung (Demo)")
             n_rech = 1
 
+        # ---- Rechnungssteller-Stammsatz (E-Rechnung/DATEV, FREI ERFUNDEN – kein realer Träger) ----
+        from nachweis.models import (Rechnungsstatus, Rechnungssteller, Zahlung,
+                                     Mahnung, Mahnstufe)
+        rs = Rechnungssteller.load()
+        rs.name = "Sozialträger Musterwerk gGmbH (Demo)"
+        rs.strasse, rs.plz, rs.ort = "Demoallee 12", "10115", "Berlin"
+        rs.ust_id = "DE123456789"
+        rs.iban, rs.bic, rs.bank = "DE02120300000000202051", "BYLADEM1001", "Demo-Bank Berlin"
+        rs.kontakt_name, rs.kontakt_mail = "Buchhaltung (Demo)", "buchhaltung@example.org"
+        rs.datev_berater, rs.datev_mandant, rs.datev_erloeskonto = "1234567", "10001", "8125"
+        rs.save()
+
+        # ---- Voller Jahres-Rechnungslauf Jan–Mai 2026 (Verwaltungs-Demo) ----
+        # Pro Monat je Kostenträger EINE Sammelrechnung; danach realistische Zustände:
+        # bezahlt / teilbezahlt / offen (camt-Abgleich) / überfällig+Mahnung / storniert+Gutschrift.
+        erf = peters or berger
+        aktive_alle = [k for k in klienten if k.status == Status.BETREUUNG]
+        hist_rechnungen = []
+        for monat in range(1, 6):
+            for k in aktive_alle:
+                fls_i = k.al or Decimal("0")
+                Monatsfreigabe.objects.create(
+                    klient=k, jahr=JAHR, monat=monat, status=Freigabestatus.FREIGEGEBEN,
+                    fls_summe=fls_i, kle_summe=k.kle, betrag=_svc.betrag_fuer(fls_i, JAHR, k.kle),
+                    eingereicht_am=jetzt, eingereicht_von=k.bezugsbetreuer,
+                    freigegeben_am=jetzt, freigegeben_von=berger)
+            neu, _ohne = _svc.rechnungslauf(JAHR, monat, date(JAHR, monat + 1, 1), berger)
+            hist_rechnungen.extend(neu)
+        # Historien-Rechnungen sind gestellt (Rechnungslauf legt sie als Entwurf an)
+        Rechnung.objects.filter(id__in=[r.id for r in hist_rechnungen]).update(
+            status=Rechnungsstatus.GESTELLT)
+        for r in hist_rechnungen:
+            r.status = Rechnungsstatus.GESTELLT
+
+        n_zahlung = n_mahnung = n_gut = 0
+        gutschrift_gesetzt = False
+        for idx, r in enumerate(sorted(hist_rechnungen, key=lambda x: (x.monat, x.nummer))):
+            rest = idx % 10
+            if rest == 0 and r.monat <= 2:                       # alt & unbezahlt → überfällig + Mahnung
+                Mahnung.objects.create(rechnung=r, stufe=Mahnstufe.ERINNERUNG,
+                                       datum=r.faelligkeit + timedelta(days=7), erstellt_von=erf)
+                n_mahnung += 1
+                if r.monat == 1:
+                    Mahnung.objects.create(rechnung=r, stufe=Mahnstufe.MAHNUNG_1,
+                                           datum=r.faelligkeit + timedelta(days=28), erstellt_von=erf)
+                    n_mahnung += 1
+            elif rest == 1 and r.monat >= 4:                     # jung & offen → für camt-Abgleich
+                pass
+            elif rest == 2 and r.monat >= 4 and not gutschrift_gesetzt:
+                _g, _err = _svc.gutschrift_erstellen(r, erf)     # storniert + Gutschrift
+                if _g:
+                    gutschrift_gesetzt = True
+                    n_gut += 1
+            elif rest == 3:                                      # teilbezahlt
+                Zahlung.objects.create(rechnung=r, datum=r.datum + timedelta(days=18),
+                                       betrag=(r.betrag * Decimal("0.6")).quantize(Decimal("0.01")),
+                                       erfasst_von=erf, notiz="Teilzahlung (Demo)")
+                n_zahlung += 1
+            else:                                                # voll bezahlt
+                Zahlung.objects.create(rechnung=r, datum=r.datum + timedelta(days=RNG.choice([12, 18, 25])),
+                                       betrag=r.betrag, erfasst_von=erf, notiz="Zahlungseingang (camt.053)")
+                n_zahlung += 1
+
         # ================= Reichhaltige Demodaten (Fach-/Stationär-Module, alle FIKTIV) =========
         from nachweis.models import (Kostentraeger, KostentraegerTyp, AngebotsTyp, Erreichbarkeit,
                                      Zimmer, Belegung, VorkommnisKategorie, VorkommnisStatus,
@@ -429,14 +530,7 @@ class Command(BaseCommand):
                                      Ziel, ZielArt, ZielStatus)
         from django.utils import timezone as _tz3
 
-        # Kostenträger (Bezirksämter) mit E-Mail/Leitweg-ID -> Mail-Versand, XRechnung, Zahlungsabgleich
-        for name in dict.fromkeys(BEZIRKE):
-            slug = name.split()[-1].lower().replace("ö", "oe").replace("ü", "ue")
-            Kostentraeger.objects.get_or_create(name=name, defaults={
-                "typ": KostentraegerTyp.BEZIRKSAMT,
-                "email": f"leistungsabrechnung@{slug}.berlin.example",
-                "leitweg_id": f"11-{RNG.randint(1000, 9999)}-{RNG.randint(10, 99)}",
-                "adresse": f"{name}\nMusterstr. 1\n10000 Berlin"})
+        # (Kostenträger werden bereits oben angelegt – siehe kt_by_name.)
 
         # Anschrift + gesetzliche Betreuung bei einigen Klient*innen
         strassen = ["Lindenweg", "Ahornstr.", "Seestr.", "Parkallee", "Buchenweg", "Amselgasse"]
@@ -543,11 +637,16 @@ class Command(BaseCommand):
             f"{Kontaktperson.objects.count()} Kontakte, {Klientenkonto.objects.count()} Barbetragskonten, "
             f"{FEM.objects.count()} FEM, {n_ziel} Ziele."))
 
+        from nachweis.models import Rechnung as _R
+        self.stdout.write(self.style.SUCCESS(
+            f"Abrechnung/Verwaltung: {n_bew} Bewilligungen, {_R.objects.count()} Rechnungen "
+            f"(Jahreslauf Jan–Mai + Juni), {n_zahlung} Zahlungen, {n_mahnung} Mahnungen, "
+            f"{n_gut} Gutschrift(en), Rechnungssteller-Stammsatz gesetzt."))
         self.stdout.write(self.style.SUCCESS(
             f"Fertig: {len(mitarbeiter)} Mitarbeiter, {len(klienten)} Klienten, "
             f"{n_leist} Leistungen, 2 Gruppen, {n_az} Arbeitszeiten, 3 Abwesenheiten, "
             f"1 Kasse ({km.buchungen.count()} Buchungen, Endbestand {km.endbestand}), "
-            f"{len(muster)} Monatsfreigaben (Demo 06.2026), {n_rech} Rechnung."))
+            f"{len(muster)} Monatsfreigaben (Demo 06.2026), {n_rech} Juni-Rechnung."))
         self.stdout.write("Demo-Logins (Passwort: demo12345):")
         for m in mitarbeiter:
             self.stdout.write(f"  {m.user.username:12s} · {m.get_rolle_display():18s} · "

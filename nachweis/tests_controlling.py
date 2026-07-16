@@ -94,3 +94,31 @@ class ControllingViewTests(ControllingBasis):
         self.client.force_login(self.leitung)
         resp = self.client.get(reverse("nachweis:controlling"), {"jahr": "abc", "monat": "xx"})
         self.assertEqual(resp.status_code, 200)          # Fallback auf heute
+
+
+class DashboardZugriffTests(ControllingBasis):
+    """FLS-/Vergütungs-Dashboard: Leitung UND Verwaltung (Finanz-Hub, read-only),
+    normale Betreuer*innen sowie Admin sind gesperrt."""
+    def setUp(self):
+        super().setUp()
+        self.k = Klient.objects.create(
+            nachname="Muster", team=self.team,
+            bezugsbetreuer=Mitarbeiter.objects.get(user=self.user),
+            status=Status.BETREUUNG)
+
+    def test_leitung_sieht_dashboard(self):
+        self.client.force_login(self.leitung)
+        self.assertEqual(self.client.get(reverse("nachweis:dashboard")).status_code, 200)
+
+    def test_verwaltung_sieht_alle_klienten(self):
+        self.client.force_login(self.verwaltung)
+        r = self.client.get(reverse("nachweis:dashboard"))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.context["kennzahlen"]["klienten"], 1)          # sieht alle
+        self.assertTrue(any(z["klient"].id == self.k.id for z in r.context["zeilen"]))
+
+    def test_normaler_user_gesperrt(self):
+        self.client.force_login(self.user)
+        r = self.client.get(reverse("nachweis:dashboard"))
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.url, reverse("nachweis:start"))

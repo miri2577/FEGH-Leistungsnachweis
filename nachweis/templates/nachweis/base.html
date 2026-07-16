@@ -349,7 +349,7 @@
         <summary>Auswertung <svg class="chev" viewBox="0 0 24 24"><path d="M8.6 5.4 15.2 12l-6.6 6.6L7 17l5-5-5-5z"/></svg></summary>
       <a href="{% url 'nachweis:start' %}" class="{% if aktiv == 'start' %}active{% endif %}">
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span> Mein Überblick</a>
-      {% if nav_ist_leitung %}
+      {% if nav_ist_leitung or nav_ist_verwaltung %}
       <a href="{% url 'nachweis:dashboard' %}" class="{% if aktiv == 'dashboard' %}active{% endif %}">
         <span class="ico"><svg viewBox="0 0 24 24"><path d="M4 9h4v11H4zM10 4h4v16h-4zM16 13h4v7h-4z"/></svg></span> Fachleistungsstunden</a>
       {% endif %}

@@ -173,16 +173,22 @@ def stempeln(request):
 # ---------------------------------------------------------------- Fachleistungsstunden (Leitungs-Übersicht)
 @login_required
 def dashboard(request):
-    # Nur Leitung/Superuser: differenzierte Auslastung aller Klient*innen mit Filter.
-    if not services.ist_leitung(request.user):
-        messages.info(request, "Die Team-Auswertung ist der Leitung vorbehalten.")
+    # Leitung: eigene/geleitete Teams. Verwaltung: Finanz-Hub, sieht die €-/Vergütungs-
+    # Auswertung ALLER Klient*innen lesend mit (keine Erfassung). Sonst gesperrt.
+    ist_vw = services.ist_verwaltung(request.user)
+    if not (services.ist_leitung(request.user) or ist_vw):
+        messages.info(request, "Die Team-Auswertung ist der Leitung bzw. Verwaltung vorbehalten.")
         return redirect("nachweis:start")
 
     jahr = _jahr(request)
     betreuer_id = request.GET.get("betreuer") or ""
     team_id = request.GET.get("team") or ""
-    sichtbar = services.klienten_fuer(request.user)
-    teams = services.teams_fuer(request.user)
+    if ist_vw:
+        sichtbar = Klient.objects.all()
+        teams = Team.objects.all()
+    else:
+        sichtbar = services.klienten_fuer(request.user)
+        teams = services.teams_fuer(request.user)
 
     gefiltert = sichtbar
     if team_id.isdigit():
