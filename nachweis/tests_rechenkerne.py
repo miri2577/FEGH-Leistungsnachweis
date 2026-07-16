@@ -186,10 +186,10 @@ class DruckUndFlsTests(TestCase):
     def test_fachleistungsstunden_ist_und_rest(self):
         zeilen, _summe = services.fachleistungsstunden(2026, Klient.objects.filter(pk=self.k.pk))
         z = zeilen[0]
-        self.assertEqual(z["kontingent_monat"], Decimal("10"))
+        self.assertEqual(z["kontingent_monat"], Decimal("10"))    # AL-Soll/Monat (Feld al)
         self.assertEqual(z["kontingent_jahr"], Decimal("120"))
-        self.assertEqual(z["ist"], Decimal("3"))          # 2h FS + 1h FZ (Teamsitzung 0)
-        self.assertEqual(z["rest"], Decimal("117"))
+        self.assertEqual(z["ist"], Decimal("2"))          # nur AL (FS); FZ zählt NICHT zur AL
+        self.assertEqual(z["rest"], Decimal("118"))
 
 
 class KasseTests(TestCase):

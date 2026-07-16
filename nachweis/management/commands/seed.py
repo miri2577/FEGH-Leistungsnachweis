@@ -193,8 +193,13 @@ class Command(BaseCommand):
         heute = date.today()
         klienten = []
         cnt = {"tbew": 0, "wg": 0}
+        # HBG-Mix wie im Senats-Tool (Belegung BEWSB/ATGWO): HBG 1–3 dominieren,
+        # HBG 4 kommt genau einmal vor, HBG 5–12 gar nicht (ambulantes Angebot).
+        hbg_liste = [1] * 12 + [2] * 12 + [3] * 8
+        RNG.shuffle(hbg_liste)
+        hbg_liste.insert(15, 4)                       # genau ein HBG 4 (aktiver TBEW-Fall)
         for i in range(33):
-            hbg = RNG.choice([1, 1, 2, 2, 2, 3, 3, 4])
+            hbg = hbg_liste[i]
             al, kle = HBG_WERTE[hbg]
             in_wg = (i % 4 == 0)
             team = team_wg if in_wg else team_tbew
@@ -257,34 +262,82 @@ class Command(BaseCommand):
                 fls_woche=FLS_WOCHE_HBG[k.hbg], kle_tag=KLE_JE_TAG)   # save() → sync_cache_aus_bewilligung
             n_bew += 1
 
-        # Leistungen: je Klient einige Einträge über Jan–Jun 2026
+        # ---- Realistische wöchentliche AL-Leistungserbringung -----------------
+        # Pro Woche wird ungefähr das bewilligte AL-Soll (HBG) am Klienten erbracht –
+        # als Mischung aus Terminen (Hausbesuch/Begleitung), Telefonaten und – über die
+        # Gruppen unten – Gruppenangeboten. Dadurch entspricht die Ist-AL im Dashboard
+        # ~dem Soll (statt vorher ~8 %). Die meisten liegen nahe 100 %; wenige bewusst
+        # darüber (Mehrbedarf → Höherstufungs-Signal) oder darunter (Klinik/Urlaub).
+        FLS_TERMIN = [("Hausbesuch", 60, 120), ("Begleitung Amt/Arzt", 60, 150),
+                      ("Krisengespräch", 45, 90), ("Unterstützung Haushalt/Finanzen", 45, 90),
+                      ("Betreuung am anderen Ort", 45, 90)]
+        FLS_TELEFON = [("Telefonat Klient*in", 10, 25), ("Telefonat Amt/Fachdienst", 10, 30)]
+        WFS_TAET = [("Verlaufsdokumentation", 20, 40), ("Fallbesprechung", 30, 60),
+                    ("Bericht an THFD", 40, 75)]
+
+        def _r15(minuten):
+            return max(15, int(round(minuten / 15)) * 15)
+
+        MEHRBEDARF = {14, 26}          # dauerhaft über Soll → Höherstufung prüfen
+        UNTERDECKUNG = {3, 22}         # dauerhaft unter Soll (z. B. Klinik-/Urlaubsphasen)
+        jahr_start = date(JAHR, 1, 1)
+        neue_leistungen = []
         n_leist = 0
-        for k in klienten:
-            if k.status == Status.BEENDIGUNG:
+        for i, k in enumerate(klienten):
+            if i in OHNE:              # frischer Zugang: Betreuung seit wenigen Wochen
+                start, stop = heute - timedelta(days=RNG.choice([16, 21, 28])), heute
+            elif k.status != Status.BETREUUNG:      # beendet: nur bis zum Betreuungsende
+                _b = Bewilligung.objects.filter(klient=k).order_by("-gueltig_bis").first()
+                start = jahr_start
+                stop = min(_b.gueltig_bis if _b and _b.gueltig_bis else heute, heute)
+            else:
+                _b = Bewilligung.objects.filter(klient=k, status=BewilligungStatus.AKTIV).first()
+                _von = _b.gueltig_von if _b else None
+                start = max(jahr_start, _von) if _von and _von > jahr_start else jahr_start
+                stop = heute
+            if stop <= start:
                 continue
-            for _ in range(RNG.randint(4, 8)):
-                monat = RNG.randint(1, 6)
-                tag = RNG.randint(1, 28)
-                art = RNG.choices(
-                    [Leistungsart.FS, Leistungsart.WFS, Leistungsart.FZ, Leistungsart.FUS],
-                    weights=[6, 3, 2, 1])[0]
-                beginn_h = RNG.randint(8, 15)
-                dauer_min = RNG.choice([45, 60, 75, 90, 120])
-                beginn = time(beginn_h, RNG.choice([0, 15, 30]))
-                ende = (datetime(2000, 1, 1, beginn.hour, beginn.minute)
-                        + timedelta(minutes=dauer_min)).time()
-                if art == Leistungsart.FS:
-                    taet = RNG.choice(TAETIGKEITEN_FS)
-                elif art == Leistungsart.WFS:
-                    taet = RNG.choice(TAETIGKEITEN_WFS)
-                elif art == Leistungsart.FZ:
-                    taet = "Fahrtzeit"
-                else:
-                    taet = "Büro"
-                Leistung.objects.create(
-                    datum=date(JAHR, monat, tag), klient=k, leistungsart=art,
-                    taetigkeit=taet, betreuer=k.bezugsbetreuer, beginn=beginn, ende=ende)
-                n_leist += 1
+            fls_woche = FLS_WOCHE_HBG[k.hbg]
+            if i in MEHRBEDARF:
+                tendenz = RNG.uniform(1.25, 1.40)
+            elif i in UNTERDECKUNG:
+                tendenz = RNG.uniform(0.60, 0.76)
+            else:
+                tendenz = RNG.uniform(0.93, 1.10)
+            montag = start - timedelta(days=start.weekday())
+            while montag <= stop:
+                r = RNG.random()
+                if r < 0.07:                          # schwache Woche (Urlaub/Krankheit)
+                    wf = RNG.uniform(0.2, 0.55)
+                elif r < 0.90:
+                    wf = RNG.uniform(0.90, 1.12)
+                else:                                 # intensive Woche
+                    wf = RNG.uniform(1.12, 1.28)
+                rest = float(fls_woche) * 60 * tendenz * wf
+                for tag_off in RNG.sample(range(5), 5):
+                    if rest < 12:
+                        break
+                    tag = montag + timedelta(days=tag_off)
+                    if tag < start or tag > stop:
+                        continue
+                    if rest <= 30 or RNG.random() < 0.25:       # Telefonat (auch Rest-Auffüller)
+                        name, lo, hi = RNG.choice(FLS_TELEFON); art = Leistungsart.FS
+                    elif RNG.random() < 0.15:                   # weitere fallspez. Leistung (Doku/Bericht)
+                        name, lo, hi = RNG.choice(WFS_TAET); art = Leistungsart.WFS
+                    else:                                       # Termin vor Ort
+                        name, lo, hi = RNG.choice(FLS_TERMIN)
+                        art = Leistungsart.BAO if name.startswith("Betreuung am") else Leistungsart.FS
+                    dauer = _r15(rest) if rest <= hi else _r15(RNG.uniform(lo, hi))   # letzter Kontakt füllt den Rest
+                    rest -= dauer
+                    beginn = time(RNG.randint(8, 16), RNG.choice([0, 15, 30, 45]))
+                    ende = (datetime(2000, 1, 1, beginn.hour, beginn.minute)
+                            + timedelta(minutes=dauer)).time()
+                    neue_leistungen.append(Leistung(
+                        datum=tag, klient=k, leistungsart=art, taetigkeit=name,
+                        betreuer=k.bezugsbetreuer, beginn=beginn, ende=ende))
+                    n_leist += 1
+                montag += timedelta(days=7)
+        Leistung.objects.bulk_create(neue_leistungen)
 
         # Demo-Dokumentationen auf ein paar der jüngsten Leistungen (fürs Dashboard)
         DOKU_TEXTE = [

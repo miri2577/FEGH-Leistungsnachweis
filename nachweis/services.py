@@ -461,10 +461,29 @@ def gruppen_anteile(jahr: int):
     return d
 
 
+def _jahr_anteil_bis_heute(jahr: int) -> Decimal:
+    """Anteil des Jahres (0..1), der bis heute verstrichen ist. Für die 'auf Kurs'-
+    Auslastung: die Ist-YTD wird gegen das ANTEILIGE Jahres-Soll gemessen, damit
+    100 % 'im Plan für den Jahresabschluss' bedeutet – nicht ~50 %, nur weil gerade
+    Jahresmitte ist. Für vergangene Jahre 1, für künftige 0."""
+    heute = date.today()
+    if heute.year > jahr:
+        return Decimal("1")
+    if heute.year < jahr:
+        return Decimal("0")
+    tage_jahr = (date(jahr, 12, 31) - date(jahr, 1, 1)).days + 1
+    verstrichen = (heute - date(jahr, 1, 1)).days + 1
+    return Decimal(verstrichen) / Decimal(tage_jahr)
+
+
 def fachleistungsstunden(jahr: int, klienten=None):
-    """Auswertung je Klient (wie Tab 'Fachleistungsstunden' der Excel).
-    Teamsitzung wird immer durch ALLE Klienten geteilt; `klienten` schränkt nur die
-    angezeigten Zeilen ein (z. B. auf die eigenen). Rückgabe: (zeilen, summe)."""
+    """Auswertung je Klient (Tab 'Fachleistungsstunden'). Steuerungsgröße ist die
+    AL (direkte Fachleistung = FLS-Arten FS/WFS/BAO): Ist gegen das AL-Kontingent
+    (Feld al). Die kLE ist eine kalkulatorische Pauschale (Wegezeiten/Doku/fall-
+    unspezifisch), gilt je Betreuungstag automatisch als erbracht und wird deshalb
+    GETRENNT als 100 %-Pauschale geführt – nicht in die AL-Auslastung gemischt; die
+    Teamsitzung zählt zur kLE. Auslastung = Ist-YTD / anteiliges Jahres-Soll
+    ('auf Kurs für den Abschluss'). Rückgabe: (zeilen, summe)."""
     ts_pro, n_do = teamsitzung_pro_klient(jahr)
     gruppen = gruppen_anteile(jahr)
     _serien, _tc, _gc = aktive_serien(), _team_betreuung_counts(), anzahl_klienten()
@@ -475,43 +494,48 @@ def fachleistungsstunden(jahr: int, klienten=None):
     for l in Leistung.objects.filter(
             klient_id__in=[k.id for k in kl_list], datum__year=jahr).exclude(auto=True):
         manual_by_kl[l.klient_id].append(l)
+    anteil = _jahr_anteil_bis_heute(jahr)
     zeilen = []
     for k in kl_list:
         manual = manual_by_kl.get(k.id, [])
-        ist_manual = sum((l.dauer_stunden for l in manual), Decimal("0"))
+        # AL-Ist = geleistete Fachleistungsstunden (FS/WFS/BAO): einzeln + Gruppen-Anteil + Serien.
+        # FZ/FUS/KLE zählen NICHT zur AL (Fahrt-/fallunspezifische Zeit ist in der kLE kalkuliert).
+        al_manual = sum((l.dauer_stunden for l in manual if l.leistungsart in FLS_ARTEN), Decimal("0"))
         fz = sum((l.dauer_stunden for l in manual if l.leistungsart == Leistungsart.FZ), Decimal("0"))
-        kle_manual = sum((l.dauer_stunden for l in manual if l.leistungsart == Leistungsart.KLE), Decimal("0"))
         g = gruppen.get(k.id, {"gesamt": Decimal("0"), "kle": Decimal("0"), "fls": Decimal("0")})
-
-        # Teamsitzung nur für Klient*innen in Betreuung (Beendete zählen nicht mit)
-        ts_row = ts_pro if k.status == Status.BETREUUNG else Decimal("0")
         sb = serien_beitraege(k, date(jahr, 1, 1), date(jahr, 12, 31), _serien, _tc, _gc)
-        serien_sum = sum((x["stunden"] for x in sb), Decimal("0"))
-        serien_kle = sum((x["stunden"] for x in sb if x["leistungsart"] == Leistungsart.KLE), Decimal("0"))
-        ist = (ist_manual + g["gesamt"] + ts_row + serien_sum).quantize(Q3, ROUND_HALF_UP)
-        kle_ist = (kle_manual + g["kle"] + ts_row + serien_kle).quantize(Q3, ROUND_HALF_UP)  # Teamsitzung/KLE-Serien
-        kontingent_m = k.fls_gesamt
-        kontingent_j = kontingent_m * 12
-        rest = (kontingent_j - ist).quantize(Q3, ROUND_HALF_UP)
-        auslastung = (ist / kontingent_j) if kontingent_j else Decimal("0")
+        serien_fls = sum((x["stunden"] for x in sb if x["leistungsart"] in FLS_ARTEN), Decimal("0"))
+        al_ist = (al_manual + g["fls"] + serien_fls).quantize(Q3, ROUND_HALF_UP)
+
+        al_soll_monat = k.al or Decimal("0")
+        al_soll_jahr = (al_soll_monat * 12).quantize(Q3, ROUND_HALF_UP)
+        soll_ytd = (al_soll_jahr * anteil).quantize(Q3, ROUND_HALF_UP)
+        rest = (al_soll_jahr - al_ist).quantize(Q3, ROUND_HALF_UP)
+        auslastung = (al_ist / soll_ytd) if soll_ytd else Decimal("0")
         zeilen.append({
             "klient": k,
             "betreuer": k.bezugsbetreuer,
-            "kontingent_monat": kontingent_m,
-            "kontingent_jahr": kontingent_j,
-            "ist": ist,
+            "kontingent_monat": al_soll_monat,        # AL-Soll / Monat
+            "kontingent_jahr": al_soll_jahr,          # AL-Soll / Jahr
+            "soll_ytd": soll_ytd,                     # anteiliges Jahres-Soll bis heute
+            "ist": al_ist,                            # AL-Ist (FLS-Arten) year-to-date
             "rest": rest,
-            "auslastung": auslastung,
+            "auslastung": auslastung,                 # Ist-YTD / Soll-YTD  ('auf Kurs')
+            "mehrbedarf": auslastung > Decimal("1.15"),
+            "unterdeckung": bool(soll_ytd) and Decimal("0.30") <= auslastung < Decimal("0.85"),
             "fz": fz.quantize(Q3, ROUND_HALF_UP),
-            "kle_ist": kle_ist,
-            "kle_monat": k.kle,
-            "al_monat": k.al,
+            "kle_monat": k.kle or Decimal("0"),       # kLE-Pauschale/Monat (kalkulatorisch, 100 %)
+            "al_monat": al_soll_monat,
             "kle_anteil": k.kle_anteil,
         })
+    ist_ges = sum((z["ist"] for z in zeilen), Decimal("0"))
+    soll_ytd_ges = sum((z["soll_ytd"] for z in zeilen), Decimal("0"))
     summe = {
         "kontingent_jahr": sum((z["kontingent_jahr"] for z in zeilen), Decimal("0")),
-        "ist": sum((z["ist"] for z in zeilen), Decimal("0")),
+        "ist": ist_ges,
         "rest": sum((z["rest"] for z in zeilen), Decimal("0")),
+        "soll_ytd": soll_ytd_ges,
+        "auslastung": (ist_ges / soll_ytd_ges) if soll_ytd_ges else Decimal("0"),
         "n_donnerstage": n_do,
         "ts_pro_klient_jahr": ts_pro,
         "ts_dauer": get_parameter(jahr).teamsitzung_dauer_std,
@@ -524,7 +548,7 @@ def auslastung_zeitreihe(jahr: int, klienten):
     Berücksichtigt manuelle Leistungen, Gruppen-Anteile und Teamsitzung – auf deren echten Daten."""
     kl_ids = set(klienten.values_list("id", flat=True))
     kl_list = list(klienten)
-    kont_monat = sum((k.fls_gesamt for k in kl_list), Decimal("0"))
+    kont_monat = sum((k.al or Decimal("0") for k in kl_list), Decimal("0"))   # AL-Soll (kLE separat)
     kont_jahr = kont_monat * 12
     kont_woche = (kont_jahr / WOCHEN_JE_JAHR) if kont_jahr else Decimal("0")
 
@@ -540,28 +564,21 @@ def auslastung_zeitreihe(jahr: int, klienten):
         if iso[0] == jahr:                   # Wochenbuckets: ISO-Jahr (Jahresrand korrekt)
             ist_woche[iso[1]] += betrag
 
-    # Etwas über die Kalenderjahr-Grenzen hinaus laden, damit ISO-Randwochen vollständig sind
+    # Etwas über die Kalenderjahr-Grenzen hinaus laden, damit ISO-Randwochen vollständig sind.
+    # AL-Auslastung: nur Fachleistungsstunden (FS/WFS/BAO); kLE + Teamsitzung bleiben außen vor.
     von, bis = date(jahr - 1, 12, 29), date(jahr + 1, 1, 3)
-    for l in Leistung.objects.filter(klient_id__in=kl_ids, datum__range=(von, bis)).exclude(auto=True):
+    for l in Leistung.objects.filter(klient_id__in=kl_ids, datum__range=(von, bis),
+                                     leistungsart__in=FLS_ARTEN).exclude(auto=True):
         add(l.datum, l.dauer_stunden)
 
-    for g in Gruppe.objects.filter(datum__range=(von, bis)).prefetch_related("teilnehmer"):
+    for g in Gruppe.objects.filter(datum__range=(von, bis),
+                                   leistungsart__in=FLS_ARTEN).prefetch_related("teilnehmer"):
         anteil = g.zeit_pro_klient
         if not anteil:
             continue
         n = sum(1 for k in g.teilnehmer.all() if k.id in kl_ids)
         if n:
             add(g.datum, anteil * n)
-
-    n_active = sum(1 for k in kl_list if k.status == Status.BETREUUNG)
-    if n_active:
-        p = get_parameter(jahr)
-        n_glob = anzahl_klienten()
-        share = (p.teamsitzung_dauer_std / Decimal(n_glob)).quantize(Q3, ROUND_HALF_UP) if n_glob else Decimal("0")
-        for j in {jahr - 1, jahr, jahr + 1}:
-            for d in teamsitzungstage(j, p.teamsitzung_wochentag):
-                if von <= d <= bis:
-                    add(d, share * n_active)
 
     def pct(ist, kont):
         return round(float(ist / kont * 100), 1) if kont else 0.0
@@ -571,6 +588,7 @@ def auslastung_zeitreihe(jahr: int, klienten):
     wochen = [{"label": f"KW{w}", "ist": round(float(ist_woche.get(w, 0)), 2),
                "auslastung": pct(ist_woche.get(w, Decimal("0")), kont_woche)} for w in range(1, n_weeks + 1)]
     jahr_ist = sum((ist_monat[m] for m in range(1, 13)), Decimal("0"))
+    soll_ytd = kont_jahr * _jahr_anteil_bis_heute(jahr)   # 'auf Kurs'-Bezug: anteiliges Jahres-Soll
 
     return {
         "monate": monate,
@@ -578,7 +596,7 @@ def auslastung_zeitreihe(jahr: int, klienten):
         "kont_monat": round(float(kont_monat), 2),
         "kont_woche": round(float(kont_woche), 2),
         "jahr": {"ist": round(float(jahr_ist), 2), "kontingent": round(float(kont_jahr), 2),
-                 "auslastung": pct(jahr_ist, kont_jahr)},
+                 "auslastung": pct(jahr_ist, soll_ytd)},
     }
 
 
@@ -623,19 +641,25 @@ def wochenauslastung(klienten, jahr: int, kw: int = None):
     al_ist = defaultdict(lambda: Decimal("0"))
     kle_ist = defaultdict(lambda: Decimal("0"))
 
-    # 1) manuell erfasste Leistungen dieser Woche: KLE separat, alles Übrige zählt als AL
+    # 1) manuell erfasste Leistungen dieser Woche: KLE -> kLE, Fachleistungen (FS/WFS/BAO)
+    #    -> AL (Hausbesuch, Begleitung, Telefonat, Gruppe …). FZ/FUS zählen zu keiner Seite.
     for l in Leistung.objects.filter(klient_id__in=kl_ids, datum__range=(mo, so)).exclude(auto=True):
         if l.leistungsart == Leistungsart.KLE:
             kle_ist[l.klient_id] += l.dauer_stunden
-        else:
+        elif l.leistungsart in FLS_ARTEN:
             al_ist[l.klient_id] += l.dauer_stunden
 
-    # 2) Gruppen-Anteile dieser Woche: KLE-Gruppen -> KLE, alle übrigen -> AL
+    # 2) Gruppen-Anteile dieser Woche: KLE-Gruppen -> kLE, Fachleistungs-Gruppen -> AL
     for g in Gruppe.objects.filter(datum__range=(mo, so)).prefetch_related("teilnehmer"):
         anteil = g.zeit_pro_klient
         if not anteil:
             continue
-        ziel = kle_ist if g.leistungsart == Leistungsart.KLE else al_ist
+        if g.leistungsart == Leistungsart.KLE:
+            ziel = kle_ist
+        elif g.leistungsart in FLS_ARTEN:
+            ziel = al_ist
+        else:
+            continue
         for k in g.teilnehmer.all():
             if k.id in kl_ids:
                 ziel[k.id] += anteil
@@ -659,7 +683,7 @@ def wochenauslastung(klienten, jahr: int, kw: int = None):
         for b in serien_beitraege(k, mo, so, _serien, _tc, _gc):
             if b["leistungsart"] == Leistungsart.KLE:
                 kle_ist[k.id] += b["stunden"]
-            else:
+            elif b["leistungsart"] in FLS_ARTEN:
                 al_ist[k.id] += b["stunden"]
 
     zeilen = {}
@@ -673,7 +697,7 @@ def wochenauslastung(klienten, jahr: int, kw: int = None):
         zeilen[k.id] = {
             "klient": k, "soll": soll, "soll_al": soll_al, "soll_kle": soll_kle,
             "ist": ist, "al": al, "kle": kle,
-            "auslastung": (ist / soll) if soll else Decimal("0"),
+            "auslastung": (al / soll_al) if soll_al else Decimal("0"),   # Steuerung auf AL
         }
 
     def _sum(feld):
@@ -681,7 +705,7 @@ def wochenauslastung(klienten, jahr: int, kw: int = None):
     total = {"kw": kw, "soll": _sum("soll"), "soll_al": _sum("soll_al"),
              "soll_kle": _sum("soll_kle"), "ist": _sum("ist"),
              "al": _sum("al"), "kle": _sum("kle")}
-    total["auslastung"] = (total["ist"] / total["soll"]) if total["soll"] else Decimal("0")
+    total["auslastung"] = (total["al"] / total["soll_al"]) if total["soll_al"] else Decimal("0")
     return {"kw": kw, "zeilen": zeilen, "total": total}
 
 

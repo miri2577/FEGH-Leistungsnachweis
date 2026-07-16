@@ -149,11 +149,11 @@
     <div class="kpi sm k-orange">
       <div class="top">
         <span class="chip"><svg viewBox="0 0 24 24"><path d="M4 9h4v11H4zM10 4h4v16h-4zM16 13h4v7h-4z"/></svg></span>
-        <span class="l">FLS diese Woche · KW{{ kw }}</span>
+        <span class="l">AL diese Woche · KW{{ kw }}</span>
       </div>
-      <div class="n">{{ woche_total.ist|floatformat:1 }}<span style="font-size:14px;color:var(--muted)"> / {{ woche_total.soll|floatformat:1 }}</span></div>
-      <div style="font-size:11.5px;color:var(--muted);margin-top:2px">AL {{ woche_total.al|floatformat:1 }} · KLE {{ woche_total.kle|floatformat:1 }} = FLS</div>
-      {% if woche_total.soll %}{% widthratio woche_total.ist woche_total.soll 100 as wp %}<div class="barwrap"><i style="width:{% if wp > 100 %}100{% else %}{{ wp }}{% endif %}%;{% if wp > 100 %}background:var(--bad){% endif %}"></i></div>{% endif %}
+      <div class="n">{{ woche_total.al|floatformat:1 }}<span style="font-size:14px;color:var(--muted)"> / {{ woche_total.soll_al|floatformat:1 }}</span></div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:2px">direkte Fachleistung · kLE-Pauschale {{ woche_total.soll_kle|floatformat:1 }} h (kalk.)</div>
+      {% if woche_total.soll_al %}{% widthratio woche_total.al woche_total.soll_al 100 as wp %}<div class="barwrap"><i style="width:{% if wp > 100 %}100{% else %}{{ wp }}{% endif %}%;{% if wp > 100 %}background:var(--bad){% endif %}"></i></div>{% endif %}
     </div>
     {% endif %}
 
@@ -276,7 +276,7 @@
             <span class="pc s-{{ z.status }}">{{ z.pct }}%</span>
           </summary>
           <div class="klmore muted">
-            Woche {{ z.woche.ist|floatformat:1 }} / {{ z.woche.soll|floatformat:1 }} Std · AL {{ z.woche.al|floatformat:1 }} · KLE {{ z.woche.kle|floatformat:1 }} · Jahr {{ z.ist|floatformat:0 }}/{{ z.kontingent_jahr|floatformat:0 }}
+            Woche AL {{ z.woche.al|floatformat:1 }} / {{ z.woche.soll_al|floatformat:1 }} Std · kLE {{ z.woche.kle|floatformat:1 }} · Jahr {{ z.ist|floatformat:0 }}/{{ z.kontingent_jahr|floatformat:0 }}
             · <a href="{% url 'nachweis:ziele' z.klient.id %}" style="font-size:12px" title="Ziel- und Leistungsplanung">Ziele →</a>
             <form method="post" action="{% url 'nachweis:versendet_setzen' %}" style="display:flex;gap:6px;align-items:center;margin:6px 0 0">
               {% csrf_token %}<input type="hidden" name="klient" value="{{ z.klient.id }}">
