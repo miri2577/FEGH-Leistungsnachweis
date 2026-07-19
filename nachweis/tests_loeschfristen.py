@@ -170,6 +170,59 @@ class AnonymisierungTests(LoeschBasis):
         self.assertEqual(k.person_id, "AZ-123")
 
 
+class AnonymisierungVollstaendigkeitTests(LoeschBasis):
+    """P0 (Audit): Voll-Anonymisierung erfasst auch Selbstzahler-Rechnung, ICF-
+    Bedarfsermittlung, Wohnkosten und die simple_history-Snapshots (irreversibel)."""
+    def _reicher_klient(self):
+        from .models import (SelbstzahlerRechnung, Wohnkostenvereinbarung,
+                             Bedarfsermittlung, BedarfsEinschaetzung, TibLebensbereich)
+        k = self._klient(kue_bis=date(2013, 1, 1), vorname="Max", person_id="AZ-9")
+        Leistung.objects.create(datum=date(2012, 6, 1), klient=k, leistungsart=Leistungsart.FS,
+                                betreuer=self.betr)
+        sz = SelbstzahlerRechnung.objects.create(
+            nummer="WK-2012-0001", klient=k, empfaenger="Max Alt",
+            empfaenger_anschrift="Musterweg 3, 10115 Berlin", jahr=2012, monat=6,
+            datum=date(2012, 6, 1), betrag=500, notiz="privat")
+        sz.betrag = 550
+        sz.save()                                        # zweiter History-Snapshot
+        Wohnkostenvereinbarung.objects.create(klient=k, notiz="Sondervereinbarung")
+        be = Bedarfsermittlung.objects.create(klient=k, datum=date(2012, 3, 1))
+        lb = TibLebensbereich.objects.first() or TibLebensbereich.objects.create(name="Wohnen")
+        BedarfsEinschaetzung.objects.create(
+            bedarfsermittlung=be, lebensbereich=lb, gelingt="Ressource X",
+            barrieren="Barriere Y", personfaktoren="Faktor Z")
+        return k, sz.pk
+
+    def test_selbstzahler_bedarf_wohnkosten_werden_erfasst(self):
+        k, _ = self._reicher_klient()
+        lf.anonymisieren(k, stufe="voll", apply=True)
+        k.refresh_from_db()
+        sz = k.selbstzahler_rechnungen.first()
+        self.assertIsNotNone(sz)                          # Beleg bleibt (PROTECT)
+        self.assertNotIn("Max Alt", sz.empfaenger)        # Klarname weg
+        self.assertEqual(sz.empfaenger_anschrift, "")
+        self.assertEqual(sz.notiz, "")
+        self.assertEqual(k.bedarfsermittlungen.count(), 0)   # Art-9 gelöscht
+        self.assertEqual(k.wohnkosten.first().notiz, "")     # Notiz geleert
+
+    def test_simple_history_wird_gescrubbt(self):
+        from .models import SelbstzahlerRechnung
+        k, sz_pk = self._reicher_klient()
+        self.assertGreater(SelbstzahlerRechnung.history.filter(id=sz_pk).count(), 0)
+        lf.anonymisieren(k, stufe="voll", apply=True)
+        self.assertEqual(SelbstzahlerRechnung.history.filter(id=sz_pk).count(), 0)
+        # kein Klarname mehr in IRGENDEINEM Selbstzahler-History-Snapshot
+        self.assertFalse(any("Max Alt" in (h.empfaenger or "")
+                             for h in SelbstzahlerRechnung.history.all()))
+
+    def test_bedarfsermittlung_schon_in_fachdaten_stufe(self):
+        k, _ = self._reicher_klient()
+        lf.anonymisieren(k, stufe="fachdaten", apply=True)
+        self.assertEqual(k.bedarfsermittlungen.count(), 0)
+        k.refresh_from_db()
+        self.assertEqual(k.nachname, "Alt")               # Stammdaten bleiben (nur Fachdaten)
+
+
 class LoeschViewTests(LoeschBasis):
     def test_uebersicht_nur_leitung(self):
         u2 = User.objects.create_user("ma", password="x")

@@ -152,6 +152,20 @@ def _scrub_auditlog(model, pks):
     LogEntry.objects.filter(content_type=ct, object_pk__in=pks).delete()
 
 
+def _scrub_history(model, pks):
+    """Löscht die simple_history-Snapshots (Historical<Model>) der genannten Datensätze.
+    Auch simple_history speichert je Änderung die Alt-Werte (Freitexte/Namen) und beim
+    Löschen einen zusätzlichen Lösch-Snapshot – ohne dieses Scrubbing wäre die Anonymisierung
+    über die Änderungshistorie re-identifizierbar und damit NICHT irreversibel
+    (§ 84 SGB X / Art. 17 DSGVO). No-op, wenn das Modell keine History führt."""
+    mgr = getattr(model, "history", None)
+    if mgr is None:
+        return
+    pks = [p for p in pks if p is not None]
+    if pks:
+        mgr.filter(id__in=pks).delete()
+
+
 @transaction.atomic
 def anonymisieren(klient, stufe="fachdaten", apply=False, heute=None) -> dict:
     """Löscht Fachdaten (und bei stufe='voll' zusätzlich die Stammdaten-PII).
@@ -165,7 +179,9 @@ def anonymisieren(klient, stufe="fachdaten", apply=False, heute=None) -> dict:
       und die Auditlog-Historie des Klienten löschen; setzt anonymisiert_am.
     """
     from .models import (KlientAbwesenheit, Ziel, Bericht, Wirkungseinschaetzung,
-                         Dokument, Termin, Vorkommnis, Leistung, Belegung, Bewilligung)
+                         Dokument, Termin, Vorkommnis, Leistung, Belegung, Bewilligung,
+                         FEM, Bedarfsermittlung, BedarfsEinschaetzung,
+                         SelbstzahlerRechnung, Wohnkostenvereinbarung)
     heute = heute or date.today()
     report = {"klient": str(klient), "stufe": stufe, "apply": apply, "aktionen": []}
 
@@ -180,6 +196,21 @@ def anonymisieren(klient, stufe="fachdaten", apply=False, heute=None) -> dict:
                               ("berichte", Bericht),
                               ("wirkungseinschaetzungen", Wirkungseinschaetzung),
                               ("termine", Termin), ("vorkommnisse", Vorkommnis))}
+    # pks ALLER klientenbezogenen historisierten Fach-Datensätze vorab merken – auch die
+    # beim Löschen entstehenden Lösch-Snapshots werden so später zuverlässig entfernt.
+    hist_pks_fach = {
+        Ziel: list(klient.ziele.values_list("pk", flat=True)),
+        Bericht: list(klient.berichte.values_list("pk", flat=True)),
+        Wirkungseinschaetzung: list(klient.wirkungseinschaetzungen.values_list("pk", flat=True)),
+        FEM: list(klient.fem_massnahmen.values_list("pk", flat=True)),
+        Vorkommnis: list(klient.vorkommnisse.values_list("pk", flat=True)),
+        Belegung: list(klient.belegungen.values_list("pk", flat=True)),
+        Bedarfsermittlung: list(klient.bedarfsermittlungen.values_list("pk", flat=True)),
+        BedarfsEinschaetzung: list(BedarfsEinschaetzung.objects.filter(
+            bedarfsermittlung__klient=klient).values_list("pk", flat=True)),
+        KlientAbwesenheit: list(KlientAbwesenheit.objects.filter(
+            belegung__klient=klient).values_list("pk", flat=True)),
+    }
 
     # 1) Fachobjekte löschen (Dokument.delete räumt die Datei mit weg -> einzeln)
     n_dok = klient.dokumente.count()
@@ -190,7 +221,8 @@ def anonymisieren(klient, stufe="fachdaten", apply=False, heute=None) -> dict:
                        ("wirkungseinschaetzungen", "Wirkungseinschätzung(en)"),
                        ("termine", "Termin(e)"), ("kontakte", "Kontaktperson(en)"),
                        ("konten", "Klientenkonto/-konten"),
-                       ("fem_massnahmen", "FEM-Dokumentation(en)")):
+                       ("fem_massnahmen", "FEM-Dokumentation(en)"),
+                       ("bedarfsermittlungen", "ICF-Bedarfsermittlung(en)")):
         n = getattr(klient, rel).count()
         if n:
             tue(f"{n} {label} löschen", lambda r=rel: getattr(klient, r).all().delete())
@@ -224,13 +256,17 @@ def anonymisieren(klient, stufe="fachdaten", apply=False, heute=None) -> dict:
         tue(f"Kommentare an {n_bel} Belegung(en) leeren",
             lambda: klient.belegungen.update(kommentar=""))
 
-    # 3) Auditlog der Fachdaten-Ebene scrubben (Alt-Werte = Klartext-Freitexte)
+    # 3) Änderungs-Protokolle der Fachdaten-Ebene scrubben, damit keine Alt-Werte
+    #    (Klartext-Freitexte/Namen) als re-identifizierbare Historie zurückbleiben:
+    #    sowohl das auditlog (LogEntry) als auch die simple_history-Snapshots.
     def _scrub_fach():
         for M, pks in del_pks.items():
             _scrub_auditlog(M, pks)
         _scrub_auditlog(Leistung, klient.leistungen.values_list("pk", flat=True))
         _scrub_auditlog(Belegung, klient.belegungen.values_list("pk", flat=True))
-    tue("Auditlog der Fachdaten bereinigen", _scrub_fach)
+        for M, pks in hist_pks_fach.items():
+            _scrub_history(M, pks)
+    tue("Änderungsprotokolle (Auditlog + Historie) der Fachdaten bereinigen", _scrub_fach)
 
     # 4) Voll-Anonymisierung: Stammdaten + Bewilligungs-Freitexte, Marker, Auditlog
     if stufe == "voll":
@@ -238,11 +274,27 @@ def anonymisieren(klient, stufe="fachdaten", apply=False, heute=None) -> dict:
         if n_bew:
             tue(f"Freitexte/Aktenzeichen an {n_bew} Bewilligung(en) leeren",
                 lambda: klient.bewilligungen.update(kommentar="", aktenzeichen=""))
+        # Selbstzahler-Rechnungen (PROTECT → bleiben als Beleg) tragen Klarname + Anschrift
+        # der Bewohner*in – Personenbezug entfernen, Abrechnungsgerüst behalten.
+        n_sz = klient.selbstzahler_rechnungen.count()
+        if n_sz:
+            tue(f"Name/Anschrift an {n_sz} Selbstzahler-Rechnung(en) anonymisieren",
+                lambda: klient.selbstzahler_rechnungen.update(
+                    empfaenger=f"Gelöscht #{klient.pk}", empfaenger_anschrift="", notiz=""))
+        n_wk = klient.wohnkosten.exclude(notiz="").count()
+        if n_wk:
+            tue(f"Notiz an {n_wk} Wohnkostenvereinbarung(en) leeren",
+                lambda: klient.wohnkosten.update(notiz=""))
         tue(f"Stammdaten anonymisieren (→ „Gelöscht #{klient.pk}“)",
             lambda: _pseudonymisiere_stammdaten(klient, heute))
-        tue("Auditlog-Historie (Klient + Bewilligungen) löschen", lambda: (
+        tue("Auditlog + Historie (Klient, Bewilligungen, Selbstzahler, Wohnkosten) löschen", lambda: (
             _scrub_auditlog(Klient, [klient.pk]),
-            _scrub_auditlog(Bewilligung, list(klient.bewilligungen.values_list("pk", flat=True)))))
+            _scrub_auditlog(Bewilligung, list(klient.bewilligungen.values_list("pk", flat=True))),
+            _scrub_history(Bewilligung, list(klient.bewilligungen.values_list("pk", flat=True))),
+            _scrub_history(SelbstzahlerRechnung,
+                           list(klient.selbstzahler_rechnungen.values_list("pk", flat=True))),
+            _scrub_history(Wohnkostenvereinbarung,
+                           list(klient.wohnkosten.values_list("pk", flat=True)))))
 
     return report
 
