@@ -17,4 +17,14 @@ docker exec "$NAME" psql -U postgres -c "CREATE ROLE fegh;" >/dev/null 2>&1 || t
 age -d -i ~/age-key.txt "$FILE" | docker exec -i "$NAME" psql -U postgres >/dev/null
 echo "Restore OK – Tabellen:"
 docker exec "$NAME" psql -U postgres -c '\dt' | head -40
+
+# Dokument-Stichprobe: die zugehörige media-Sicherung (gleicher Zeitstempel) entschlüsseln
+# und auflisten -> beweist, dass auch die Klientendokumente wiederherstellbar sind.
+MEDIA="${FILE/fegh_/fegh_media_}"; MEDIA="${MEDIA/.sql.age/.tar.age}"
+if [ -f "$MEDIA" ]; then
+  n=$(age -d -i ~/age-key.txt "$MEDIA" | tar -tf - | wc -l)
+  echo "Dokument-Sicherung OK – $n Einträge im media-Archiv lesbar ($MEDIA)."
+else
+  echo "WARNUNG: keine media-Sicherung ($MEDIA) gefunden – Dokumente NICHT mitgetestet." >&2
+fi
 echo "Restore-Test erfolgreich. Wegwerf-DB wird entfernt. Ergebnis mit Datum dokumentieren."
