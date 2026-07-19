@@ -36,9 +36,16 @@ def _recovery_codes_neu(user):
 @login_required
 @require_http_methods(["GET", "POST"])
 def zwei_faktor_setup(request):
-    # Bereits eingerichtet? -> zur Statusseite (Verifikation nicht nötig)
-    if request.user.totpdevice_set.filter(confirmed=True).exists() and request.user.is_verified():
-        return redirect("nachweis:2fa_status")
+    # Ist bereits ein bestätigtes Gerät vorhanden, ist das Enrollment abgeschlossen:
+    #  - verifizierte Session      -> Statusseite (Neu-Einrichtung dort nur mit Step-up-Passwort)
+    #  - NICHT verifizierte Session -> NICHT erneut enrollen! Sonst könnte jemand, der nur das
+    #    Passwort kennt (Phishing/Reuse), ein EIGENES Gerät registrieren und so den zweiten Faktor
+    #    umgehen. Stattdessen zwingend erst mit dem vorhandenen Faktor verifizieren.
+    if request.user.totpdevice_set.filter(confirmed=True).exists():
+        if request.user.is_verified():
+            return redirect("nachweis:2fa_status")
+        return redirect("nachweis:2fa_verify")
+    # Ab hier: KEIN bestätigtes Gerät -> Erst-Einrichtung ist erlaubt.
     # Genau EIN unbestätigtes Gerät verwenden (Race-sicher: Duplikate bereinigen)
     unbestaetigt = list(request.user.totpdevice_set.filter(confirmed=False).order_by("id"))
     if unbestaetigt:

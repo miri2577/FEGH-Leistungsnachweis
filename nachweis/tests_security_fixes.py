@@ -40,16 +40,65 @@ class SelfEscalationTests(TestCase):
         self.assertFalse(services.ist_leitung(self.admin_u))
         self.assertEqual(services.klienten_fuer(self.admin_u).count(), 0)
 
-    def test_admin_darf_fremdes_konto_weiter_verwalten(self):
+    def test_admin_darf_fremdes_konto_verwalten_aber_nicht_zur_leitung(self):
         _u, fremd = _mk("kollege", Rolle.USER)
         self.client.force_login(self.admin_u)
         self.client.post(reverse("nachweis:mitarbeiter_bearbeiten", args=[fremd.id]),
-                         {"nachname": "Kollege", "rolle": Rolle.LEITUNG,
+                         {"nachname": "Kollege-Neu", "rolle": Rolle.LEITUNG,
                           "team": "", "leitet": [str(self.team.id)],
                           "wochenstunden": "39", "urlaubstage": "30"})
         fremd.refresh_from_db()
-        self.assertEqual(fremd.rolle, Rolle.LEITUNG)           # fremdes Konto: erlaubt
-        self.assertIn(self.team, fremd.leitet.all())
+        self.assertEqual(fremd.name, "Kollege-Neu")            # Stammdaten pflegen: erlaubt
+        self.assertEqual(fremd.rolle, Rolle.USER)              # Beförderung zur Leitung: blockiert
+        self.assertEqual(fremd.leitet.count(), 0)
+
+    def test_admin_kann_superuserkonto_nicht_bearbeiten(self):
+        su_u, su_m = _mk("root_profil", Rolle.ADMIN)
+        su_u.is_superuser = True
+        su_u.save()
+        self.client.force_login(self.admin_u)
+        resp = self.client.post(reverse("nachweis:mitarbeiter_bearbeiten", args=[su_m.id]),
+                                {"nachname": "Gehackt", "rolle": Rolle.ADMIN,
+                                 "wochenstunden": "39", "urlaubstage": "30"})
+        self.assertEqual(resp.status_code, 403)
+
+    def test_admin_darf_leitung_verwalten_und_herabstufen(self):
+        _u, chef = _mk("chefdrei", Rolle.LEITUNG, leitet=[self.team])
+        self.client.force_login(self.admin_u)
+        self.client.post(reverse("nachweis:mitarbeiter_bearbeiten", args=[chef.id]),
+                         {"nachname": "Chef", "rolle": Rolle.USER,
+                          "wochenstunden": "39", "urlaubstage": "30"})
+        chef.refresh_from_db()
+        self.assertEqual(chef.rolle, Rolle.USER)              # herabstufen: legitime Verwaltung
+        self.assertEqual(chef.leitet.count(), 0)
+
+    def test_admin_kann_leitungskonto_nicht_uebernehmen(self):
+        u_chef, chef = _mk("chefzwei", Rolle.LEITUNG, leitet=[self.team])
+        u_chef.set_password("altes-passwort"); u_chef.save()
+        from django_otp.plugins.otp_totp.models import TOTPDevice
+        TOTPDevice.objects.create(user=u_chef, confirmed=True, name="default")
+        self.client.force_login(self.admin_u)
+        # reset_link (Passwort-Übernahme) für ein Leitungskonto -> abgelehnt, kein Link-Screen
+        resp = self.client.post(reverse("nachweis:mitarbeiter_aktion"),
+                                {"id": str(chef.id), "aktion": "reset_link"})
+        self.assertRedirects(resp, reverse("nachweis:mitarbeiter_liste"))
+        # 2FA-Reset für ein Leitungskonto -> abgelehnt, Gerät bleibt
+        self.client.post(reverse("nachweis:mitarbeiter_aktion"),
+                         {"id": str(chef.id), "aktion": "twofa_reset"})
+        self.assertTrue(u_chef.totpdevice_set.filter(confirmed=True).exists())
+
+    def test_admin_darf_user_konto_weiter_zuruecksetzen(self):
+        _u, user_m = _mk("betreuerx", Rolle.USER)
+        self.client.force_login(self.admin_u)
+        resp = self.client.post(reverse("nachweis:mitarbeiter_aktion"),
+                                {"id": str(user_m.id), "aktion": "reset_link"})
+        self.assertEqual(resp.status_code, 200)               # Link-Screen: Kontoführung erlaubt
+
+    def test_admin_kann_kein_leitungskonto_anlegen(self):
+        self.client.force_login(self.admin_u)
+        self.client.post(reverse("nachweis:mitarbeiter_neu"),
+                         {"nachname": "Neu", "vorname": "Chef", "rolle": Rolle.LEITUNG, "team": ""})
+        self.assertFalse(Mitarbeiter.objects.filter(rolle=Rolle.LEITUNG).exists())
 
     def test_admin_kann_eigenen_namen_aendern(self):
         self.client.force_login(self.admin_u)

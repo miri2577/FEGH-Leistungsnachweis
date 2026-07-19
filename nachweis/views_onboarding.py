@@ -29,6 +29,17 @@ def _nur_admin(request):
     return services.ist_admin(request.user) or request.user.is_superuser
 
 
+def _ziel_geschuetzt(request, m):
+    """True, wenn das Ziel-Konto privilegierter/gleich sensibel ist und daher von einem
+    REINEN Admin (kein Superuser) weder übernommen noch bearbeitet werden darf. Verhindert
+    die Eskalation „Admin (ohne Klientenzugriff) -> Leitung/Superuser" (Aufgabentrennung,
+    ISO A.5.3 / DSGVO). Der Break-Glass-Superuser bleibt uneingeschränkt."""
+    if request.user.is_superuser:
+        return False
+    u = m.user
+    return bool(u and u.is_superuser) or m.rolle == Rolle.LEITUNG
+
+
 def _client_ip(request):
     """Echte Client-IP hinter Caddy (X-Forwarded-For, sonst REMOTE_ADDR)."""
     xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
@@ -172,6 +183,11 @@ def mitarbeiter_neu(request):
         email = (request.POST.get("email") or "").strip()
         if not nachname or rolle not in Rolle.values:
             messages.error(request, "Bitte mindestens Nachname und Rolle angeben.")
+        elif rolle == Rolle.LEITUNG and not request.user.is_superuser:
+            # Aufgabentrennung: ein reines Admin-Konto darf keine Leitung anlegen (sonst könnte
+            # es den angezeigten Aktivierungslink nutzen und das Leitungskonto selbst übernehmen).
+            messages.error(request, "Ein Administrations-Konto darf kein Leitungs-Konto anlegen "
+                           "(Aufgabentrennung) – dafür ist ein Break-Glass-/Superuser-Konto nötig.")
         else:
             team = Team.objects.filter(pk=team_id).first() if (team_id or "").isdigit() else None
             user = accounts.konto_anlegen(nachname, vorname, rolle, email)
@@ -202,6 +218,12 @@ def mitarbeiter_bearbeiten(request, pk):
     if not _nur_admin(request):
         return HttpResponseForbidden()
     m = get_object_or_404(Mitarbeiter, pk=pk)
+    # Superuser-Konten (Break-Glass) darf ein reines Admin-Konto gar nicht anfassen.
+    # Leitungskonten darf es weiterhin VERWALTEN (umbenennen, Team, herabstufen) – nur nicht
+    # übernehmen (Passwort/2FA, siehe mitarbeiter_aktion) oder jemanden dorthin befördern.
+    if m.user and m.user.is_superuser and not request.user.is_superuser:
+        return HttpResponseForbidden(
+            "Superuser-Konten dürfen nur über ein Break-Glass-/Superuser-Konto bearbeitet werden.")
     # Aufgabentrennung (ISO A.5.3 / DSGVO): Ein Admin darf die eigene Rolle, das
     # eigene Team und die eigene Teamleitung NICHT ändern – sonst könnte er sich
     # selbst zur Leitung machen und so Klienten-(Art-9-)Zugriff erlangen. Fremde
@@ -213,7 +235,14 @@ def mitarbeiter_bearbeiten(request, pk):
         if not selbst:
             rolle = request.POST.get("rolle")
             if rolle in Rolle.values:
-                m.rolle = rolle
+                # Nur die echte Beförderung (von Nicht-Leitung ZU Leitung) ist einem reinen
+                # Admin verwehrt; eine bestehende Leitung darf er verwalten/herabstufen.
+                if rolle == Rolle.LEITUNG and m.rolle != Rolle.LEITUNG and not request.user.is_superuser:
+                    messages.error(request, "Ein Administrations-Konto darf niemanden zur Leitung "
+                                   "befördern (Aufgabentrennung) – dafür ist ein Break-Glass-/"
+                                   "Superuser-Konto nötig.")
+                else:
+                    m.rolle = rolle
             tid = request.POST.get("team")
             m.team = Team.objects.filter(pk=tid).first() if (tid or "").isdigit() else None
         try:
@@ -256,6 +285,14 @@ def mitarbeiter_aktion(request):
     u = m.user
     if not u:
         messages.error(request, "Kein Login verknüpft.")
+        return redirect("nachweis:mitarbeiter_liste")
+
+    # Aufgabentrennung: Zugang zurücksetzen bzw. 2FA entfernen ermöglicht die Konto-Übernahme.
+    # Für Leitungs-/Superuser-Konten ist das einem reinen Admin verwehrt (nur Break-Glass).
+    if aktion in {"reset_link", "twofa_reset"} and _ziel_geschuetzt(request, m):
+        messages.error(request, "Zugang zurücksetzen bzw. 2FA entfernen ist für Leitungs- und "
+                       "Superuser-Konten einem Administrations-Konto nicht erlaubt "
+                       "(Aufgabentrennung). Bitte über ein Break-Glass-/Superuser-Konto vornehmen.")
         return redirect("nachweis:mitarbeiter_liste")
 
     if aktion == "reset_link":
