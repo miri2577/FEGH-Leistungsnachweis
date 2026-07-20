@@ -72,6 +72,10 @@ class AbrechnungTests(TestCase):
         p.save()
         # Juni 2026 hat 30 Kalendertage -> 15,0 Std kLE-Pauschale
         self.assertEqual(services.kle_monat_stunden(2026, 6), Decimal("15.000"))
+        # tagesgenau bei unterjährigem Austritt: KÜ endet am 3.6. -> nur 3 Tage
+        self.assertEqual(services.kle_monat_stunden(2026, 6, bis=date(2026, 6, 3)), Decimal("1.500"))
+        # tagesgenau bei Einzug am 25.6. -> 25..30 = 6 Tage
+        self.assertEqual(services.kle_monat_stunden(2026, 6, von=date(2026, 6, 25)), Decimal("3.000"))
 
     def test_snapshot_enthaelt_kle_und_beendete_ohne(self):
         p = Parameter.objects.get(jahr=2026)

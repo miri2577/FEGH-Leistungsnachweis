@@ -153,6 +153,22 @@ class GutschriftCreditNoteTests(TestCase):
         self.assertIsNotNone(lines[0].find(f"{{{CBC}}}CreditedQuantity"))
         self.assertEqual(lines[0].find(f"{{{CBC}}}LineExtensionAmount").text, "1234.56")
 
+    def test_creditnote_line_bei_service_gutschrift(self):
+        # Realer Pfad: gutschrift_erstellen verknüpft KEINE Position mit der Gutschrift.
+        # Ohne synthetische Zeile hätte der Beleg 0 Zeilen -> BR-16/BR-CO-10-Verstoß.
+        from . import services
+        orig = Rechnung.objects.create(
+            nummer="RE-2026-0099", empfaenger=self.kt.name, kostentraeger=self.kt,
+            jahr=2026, monat=6, datum=date(2026, 7, 1), betrag=Decimal("500.00"),
+            status=Rechnungsstatus.GESTELLT)
+        gut, err = services.gutschrift_erstellen(orig, self.betr)
+        self.assertIsNone(err)
+        self.assertEqual(gut.positionen.count(), 0)          # Service verknüpft keine Position
+        root = ET.fromstring(xrechnung.build_ubl(gut))
+        lines = root.findall(f"{{{CAC}}}CreditNoteLine")
+        self.assertEqual(len(lines), 1)                      # trotzdem genau eine (synthetische) Zeile
+        self.assertEqual(lines[0].find(f"{{{CBC}}}LineExtensionAmount").text, "500.00")
+
     def test_regulaere_rechnung_bleibt_invoice(self):
         root = ET.fromstring(xrechnung.build_ubl(self.original))
         self.assertEqual(root.tag, f"{{{INVOICE_NS}}}Invoice")

@@ -1105,13 +1105,20 @@ def fls_preis(jahr: int) -> Decimal:
     return get_parameter(jahr).fls_preis or Decimal("0")
 
 
-def kle_monat_stunden(jahr: int, monat: int) -> Decimal:
-    """kLE-Pauschale eines Monats in Stunden: kLE je Tag × Kalendertage des Monats.
+def kle_monat_stunden(jahr: int, monat: int, von=None, bis=None) -> Decimal:
+    """kLE-Pauschale eines Monats in Stunden: kLE je Tag × abgedeckte Kalendertage.
     Senats-Systematik: die kLE fällt je Leistungsberechtigte*m und KALENDERTAG an
-    (einheitlich, HBG-unabhängig) – keine Einzeldokumentation erforderlich."""
+    (einheitlich, HBG-unabhängig) – keine Einzeldokumentation erforderlich.
+    von/bis (optional) kürzen auf den tatsächlichen Betreuungszeitraum im Monat, damit
+    bei unterjährigem Ein-/Austritt nur die Betreuungstage fakturiert werden (nicht der
+    volle Monat). Ohne von/bis: alle Kalendertage (Vollmonat)."""
     from calendar import monthrange
     p = get_parameter(jahr)
-    tage = monthrange(jahr, monat)[1]
+    m_anfang = date(jahr, monat, 1)
+    m_ende = date(jahr, monat, monthrange(jahr, monat)[1])
+    start = max(m_anfang, von) if von else m_anfang
+    ende = min(m_ende, bis) if bis else m_ende
+    tage = (ende - start).days + 1 if ende >= start else 0
     return ((p.kle_je_tag or Decimal("0")) * tage).quantize(Q3, ROUND_HALF_UP)
 
 
@@ -1270,7 +1277,13 @@ def freigabe_snapshot(mf) -> None:
         in_betreuung = mf.klient.kue_bis >= monatsanfang
     else:
         in_betreuung = mf.klient.status == Status.BETREUUNG
-    mf.kle_summe = kle_monat_stunden(mf.jahr, mf.monat) if in_betreuung else Decimal("0")
+    if in_betreuung:
+        # tagesgenau auf den Betreuungszeitraum im Monat kürzen (unterjähriger Ein-/Austritt):
+        # Beginn = gültig_von der Bewilligung, Ende = KÜ-Ende – jeweils auf den Monat geclippt.
+        kle_von = bew.gueltig_von if (bew and bew.gueltig_von) else None
+        mf.kle_summe = kle_monat_stunden(mf.jahr, mf.monat, von=kle_von, bis=mf.klient.kue_bis)
+    else:
+        mf.kle_summe = Decimal("0")
     # § 18 Abs. 4 Erbringungsfiktion: bewilligte FLS gelten als erbracht -> Soll abrechnen
     # (Ist bleibt nachrichtlich in fls_summe). Aus = Ist-Abrechnung. Der Zustand wird
     # festgeschrieben, damit ein späterer Parameter-Wechsel den Beleg nicht umdeutet.

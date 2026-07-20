@@ -182,6 +182,7 @@ def build_ubl(rechnung) -> bytes:
     # ---- Positionen (BG-25): je Monatsnachweis eine Zeile ----
     line_tag = "CreditNoteLine" if gutschrift else "InvoiceLine"
     qty_tag = "CreditedQuantity" if gutschrift else "InvoicedQuantity"
+    n_zeilen = 0
     for i, p in enumerate(positionen, start=1):
         betrag = abs(Decimal(p.betrag or 0))
         line = _sub(root, CAC, line_tag)
@@ -203,5 +204,26 @@ def build_ubl(rechnung) -> bytes:
         _sub(_sub(ctc, CAC, "TaxScheme"), CBC, "ID", "VAT")
         price = _sub(line, CAC, "Price")
         _sub(price, CBC, "PriceAmount", _q2(betrag), currencyID="EUR")  # BT-146
+        n_zeilen += 1
+
+    if n_zeilen == 0:
+        # Kein verknüpfter Monatsnachweis (typisch bei einer Gutschrift, deren Positionen
+        # bereits zur erneuten Abrechnung freigegeben wurden): eine synthetische Zeile über
+        # den Gesamtbetrag, sonst verletzt der Beleg BR-16 (mind. eine Zeile) und BR-CO-10
+        # (Σ Zeilen = LineExtensionAmount) und wird vom KoSIT-Validator/OZG-RE abgelehnt.
+        line = _sub(root, CAC, line_tag)
+        _sub(line, CBC, "ID", "1")
+        _sub(line, CBC, qty_tag, "1", unitCode="C62")
+        _sub(line, CBC, "LineExtensionAmount", _q2(netto), currencyID="EUR")
+        item = _sub(line, CAC, "Item")
+        bez = (f"Storno zu Rechnung {rechnung.storno_zu.nummer}" if rechnung.storno_zu_id
+               else f"Eingliederungshilfe {rechnung.monat:02d}/{rechnung.jahr}")
+        _sub(item, CBC, "Name", bez)
+        ctc = _sub(item, CAC, "ClassifiedTaxCategory")
+        _sub(ctc, CBC, "ID", "E")
+        _sub(ctc, CBC, "Percent", _q2(0))
+        _sub(_sub(ctc, CAC, "TaxScheme"), CBC, "ID", "VAT")
+        price = _sub(line, CAC, "Price")
+        _sub(price, CBC, "PriceAmount", _q2(netto), currencyID="EUR")
 
     return b'<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(root, encoding="utf-8")
