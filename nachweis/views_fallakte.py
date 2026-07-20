@@ -19,6 +19,8 @@ def klient_detail(request, pk):
     klient = get_object_or_404(
         services.klienten_fuer(request.user).select_related("team", "bezugsbetreuer"),
         pk=pk)
+    if request.method == "GET":
+        services.protokolliere_zugriff(request, klient, "fallakte")
     hinweise = services.klient_hinweise(klient)
     letzte_doku = list(klient.leistungen.exclude(dokumentation="")
                        .select_related("betreuer").order_by("-datum", "-id")[:5])
@@ -34,6 +36,9 @@ def klient_detail(request, pk):
         "klient": klient, "hinweise": hinweise, "zaehler": zaehler,
         "letzte_doku": letzte_doku,
         "aktive_bewilligung": klient.aktive_bewilligung(),
+        # Zugriffsprotokoll nur für die Leitung (DSGVO-Rechenschaft: wer sah diese Akte?)
+        "zugriffe": (list(klient.zugriffe.select_related("mitarbeiter")[:12])
+                     if services.ist_leitung(request.user) else None),
     })
 
 

@@ -62,5 +62,20 @@
         {% if klient.betreuung_name %}<div><span class="muted">Gesetzl. Betreuung:</span> {{ klient.betreuung_name }}{% if klient.betreuung_telefon %} · {{ klient.betreuung_telefon }}{% endif %}{% if klient.betreuung_umfang %} <span class="muted">({{ klient.betreuung_umfang }})</span>{% endif %}{% if klient.betreuung_bis %} · bis {{ klient.betreuung_bis|date:"d.m.Y" }}{% endif %}</div>{% endif %}
       </div>
     </div>
+
+    {% if nav_ist_leitung and zugriffe %}
+    <div class="panel">
+      <div class="head"><h2>Zugriffsprotokoll</h2>
+        <span class="muted" style="font-size:12px">Lesezugriffe auf diese Akte · letzte 12 (DSGVO-Rechenschaft)</span></div>
+      <div class="body" style="font-size:13px;padding:8px 18px 14px">
+        {% for z in zugriffe %}
+        <div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid var(--line)">
+          <span>{{ z.mitarbeiter|default:"?" }} · {{ z.get_bereich_display }}</span>
+          <span class="muted">{{ z.zeit|date:"d.m.Y H:i" }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
   </div>
 {% endblock %}

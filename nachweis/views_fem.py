@@ -39,6 +39,8 @@ def _datum(s):
 def fem(request, pk):
     """Fallakten-Reiter: freiheitsentziehende Maßnahmen der Klient*in."""
     klient = _klient(request, pk)
+    if request.method == "GET":
+        services.protokolliere_zugriff(request, klient, "fem")
     heute = date.today()
     massnahmen = list(klient.fem_massnahmen.all())
     for m in massnahmen:

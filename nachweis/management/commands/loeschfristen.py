@@ -27,6 +27,16 @@ class Command(BaseCommand):
                             help="Sicherheitsbestätigung für --apply.")
 
     def handle(self, *args, **opts):
+        anwenden = opts["apply"] and opts["ja"]
+
+        # Lesezugriffs-Protokoll (eigene kurze Frist) aufräumen – unabhängig von fälligen
+        # Betreuungen, damit die Protokolldaten nicht unbegrenzt wachsen.
+        if anwenden:
+            n = lf.zugriffslog_aufraeumen()
+            if n:
+                self.stdout.write(self.style.SUCCESS(
+                    f"{n} abgelaufene Zugriffsprotokoll-Eintrag/-Einträge gelöscht."))
+
         if opts["klient"]:
             k = Klient.objects.filter(pk=opts["klient"]).first()
             if not k:
@@ -40,7 +50,6 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("Keine fälligen Betreuungen – nichts zu tun."))
             return
 
-        anwenden = opts["apply"] and opts["ja"]
         if opts["apply"] and not opts["ja"]:
             self.stdout.write(self.style.WARNING(
                 "--apply ohne --ja: Trockenlauf. Zum echten Ausführen zusätzlich --ja setzen."))

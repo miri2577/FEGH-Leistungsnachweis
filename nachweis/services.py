@@ -54,6 +54,18 @@ def _superuser_ohne_profil(user) -> bool:
     return bool(user.is_superuser and mitarbeiter_fuer(user) is None)
 
 
+def protokolliere_zugriff(request, klient, bereich):
+    """Erfasst einen LESEZUGRIFF auf eine Art-9-Detailseite (DSGVO-Rechenschaft, § 22 BDSG).
+    Bewusst schlank und best-effort: ein Fehler beim Protokollieren darf die Seite nie
+    blockieren. Break-Glass-Superuser ohne Profil werden mit mitarbeiter=None erfasst."""
+    from .models import Zugriffslog
+    try:
+        Zugriffslog.objects.create(
+            mitarbeiter=mitarbeiter_fuer(request.user), klient=klient, bereich=bereich)
+    except Exception:
+        pass
+
+
 def ist_leitung(user) -> bool:
     """Leitung – für Team-Auswertung & Genehmigungen. Die App-Rolle ist maßgeblich."""
     m = mitarbeiter_fuer(user)

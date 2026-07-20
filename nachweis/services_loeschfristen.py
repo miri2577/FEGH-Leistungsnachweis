@@ -39,6 +39,10 @@ _FALLBACK = {
     AufbewahrungsKategorie.PERSONAL: 2,
 }
 
+# Lesezugriffs-Protokoll (Zugriffslog): eigene kurze Aufbewahrungsfrist – das Protokoll
+# ist selbst personenbezogen (wer sah wann welche Akte), § 22 BDSG / Datenminimierung.
+ZUGRIFFSLOG_FRIST_JAHRE = 1
+
 
 def frist_jahre(kategorie) -> int:
     """Aufbewahrungsdauer (Jahre) einer Kategorie aus der DB, sonst Fallback."""
@@ -137,6 +141,17 @@ def faellige_klienten(heute=None):
         if st["fach_faellig"]:
             out.append(st)
     return out
+
+
+def zugriffslog_aufraeumen(heute=None) -> int:
+    """Löscht Lesezugriffs-Protokolleinträge, die älter als ZUGRIFFSLOG_FRIST_JAHRE sind.
+    Das Protokoll ist selbst personenbezogen und unterliegt einer eigenen kurzen Frist.
+    Rückgabe: Anzahl gelöschter Einträge. Unabhängig vom Klient-Status (reine Zeitfrist)."""
+    from .models import Zugriffslog
+    heute = heute or date.today()
+    grenze = _plus_jahre(heute, -ZUGRIFFSLOG_FRIST_JAHRE)
+    geloescht, _ = Zugriffslog.objects.filter(zeit__date__lt=grenze).delete()
+    return geloescht
 
 
 def _scrub_auditlog(model, pks):

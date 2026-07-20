@@ -35,6 +35,8 @@ def _int0(val):
 def berichte(request, pk):
     """Berichte-Seite je Klient*in: Liste + Anlegen/Bearbeiten."""
     klient = get_object_or_404(services.klienten_fuer(request.user), pk=pk)
+    if request.method == "GET":
+        services.protokolliere_zugriff(request, klient, "bericht")
     liste = list(klient.berichte.select_related("vorlage"))
     bearbeiten = next((b for b in liste if str(b.id) == request.GET.get("edit", "")), None)
     # Vorbelegung: fällig = 10 Wochen VOR KÜ-Ende (Fristlogik von Klient.bericht_faellig_am),

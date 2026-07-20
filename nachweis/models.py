@@ -2410,3 +2410,32 @@ class BedarfsEinschaetzung(models.Model):
 
     def __str__(self):
         return f"{self.lebensbereich} · {self.get_teilhabe_status_display()}"
+
+
+class Zugriffslog(models.Model):
+    """Protokoll von LESEZUGRIFFEN auf sensible Art-9-Detailseiten (Fallakte, Bericht,
+    FEM, ICF-Bedarfsermittlung). DSGVO-Rechenschaftspflicht (Art. 5 Abs. 2, § 22 BDSG):
+    Innerhalb eines Teams sieht jede*r alle Klient*innen – bloßes Ansehen einer fremden
+    Akte hinterließe sonst keine Spur. Dieses Protokoll macht neugieriges Ausforschen
+    nachvollziehbar. Eigene kurze Aufbewahrungsfrist (es ist selbst personenbezogen)."""
+    class Bereich(models.TextChoices):
+        FALLAKTE = "fallakte", "Fallakte"
+        BERICHT = "bericht", "Bericht"
+        FEM = "fem", "FEM-Dokumentation"
+        BEDARF = "bedarf", "ICF-Bedarfsermittlung"
+
+    mitarbeiter = models.ForeignKey(Mitarbeiter, on_delete=models.SET_NULL, null=True,
+                                    blank=True, related_name="+")
+    klient = models.ForeignKey(Klient, on_delete=models.CASCADE, related_name="zugriffe")
+    bereich = models.CharField(max_length=12, choices=Bereich.choices)
+    zeit = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Zugriffsprotokoll-Eintrag"
+        verbose_name_plural = "Zugriffsprotokoll (Lesezugriffe)"
+        ordering = ["-zeit"]
+        indexes = [models.Index(fields=["klient", "-zeit"]), models.Index(fields=["zeit"])]
+
+    def __str__(self):
+        who = self.mitarbeiter or "?"
+        return f"{who} sah {self.get_bereich_display()} · {self.klient} · {self.zeit:%d.%m.%Y %H:%M}"

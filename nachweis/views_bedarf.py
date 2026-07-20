@@ -37,6 +37,8 @@ def bedarf(request, pk):
     """Bedarfsermittlung je Klient*in: gewählte (oder jüngste) Erhebung mit den 12
     Lebensbereichen; Historie der Erhebungen zur Auswahl."""
     klient = get_object_or_404(services.klienten_fuer(request.user), pk=pk)
+    if request.method == "GET":
+        services.protokolliere_zugriff(request, klient, "bedarf")
     erhebungen = list(klient.bedarfsermittlungen.select_related("erhoben_von"))
     aktuell = next((b for b in erhebungen if str(b.id) == request.GET.get("erhebung", "")),
                    erhebungen[0] if erhebungen else None)
