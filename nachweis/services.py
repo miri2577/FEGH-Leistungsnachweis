@@ -1449,16 +1449,19 @@ def naechste_rechnungsnummer(jahr: int) -> str:
 
 
 def rechnung_erstellen(freigaben, empfaenger, jahr, monat, datum, ersteller,
-                       anschrift="", notiz=""):
-    """Sammelrechnung aus freigegebenen Monatsnachweisen erzeugen; markiert sie als abgerechnet."""
+                       anschrift="", notiz="", kostentraeger=None):
+    """Sammelrechnung aus freigegebenen Monatsnachweisen erzeugen; markiert sie als abgerechnet.
+    kostentraeger: explizit übergebener FK (aus dem Rechnungslauf, bereits monatsscharf je
+    Gruppe aufgelöst). Fehlt er, wird er aus der zum LEISTUNGSMONAT gültigen Bewilligung der
+    ersten Position bestimmt, sonst per Namensabgleich auf den Empfänger-Freitext."""
     from django.utils import timezone
+    from calendar import monthrange
     from .models import Kostentraeger
     freigaben = list(freigaben)
-    # Kostenträger-FK auflösen: bevorzugt aus der aktiven Bewilligung der ersten Position,
-    # sonst per Namensabgleich auf den Empfänger-Freitext (für die E-Rechnung/Leitweg-ID).
-    kt = None
-    if freigaben:
-        b = freigaben[0].klient.aktive_bewilligung()
+    kt = kostentraeger
+    if kt is None and freigaben:
+        stichtag = date(jahr, monat, monthrange(jahr, monat)[1])
+        b = freigaben[0].klient.aktive_bewilligung(stichtag)
         if b and b.kostentraeger_id:
             kt = b.kostentraeger
     if kt is None:
@@ -1481,21 +1484,38 @@ def rechnung_erstellen(freigaben, empfaenger, jahr, monat, datum, ersteller,
 
 def rechnungslauf(jahr, monat, datum, ersteller):
     """Ein-Klick-Rechnungslauf: erzeugt je Kostenträger EINE Sammelrechnung aus allen
-    freigegebenen Monatsnachweisen des Monats – atomar (alles oder nichts). Nachweise
-    OHNE Kostenträger werden übersprungen (kein Rechnungsempfänger).
+    freigegebenen Monatsnachweisen des Monats – atomar (alles oder nichts).
+    Gruppiert über den strukturierten Kostenträger-FK der zum LEISTUNGSMONAT gültigen
+    Bewilligung (nicht über das Freitext-Cachefeld) – sonst könnten Klient*innen mit
+    gleichem Freitext, aber unterschiedlichem FK (z. B. nach Trägerwechsel) in einer
+    Sammelrechnung mit falschem Empfänger/falscher Leitweg-ID landen. Ohne FK dient der
+    Freitext als Fallback-Gruppe; ganz ohne Empfänger wird übersprungen.
     Rückgabe (erstellte_rechnungen, uebersprungen)."""
     from django.db import transaction
+    from calendar import monthrange
+    stichtag = date(jahr, monat, monthrange(jahr, monat)[1])
     gruppen, ohne = {}, 0
     for mf in offene_abrechnung(jahr, monat):
-        kt = (mf.klient.kostentraeger or "").strip()
-        if not kt:
-            ohne += 1
-            continue
-        gruppen.setdefault(kt, []).append(mf)
+        b = mf.klient.aktive_bewilligung(stichtag)
+        if b and b.kostentraeger_id:
+            schluessel = ("fk", b.kostentraeger_id)
+            info = {"empfaenger": b.kostentraeger.name, "kt": b.kostentraeger,
+                    "anschrift": b.kostentraeger.adresse or ""}
+        else:
+            text = (mf.klient.kostentraeger or "").strip()
+            if not text:
+                ohne += 1
+                continue
+            schluessel = ("text", text)
+            info = {"empfaenger": text, "kt": None, "anschrift": ""}
+        gruppen.setdefault(schluessel, {"mfs": [], **info})["mfs"].append(mf)
     erstellt = []
     with transaction.atomic():
-        for kt, gr in sorted(gruppen.items()):
-            erstellt.append(rechnung_erstellen(gr, kt, jahr, monat, datum, ersteller))
+        for schluessel in sorted(gruppen.keys()):
+            g = gruppen[schluessel]
+            erstellt.append(rechnung_erstellen(
+                g["mfs"], g["empfaenger"], jahr, monat, datum, ersteller,
+                anschrift=g["anschrift"], kostentraeger=g["kt"]))
     return erstellt, ohne
 
 

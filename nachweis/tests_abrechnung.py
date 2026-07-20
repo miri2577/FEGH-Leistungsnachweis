@@ -556,6 +556,25 @@ class RechnungslaufTests(TestCase):
         self.assertEqual(Monatsfreigabe.objects.get(klient=self.k1).status, Freigabestatus.ABGERECHNET)
         self.assertEqual(Monatsfreigabe.objects.get(klient=self.k3).status, Freigabestatus.FREIGEGEBEN)
 
+    def test_fk_gruppierung_trennt_gleichen_freitext(self):
+        # Bug-Fix: gleicher Freitext-Kostenträger, aber verschiedene strukturierte
+        # FK-Bewilligungen -> zwei getrennte Rechnungen mit KORREKTEM FK (nicht eine falsche).
+        from .models import (Kostentraeger, KostentraegerTyp, Bewilligung, BewilligungStatus)
+        kt_mitte = Kostentraeger.objects.create(name="BA Mitte", typ=KostentraegerTyp.BEZIRKSAMT,
+                                                leitweg_id="11-1-1")
+        kt_pankow = Kostentraeger.objects.create(name="BA Pankow", typ=KostentraegerTyp.BEZIRKSAMT,
+                                                 leitweg_id="11-2-2")
+        for k, kt in ((self.k1, kt_mitte), (self.k2, kt_pankow)):
+            k.kostentraeger = "Bezirksamt X"        # identischer Freitext bei beiden
+            k.save()
+            Bewilligung.objects.create(klient=k, kostentraeger=kt, status=BewilligungStatus.AKTIV,
+                                       gueltig_von=date(2026, 1, 1), gueltig_bis=date(2026, 12, 31))
+        self._cl(self.uv).post("/rechnungslauf/", {"jahr": 2026, "monat": 6, "datum": "2026-07-01"})
+        rechnungen = {r.kostentraeger_id: r for r in Rechnung.objects.all()}
+        self.assertEqual(len(rechnungen), 2)                  # nach FK getrennt, nicht zusammengefasst
+        self.assertEqual(rechnungen[kt_mitte.id].betrag, Decimal("100"))
+        self.assertEqual(rechnungen[kt_pankow.id].betrag, Decimal("200"))
+
     def test_zweiter_lauf_erzeugt_keine_dubletten(self):
         self._cl(self.uv).post("/rechnungslauf/", {"jahr": 2026, "monat": 6, "datum": "2026-07-01"})
         self._cl(self.uv).post("/rechnungslauf/", {"jahr": 2026, "monat": 6, "datum": "2026-07-01"})
