@@ -53,3 +53,9 @@ def parse_camt(xml_bytes):
 def finde_rechnungsnummer(text: str):
     m = RE_NUMMER.search(text or "")
     return m.group(1) if m else None
+
+
+def alle_rechnungsnummern(text: str) -> set:
+    """Alle DISTINKTEN Rechnungsnummern im Text – für die Eindeutigkeitsprüfung beim
+    camt-Abgleich: automatisch gebucht wird nur bei GENAU EINER Nummer, sonst manuell."""
+    return set(RE_NUMMER.findall(text or ""))

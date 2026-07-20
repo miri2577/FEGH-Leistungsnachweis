@@ -433,14 +433,39 @@ class MailVersandTests(TestCase):
 
     @override_settings(EMAIL_AKTIV=True, EMAIL_BACKEND=LOCMEM)
     @patch("nachweis.views_abrechnung._weasy_pdf", return_value=b"%PDF")
-    def test_mail_override_empfaenger(self, _pdf):
+    def test_mail_abweichende_adresse_abgelehnt(self, _pdf):
+        # Schutz vor Fehlversand (Art. 33/34 DSGVO): eine von der hinterlegten Kostenträger-
+        # Adresse abweichende Eingabe wird NICHT versendet – Sozialdaten nur an geprüfte Adresse.
         from django.core import mail
-        self._cl(self.uv).post(f"/rechnungen/{self.r.id}/mail/", {"email": "spezial@ba.de"})
-        self.assertEqual(mail.outbox[0].to, ["spezial@ba.de"])
+        self._cl(self.uv).post(f"/rechnungen/{self.r.id}/mail/", {"email": "fremd@example.com"})
+        self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(EMAIL_AKTIV=True, EMAIL_BACKEND=LOCMEM)
+    @patch("nachweis.views_abrechnung._weasy_pdf", return_value=b"%PDF")
+    def test_mail_hinterlegte_adresse_erlaubt(self, _pdf):
+        from django.core import mail
+        self._cl(self.uv).post(f"/rechnungen/{self.r.id}/mail/", {"email": "rechnung@ba.de"})
+        self.assertEqual(mail.outbox[0].to, ["rechnung@ba.de"])
 
     def test_mail_nur_verwaltung(self):
         resp = self._cl(self.uu).post(f"/rechnungen/{self.r.id}/mail/", {})
         self.assertEqual(resp.status_code, 403)
+
+    def test_status_stornierte_rechnung_nicht_reaktivierbar(self):
+        self.r.status = Rechnungsstatus.STORNIERT
+        self.r.save(update_fields=["status"])
+        self._cl(self.uv).post(f"/rechnungen/{self.r.id}/status/",
+                               {"status": Rechnungsstatus.GESTELLT})
+        self.r.refresh_from_db()
+        self.assertEqual(self.r.status, Rechnungsstatus.STORNIERT)   # Endzustand, kein Zurück
+
+    def test_status_gestellt_nicht_zu_entwurf(self):
+        self.r.status = Rechnungsstatus.GESTELLT
+        self.r.save(update_fields=["status"])
+        self._cl(self.uv).post(f"/rechnungen/{self.r.id}/status/",
+                               {"status": Rechnungsstatus.ENTWURF})
+        self.r.refresh_from_db()
+        self.assertEqual(self.r.status, Rechnungsstatus.GESTELLT)    # GESTELLT->ENTWURF gesperrt
 
     @override_settings(EMAIL_AKTIV=True, EMAIL_BACKEND=LOCMEM)
     @patch("nachweis.views_abrechnung._weasy_pdf", return_value=b"%PDF")

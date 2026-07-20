@@ -319,11 +319,21 @@ def rechnung_mail(request, pk):
     if r.status == Rechnungsstatus.STORNIERT:
         messages.error(request, "Eine stornierte Rechnung wird nicht versendet.")
         return redirect(ziel)
-    email = (request.POST.get("email") or "").strip() or (r.kostentraeger.email if r.kostentraeger else "")
-    if not email:
-        messages.error(request, "Keine Empfänger-E-Mail hinterlegt – bitte beim Kostenträger "
-                                "eintragen oder im Feld angeben.")
+    # Sozialdaten (PDF mit Klientennamen/Aktenzeichen) gehen NUR an die hinterlegte, geprüfte
+    # Kostenträger-Adresse – eine frei eingegebene abweichende Adresse wird abgelehnt (Schutz
+    # vor Tippfehler-Datenpanne, Art. 33/34 DSGVO).
+    kt_email = (r.kostentraeger.email or "").strip() if r.kostentraeger else ""
+    eingabe = (request.POST.get("email") or "").strip()
+    if not kt_email:
+        messages.error(request, "Für den Kostenträger ist keine E-Mail-Adresse hinterlegt – "
+                                "bitte zuerst dort eintragen (Sozialdaten nur an geprüfte Adresse).")
         return redirect(ziel)
+    if eingabe and eingabe.lower() != kt_email.lower():
+        messages.error(request, f"Die eingegebene Adresse weicht von der hinterlegten "
+                                f"Kostenträger-Adresse ({kt_email}) ab – Versand abgebrochen. "
+                                f"Sozialdaten gehen nur an die hinterlegte Adresse.")
+        return redirect(ziel)
+    email = kt_email
     if not settings.EMAIL_AKTIV:
         messages.error(request, "Der E-Mail-Versand ist auf diesem Server nicht konfiguriert "
                                 "(SMTP-Zugangsdaten fehlen).")
@@ -421,6 +431,19 @@ def rechnung_status(request, pk):
         return HttpResponseForbidden()
     r = get_object_or_404(Rechnung, pk=pk)
     neu = request.POST.get("status")
+    # Erlaubte Statusübergänge – verhindert die Reaktivierung stornierter Belege und die
+    # Umgehung der Gutschrift-Pflicht (STORNIERT ist Endzustand, GESTELLT->ENTWURF gesperrt).
+    ERLAUBT = {
+        Rechnungsstatus.ENTWURF:   {Rechnungsstatus.GESTELLT, Rechnungsstatus.STORNIERT},
+        Rechnungsstatus.GESTELLT:  {Rechnungsstatus.BEZAHLT, Rechnungsstatus.STORNIERT},
+        Rechnungsstatus.BEZAHLT:   {Rechnungsstatus.GESTELLT},
+        Rechnungsstatus.STORNIERT: set(),
+    }
+    if neu in Rechnungsstatus.values and neu != r.status \
+            and neu not in ERLAUBT.get(r.status, set()):
+        messages.error(request, f"Statuswechsel „{r.get_status_display()}“ → "
+                                f"„{dict(Rechnungsstatus.choices)[neu]}“ ist nicht zulässig.")
+        return redirect(reverse("nachweis:rechnung_detail", args=[r.id]))
     if neu in Rechnungsstatus.values:
         if neu == Rechnungsstatus.STORNIERT and r.status != Rechnungsstatus.ENTWURF:
             # Beleg-Disziplin: eine bereits GESTELLTE Rechnung war beim Kostenträger –
@@ -718,10 +741,17 @@ def mahnung_mail(request, pk):
     m = get_object_or_404(Mahnung.objects.select_related("rechnung", "rechnung__kostentraeger"), pk=pk)
     r = m.rechnung
     ziel = reverse("nachweis:mahnung_druck", args=[m.id])
-    email = (request.POST.get("email") or "").strip() or (r.kostentraeger.email if r.kostentraeger else "")
-    if not email:
+    # Nur an die hinterlegte, geprüfte Kostenträger-Adresse (Schutz vor Fehlversand).
+    kt_email = (r.kostentraeger.email or "").strip() if r.kostentraeger else ""
+    eingabe = (request.POST.get("email") or "").strip()
+    if not kt_email:
         messages.error(request, "Keine Empfänger-E-Mail hinterlegt – bitte beim Kostenträger eintragen.")
         return redirect(ziel)
+    if eingabe and eingabe.lower() != kt_email.lower():
+        messages.error(request, f"Die eingegebene Adresse weicht von der hinterlegten Kostenträger-"
+                                f"Adresse ({kt_email}) ab – Versand abgebrochen.")
+        return redirect(ziel)
+    email = kt_email
     if not settings.EMAIL_AKTIV:
         messages.error(request, "Der E-Mail-Versand ist auf diesem Server nicht konfiguriert.")
         return redirect(ziel)
@@ -774,16 +804,19 @@ def _camt_verbuchen(request, camt, eintraege):
     me = services.mitarbeiter_fuer(request.user)
     gebucht, offen = [], []
     for e in eintraege:
-        nummer = camt.finde_rechnungsnummer(e["verwendungszweck"])
+        nummern = camt.alle_rechnungsnummern(e["verwendungszweck"])
+        nummer = next(iter(nummern)) if len(nummern) == 1 else None   # nur EINDEUTIG buchen
         r = Rechnung.objects.filter(nummer=nummer).first() if nummer else None
         try:
             datum = date.fromisoformat(e["datum"]) if e["datum"] else date.today()
         except (ValueError, TypeError):
             datum = date.today()
         if not (r and r.ist_offen):
+            grund = ("mehrere Rechnungsnummern (Sammelbuchung) – manuell zuordnen" if len(nummern) > 1
+                     else "keine Rechnungsnummer erkannt" if not nummern
+                     else "Rechnung nicht offen/nicht gefunden")
             offen.append({"betrag": e["betrag"], "zweck": e["verwendungszweck"][:90],
-                          "grund": "keine Rechnungsnummer erkannt" if not nummer
-                                   else "Rechnung nicht offen/nicht gefunden"})
+                          "grund": grund})
         elif e["betrag"] > r.offener_betrag + Decimal("0.01"):
             offen.append({"betrag": e["betrag"], "zweck": r.nummer,
                           "grund": f"Betrag > offener Betrag ({r.offener_betrag} €)"})

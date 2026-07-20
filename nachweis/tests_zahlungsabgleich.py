@@ -81,6 +81,11 @@ class ZahlungsabgleichViewTests(TestCase):
         self._upload(xml)
         self.assertEqual(Zahlung.objects.count(), 1)
 
+    def test_sammelbuchung_mehrere_nummern_nicht_gebucht(self):
+        # Zwei Rechnungsnummern im Verwendungszweck -> nicht eindeutig -> nicht automatisch buchen
+        self._upload(_camt(_ntry("500.00", "CRDT", "Sammelzahlung Rechnung 2026-0007 und 2026-0008")))
+        self.assertEqual(Zahlung.objects.count(), 0)
+
     def test_nur_verwaltung(self):
         c = Client(); c.force_login(self.uu)
         self.assertEqual(c.get("/zahlungsabgleich/").status_code, 302)
