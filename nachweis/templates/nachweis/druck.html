@@ -2,9 +2,12 @@
 {% block title %}Druck-Nachweis · FEGH{% endblock %}
 
 {% block extrastyle %}
-  .form-doc{background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);
+  /* Druck-Dokument ist IMMER hell (weißes Papier) – Theme-Variablen lokal auf helle Werte
+     setzen, sonst wird der Text im Dark Mode weiß-auf-weiß unlesbar. */
+  .form-doc{background:#fff;color:#1e2a37;--ink:#1e2a37;--muted:#5a6b78;--brand-d:#0e4a5e;
+    border:1px solid #dbe4ea;border-radius:12px;box-shadow:var(--shadow);
     padding:30px 34px;max-width:820px;margin-top:16px}
-  .form-doc h2{font-size:20px;margin:0 0 2px;color:var(--brand-d)}
+  .form-doc h2{font-size:20px;margin:0 0 2px;color:#0e4a5e}
   .doc-meta{display:flex;flex-wrap:wrap;gap:8px 34px;margin:14px 0 22px;font-size:13.5px}
   .doc-meta b{color:var(--muted);font-weight:600;margin-right:6px}
   table.doc{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 4px}
