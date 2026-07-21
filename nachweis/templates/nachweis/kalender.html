@@ -57,7 +57,7 @@
   .mxname{text-align:left !important;white-space:nowrap;padding:4px 8px !important;font-weight:600;min-width:150px;font-size:12.5px}
   .mx tr.ich .mxname{box-shadow:inset 3px 0 0 var(--brand)}
   .mxcell{cursor:pointer;height:54px}
-  .mxcell:hover{outline:2px solid var(--brand);outline-offset:-2px}
+  .mxcell:hover,.mxcell:focus-visible,td.day.wk-cell:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
   .mxd{display:block;color:#fff;font-weight:700;border-radius:4px;font-size:10.5px;line-height:15px;margin:1px}
   .mxev{display:block;border-radius:4px;font-size:10px;line-height:14px;margin:1px;color:#1f2d3a;
     overflow:hidden;white-space:nowrap;border:1px solid rgba(0,0,0,.06)}
@@ -508,7 +508,14 @@
     window._kalCard = { edit: function(d){ openDirect(d, true); }, neu: function(d){ openDirect(d, false); } };
 
     document.querySelectorAll('.mxcell, .wk-cell').forEach(function(cell){
+      // Tastaturbedienbar (WCAG 2.1.1): jede per Maus klickbare Zelle ist fokussierbar und
+      // per Enter/Leertaste zu öffnen; das Karten-Formular ist die Alternative zu Drag&Drop.
+      cell.setAttribute('tabindex', '0');
+      cell.setAttribute('role', 'button');
       cell.addEventListener('click', function(){ openCell(cell); });
+      cell.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openCell(cell); }
+      });
     });
     if(neu) neu.addEventListener('click', function(){ if(curCell) fillForm({ ma: curCell.dataset.ma, datum: curCell.dataset.datum }, false); });
     var back = document.getElementById('tf-back'); if(back) back.addEventListener('click', function(){ if(curCell) showList(); else close(); });
