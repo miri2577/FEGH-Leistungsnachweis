@@ -50,7 +50,6 @@
     </div>
   </div>
 
-  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:9px 14px;border-radius:9px;margin:12px 0">{{ msg }}</div>{% endfor %}
 
   <h2 style="font-size:16px;margin:20px 0 4px">Bereit zur Abrechnung <span class="muted" style="font-weight:400;font-size:14px">· {{ offen_summe|floatformat:2 }} €</span></h2>
   {% if gruppen %}

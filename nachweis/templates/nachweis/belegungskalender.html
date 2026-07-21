@@ -21,7 +21,6 @@
   <p class="sub">{{ angebot.get_typ_display }} · {{ angebot.plaetze }} Plätze · {{ angebot.get_erreichbarkeit_display }}
     {% if angebot.katalog %} · Abrechnung: {{ angebot.katalog.name }}{% endif %}</p>
 
-  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
   <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
     <a class="btn ghost" href="{% url 'nachweis:angebote' %}">← Angebote</a>

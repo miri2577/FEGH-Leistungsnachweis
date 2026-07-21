@@ -10,7 +10,6 @@
   <h1 class="page">Offene Posten</h1>
   <p class="sub">Gestellte, noch nicht (voll) bezahlte Rechnungen – mit Fälligkeit, Zahlungsstand und Mahnstufe.</p>
 
-  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
   <div class="cards" style="margin-bottom:14px">
     <div class="kpi"><div class="n">{{ zeilen|length }}</div><div class="l">offene Rechnungen</div></div>

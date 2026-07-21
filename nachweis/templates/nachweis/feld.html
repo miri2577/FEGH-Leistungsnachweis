@@ -44,7 +44,6 @@
   <h1 class="page">Unterwegs</h1>
   <p class="sub">Besuch vor Ort dokumentieren · {{ heute|date:"l, d.m.Y" }}</p>
 
-  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:11px 14px;border-radius:11px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
   {% if termine %}
   <div class="grp-title">Meine Termine heute <span class="hint" style="font-weight:400">— antippen zum Übernehmen</span></div>

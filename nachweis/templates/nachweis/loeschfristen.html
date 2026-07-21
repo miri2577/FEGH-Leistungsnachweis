@@ -20,7 +20,6 @@
     Betreuung werden abgelaufene Fachdaten gelöscht und Stammdaten anonymisiert; Abrechnungs-
     belege bleiben die steuerrechtliche Frist als Skelett erhalten. Nichts läuft automatisch.</p>
 
-  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
   <div class="lf-kpi">
     <div class="card"><div class="n">{{ n_beendet }}</div><div class="l">beendete Betreuungen</div></div>

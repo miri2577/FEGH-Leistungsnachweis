@@ -461,6 +461,14 @@
       </details>
     </nav>
     <main>
+      {% if messages %}
+      <div class="messages">
+        {% for msg in messages %}
+        <div class="alert" role="{% if 'error' in msg.tags %}alert{% else %}status{% endif %}"
+             style="padding:10px 14px;border-radius:9px;margin-bottom:12px;background:{% if 'error' in msg.tags %}var(--badbg){% elif 'warning' in msg.tags or 'info' in msg.tags %}var(--warnbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% elif 'warning' in msg.tags or 'info' in msg.tags %}var(--warn){% else %}var(--ok){% endif %}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>

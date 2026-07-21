@@ -14,7 +14,6 @@
 {% block content %}
   <h1 class="page">Selbstzahler-Rechnung {{ r.nummer }}</h1>
 
-  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
     <a class="btn ghost" href="{% url 'nachweis:wohnkosten' %}">← Übersicht</a>

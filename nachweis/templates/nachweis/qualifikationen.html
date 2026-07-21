@@ -16,7 +16,6 @@
   <h1 class="page">Fortbildungen &amp; Qualifikationen</h1>
   <p class="sub">Berufsqualifikationen, Fortbildungen, Zertifikate und Pflichtunterweisungen mit Auffrischungs-/Ablauffristen – Grundlage für den Fachkraftnachweis gegenüber dem Kostenträger.</p>
 
-  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg);color:var(--bad){% else %}var(--okbg);color:var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
   {% if faellig %}
   <div class="panel" style="border-left:3px solid var(--warn)">

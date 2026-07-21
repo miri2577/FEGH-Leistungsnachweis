@@ -18,7 +18,6 @@
   <h1 class="page">Wohnkosten · {{ klient.name }}</h1>
   <p class="sub">Wiederkehrende Monatspositionen der WBVG-Vereinbarung. Diese bilden die Grundlage der monatlichen Selbstzahler-Rechnung.</p>
 
-  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
   <div style="margin-bottom:12px"><a class="btn ghost" href="{% url 'nachweis:wohnkosten' %}">← Wohnkosten-Übersicht</a></div>
 

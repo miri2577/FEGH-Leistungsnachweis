@@ -17,7 +17,6 @@
   <h1 class="page">Zählprotokoll · {{ kasse.bezeichnung|default:kasse.team.name }}</h1>
   <p class="sub">{{ monat_name }} {{ jahr }} — Bargeld zählen und mit dem Buchbestand des Kassenblatts abgleichen (Differenz muss 0 sein).</p>
 
-  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
   <div style="margin-bottom:14px">
     <a class="btn ghost" href="{% url 'nachweis:kasse' %}?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}">← Zum Kassenblatt</a>

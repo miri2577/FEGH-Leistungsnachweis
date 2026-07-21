@@ -39,7 +39,6 @@
     <a href="{% url 'nachweis:rechnung_detail' gutschrift.id %}"><b>{{ gutschrift.nummer }}</b></a>.</div>
   {% endif %}
 
-  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% elif 'warning' in msg.tags or 'info' in msg.tags %}var(--warnbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% elif 'warning' in msg.tags or 'info' in msg.tags %}var(--warn){% else %}var(--ok){% endif %};padding:9px 14px;border-radius:9px;margin:10px 0">{{ msg }}</div>{% endfor %}
 
   <div class="act">
     <a class="btn" href="{% url 'nachweis:rechnung_pdf' r.id %}">PDF</a>

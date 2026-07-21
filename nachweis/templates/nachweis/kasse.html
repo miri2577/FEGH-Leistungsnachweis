@@ -16,7 +16,6 @@
   <h1 class="page">Kasse{% if kasse %} · {{ kasse.bezeichnung|default:kasse.team.name }}{% endif %}</h1>
   <p class="sub">Kassenbuch (laufender Bestand) und Zählprotokoll je Monat. Kassenvortrag = Endbestand des Vormonats.</p>
 
-  {% for msg in messages %}<div class="alert" style="background:var(--okbg);color:var(--ok);padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
   {% if keine %}
     <div class="panel"><div class="kasseleer">

@@ -17,7 +17,6 @@
 {% block content %}
   {% include "nachweis/_fallakte_kopf.html" with fa_tab="berichte" %}
 
-  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
   <p class="sub" style="margin-top:0">Entwicklungs-/Informationsberichte mit Workflow: offen → in Arbeit → <b>mit Klient*in besprochen</b> → versendet.
     Der Berichtstext entsteht i. d. R. KI-gestützt in <b>FEGH-Bericht</b> (TeilhabeAssist) und wird hier abgelegt.</p>

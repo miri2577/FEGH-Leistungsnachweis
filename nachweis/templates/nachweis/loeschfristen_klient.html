@@ -15,7 +15,6 @@
   <h1 class="page">Anonymisierung prüfen · {{ klient.name }}</h1>
   <p class="sub">Trockenlauf-Vorschau. Es wird <b>nichts</b> geändert, bis du unten ausdrücklich bestätigst.</p>
 
-  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
   <a class="btn ghost" href="{% url 'nachweis:loeschfristen' %}">← Übersicht</a>
 

@@ -471,6 +471,17 @@ class MailVersandTests(TestCase):
         self.r.refresh_from_db()
         self.assertEqual(self.r.status, Rechnungsstatus.GESTELLT)    # GESTELLT->ENTWURF gesperrt
 
+    def test_fehlermeldung_erscheint_rot_nicht_gruen(self):
+        # Regression: Fehlermeldungen wurden früher grün (als Erfolg) gerendert. Der zentrale
+        # Messages-Block muss eine error-Meldung ROT (var(--bad)) ausgeben.
+        self.r.status = Rechnungsstatus.STORNIERT
+        self.r.save(update_fields=["status"])
+        resp = self._cl(self.uv).post(f"/rechnungen/{self.r.id}/status/",
+                                      {"status": Rechnungsstatus.GESTELLT}, follow=True)
+        html = resp.content.decode()
+        self.assertIn("nicht zulässig", html)          # die Fehlermeldung erscheint
+        self.assertIn("var(--bad)", html)              # und wird rot dargestellt (nicht grün)
+
     @override_settings(EMAIL_AKTIV=True, EMAIL_BACKEND=LOCMEM)
     @patch("nachweis.views_abrechnung._weasy_pdf", return_value=b"%PDF")
     def test_ohne_empfaenger_kein_versand(self, _pdf):

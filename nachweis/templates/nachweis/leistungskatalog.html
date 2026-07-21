@@ -19,7 +19,6 @@
   <p class="sub">Vergütung als Daten (Mehr-Bereichs-Fundament): Was wird nach welcher Einheit vergütet, zu welchem Satz,
     ab wann. Jährliche Fortschreibungen = neuer Satz ab Stichtag – laufende Fälle preisen automatisch um.</p>
 
-  {% for msg in messages %}<div class="alert" style="background:{% if 'error' in msg.tags %}var(--badbg){% else %}var(--okbg){% endif %};color:{% if 'error' in msg.tags %}var(--bad){% else %}var(--ok){% endif %};padding:10px 14px;border-radius:9px;margin-bottom:12px">{{ msg }}</div>{% endfor %}
 
   <div style="margin-bottom:12px"><a class="btn ghost" href="{% url 'nachweis:parameter' %}">← Team-Parameter</a>
     <a class="btn ghost" href="{% url 'nachweis:kostentraeger_liste' %}">Kostenträger</a></div>
