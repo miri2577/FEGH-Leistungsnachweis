@@ -1,5 +1,10 @@
 # Vorkommnis-Meldewesen (QM)
 
+![Vorkommnis-Meldewesen mit erzwungenem QM-Kreislauf.](../assets/screenshots/vorkommnisse.png)
+
+*Vorkommnis-Meldewesen mit erzwungenem QM-Kreislauf.*
+
+
 Besondere Vorkommnisse (Gewaltvorfaelle, Kindeswohlgefaehrdungen, Unfaelle,
 Medikationsfehler, Beschwerden) werden hier **erfasst, gemeldet und ausgewertet** –
 und zwar mit einem **erzwungenen QM-Kreislauf**: Ein Vorkommnis kann erst dann

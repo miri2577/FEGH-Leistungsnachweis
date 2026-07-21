@@ -1,5 +1,10 @@
 # Wohnkosten / Selbstzahler (WBVG)
 
+![Wohnkosten-/Selbstzahler-Abrechnung nach dem WBVG.](../assets/screenshots/wohnkosten.png)
+
+*Wohnkosten-/Selbstzahler-Abrechnung nach dem WBVG.*
+
+
 Seit dem BTHG zahlen Bewohner*innen besonderer Wohnformen ihre Miete, Nebenkosten und Verpflegung selbst – sie sind neben dem Kostenträger der **zweite Debitor**. Damit du diese wiederkehrenden Beträge nicht jeden Monat von Hand tippst, hinterlegst du je Bewohner*in einmal eine **Wohnkostenvereinbarung** nach WBVG mit ihren Monatspositionen (Grundmiete, Verpflegung …). Der **Monatslauf** macht daraus per Knopfdruck für den gewählten Monat je eine **Selbstzahler-Rechnung** mit eigenem Nummernkreis (`WK-JAHR-NNNN`), aus der du PDF druckst und die du als bezahlt markierst oder stornierst. Diese Seite erklärt den kompletten Ablauf und wer was darf.
 
 !!! note "Zweiter Debitor – getrennt vom Kostenträger"

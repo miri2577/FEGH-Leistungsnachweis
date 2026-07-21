@@ -1,5 +1,10 @@
 # Dienstplan & SOLL/IST-Abgleich
 
+![Dienstplan mit SOLL/IST-Abgleich und Ruhezeit-Prüfung.](../assets/screenshots/dienstplan.png)
+
+*Dienstplan mit SOLL/IST-Abgleich und Ruhezeit-Prüfung.*
+
+
 Für stationäre Angebote (Wohnheim, WG, Jugendhilfe) plant die Leitung die **Dienste** – wer an welchem Tag welche Schicht übernimmt. Der Dienstplan ist das **SOLL**: die geplante Besetzung. Das **IST** bleibt die erfasste Arbeitszeit. Beides läuft in derselben App zusammen, aber an zwei Stellen: geplant wird auf dem **Kalender-Planungsbrett** (Monatsansicht), verglichen wird im **SOLL/IST-Abgleich**. Diese Seite beschreibt beide Wege, die **Schichtarten** als Stammdaten, den **Nachtbesetzungs-Check** und die **ArbZG-Ruhezeit-Prüfung**.
 
 !!! note "Wer plant und wer sieht das?"

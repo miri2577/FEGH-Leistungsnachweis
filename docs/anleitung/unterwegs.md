@@ -1,5 +1,10 @@
 # Unterwegs-Modus (mobil)
 
+![Der Unterwegs-Modus im mobilen Layout: nachzuholende Termine übernehmen, Besuch erfassen, Unterschrift einholen.](../assets/screenshots/unterwegs.png){ width="360" }
+
+*Der Unterwegs-Modus im mobilen Layout: nachzuholende Termine übernehmen, Besuch erfassen, Unterschrift einholen.*
+
+
 Der **Unterwegs-Modus** ist die mobile Vor-Ort-Dokumentation für den Außendienst (Hausbesuch, BEW/WG, Begleitung). Du rufst die Seite auf dem Smartphone oder Tablet auf, übernimmst mit einem Tipp deinen heutigen Termin, erfasst **Von–bis**, wählst optional den **Zielbezug** und lässt dir – falls gewünscht – direkt auf dem Gerät **unterschreiben**. Aus einem Besuch entstehen sofort ein oder zwei Leistungen im Leistungsnachweis. Alles ist **team-gescopt**, nichts läuft automatisch durch, und es werden **keine Klientendaten auf dem Gerät gespeichert** (reiner Online-Modus).
 
 Aufruf: Menüpunkt **„Unterwegs“**. Die Seite ist auf schmale Displays optimiert (große Tippflächen, kein Auto-Zoom auf iOS).

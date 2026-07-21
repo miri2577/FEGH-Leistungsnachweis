@@ -1,5 +1,10 @@
 # Berichte & TeilhabeAssist
 
+![Berichte & TeilhabeAssist je Klient*in.](../assets/screenshots/berichte.png)
+
+*Berichte & TeilhabeAssist je Klient*in.*
+
+
 Zu jeder Klient*in verwaltest du hier die **Berichte** – Entwicklungs- und Informationsberichte mit einem festen **Workflow**: offen → in Arbeit → **mit Klient*in besprochen** → versendet. Der eigentliche Berichtstext entsteht in der Regel **KI-gestützt** in der Desktop-App **FEGH-Bericht (TeilhabeAssist)** und wird hier abgelegt. Damit die KI arbeiten kann, exportiert die App auf Knopfdruck ein strukturiertes **Rohpaket** (Ziele, Verlaufsdoku des Zeitraums, Rahmendaten) als JSON oder Markdown; die **Pseudonymisierung passiert bewusst erst lokal** in der Desktop-App. Zusätzlich gibt es eine **Druckansicht** mit den Anlagen Ziele und Wirkung.
 
 Du erreichst die Seite über die Fallakte einer Klient*in: Reiter **Berichte**. Welche Berichte fällig werden, ergibt sich aus der **KÜ-Frist** (siehe [Berichtsfristen](../fachliches/berichtsfristen.md)).

@@ -1,5 +1,10 @@
 # Globale Suche
 
+![Globale Suche: Treffer nach Kategorien (Klient*innen, Leistungen …), per Tastatur bedienbar.](../assets/screenshots/suche-overlay.png)
+
+*Globale Suche: Treffer nach Kategorien (Klient*innen, Leistungen …), per Tastatur bedienbar.*
+
+
 Die **globale Suche** (im Spotlight-Stil) ist der schnellste Weg durch die
 Anwendung: eine Eingabezeile, ein Tastenkürzel, sofortige Treffer. Sie liegt
 fest in der Kopfleiste und ist auf **jeder Seite nach dem Login** verfügbar –
