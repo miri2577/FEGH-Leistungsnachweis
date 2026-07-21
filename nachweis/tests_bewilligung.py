@@ -61,6 +61,18 @@ class BewilligungModellTests(TestCase):
         self.k.refresh_from_db()
         self.assertAlmostEqual(float(self.k.al), float(neu.al_monat), places=2)
 
+    def test_aktive_bewilligung_nutzt_prefetch_ohne_query(self):
+        # N+1-Fix: bei vorgeladenen Bewilligungen filtert aktive_bewilligung in Python und
+        # löst KEINEN zusätzlichen Query aus – liefert aber dasselbe Ergebnis wie der Query.
+        self._bew(gueltig_von=date.today() - timedelta(days=400),
+                  gueltig_bis=date.today() - timedelta(days=1),
+                  status=BewilligungStatus.ABGELAUFEN)
+        neu = self._bew(fls_woche=Decimal("3.81"))
+        k = Klient.objects.prefetch_related("bewilligungen").get(pk=self.k.pk)
+        with self.assertNumQueries(0):
+            b = k.aktive_bewilligung()
+        self.assertEqual(b, neu)
+
     def test_migrations_rueckrechnung_roundtrip(self):
         # Bestand: Klient mit Monatswerten (wie vor der Migration). Die Migration leitet
         # daraus FLS/Woche = al/4,3482 und kLE/Tag = kle/30,4375 ab; die Bewilligung rechnet

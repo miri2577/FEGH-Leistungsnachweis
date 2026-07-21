@@ -256,8 +256,19 @@ class Klient(models.Model):
         return start <= stichtag <= self.kue_bis
 
     def aktive_bewilligung(self, stichtag=None):
-        """Die zum Stichtag gültige Bewilligung (offener Beginn/Ende zählt als gültig)."""
+        """Die zum Stichtag gültige Bewilligung (offener Beginn/Ende zählt als gültig).
+        Nutzt vorgeladene Bewilligungen (prefetch_related('bewilligungen')), falls vorhanden,
+        und filtert dann in Python – das vermeidet ein N+1 in Listen-Views (Belegungsliste,
+        Dashboard, Controlling). Ohne Prefetch: gezielter Query wie bisher."""
         stichtag = stichtag or date.today()
+        cache = getattr(self, "_prefetched_objects_cache", {})
+        if "bewilligungen" in cache:
+            passend = [b for b in cache["bewilligungen"]
+                       if b.status == BewilligungStatus.AKTIV
+                       and (b.gueltig_von is None or b.gueltig_von <= stichtag)
+                       and (b.gueltig_bis is None or b.gueltig_bis >= stichtag)]
+            passend.sort(key=lambda b: (b.gueltig_von or date.min), reverse=True)
+            return passend[0] if passend else None
         return (self.bewilligungen
                 .filter(status=BewilligungStatus.AKTIV)
                 .filter(models.Q(gueltig_von__lte=stichtag) | models.Q(gueltig_von__isnull=True))
