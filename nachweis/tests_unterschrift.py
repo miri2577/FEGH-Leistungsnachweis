@@ -57,6 +57,20 @@ class UnterschriftTests(TestCase):
         l2 = Leistung.objects.get()
         self.assertEqual(l2.unterschrift, "")
 
+    def test_erfolg_redirect_mit_ok_signal(self):
+        # Erfolgreicher Speichervorgang signalisiert dem Client per ?ok=1, den lokalen
+        # Entwurf zu verwerfen (Datenverlust-Schutz unterwegs).
+        resp = self._post()
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("ok=1", resp.url)
+
+    def test_fehler_ohne_ok_signal(self):
+        # Fehlgeschlagener Speichervorgang -> KEIN ok=1 -> Entwurf bleibt erhalten.
+        resp = self.client.post(reverse("nachweis:feld_speichern"),
+                                {"datum": date.today().isoformat()})   # Pflichtfelder fehlen
+        self.assertEqual(resp.status_code, 302)
+        self.assertNotIn("ok=1", resp.url)
+
     def test_unterschrift_im_druck_nachweis(self):
         self._post(unterschrift=PNG)
         resp = self.client.get(reverse("nachweis:druck"),

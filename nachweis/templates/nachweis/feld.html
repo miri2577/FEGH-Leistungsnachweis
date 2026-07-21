@@ -118,7 +118,7 @@
     </details>
 
     <button class="btn-big" type="submit">Besuch speichern</button>
-    <p class="hint">Wird sofort als Leistung(en) im Leistungsnachweis sichtbar. Es werden keine Daten auf dem Gerät gespeichert.</p>
+    <p class="hint">Wird sofort als Leistung(en) im Leistungsnachweis sichtbar. Ein lokaler Entwurf schützt vor Datenverlust bei Verbindungsproblemen; nach dem Speichern wird er gelöscht.</p>
   </form>
 
   {% if erfasst %}
@@ -221,6 +221,68 @@
       document.getElementById('sig-data').value = '';
       document.getElementById('sig-state').textContent = 'noch leer';
     });
+    // Entwurf-Wiederherstellung: gespeicherte Unterschrift (DataURL) aufs Canvas zeichnen
+    window.sigRestore = function(url){
+      if(!url) return;
+      var img = new Image();
+      img.onload = function(){
+        ctx.drawImage(img, 0, 0, pad.width, pad.height); leer = false;
+        document.getElementById('sig-data').value = url;
+        document.getElementById('sig-state').textContent = 'Unterschrift wiederhergestellt';
+        var box = document.getElementById('sig-box'); if(box) box.open = true;
+      };
+      img.src = url;
+    };
+  })();
+
+  // --- Entwurf lokal sichern: schuetzt Doku + Unterschrift bei Funkloch/Serverfehler ---
+  (function(){
+    var KEY = 'fegh_feld_draft';
+    var form = document.getElementById('feldform');
+    if(!form || !window.localStorage) return;
+    var FELDER = ['klient','datum','beginn','ende','leistungsart','taetigkeit','dokumentation','doku_minuten'];
+    function sammle(){
+      var d = {};
+      FELDER.forEach(function(n){ if(form[n]) d[n] = form[n].value; });
+      var sig = document.getElementById('sig-data');
+      d.unterschrift = sig ? sig.value : '';
+      d._ts = Date.now();
+      return d;
+    }
+    function speichere(){ try { localStorage.setItem(KEY, JSON.stringify(sammle())); } catch(e){} }
+    function leere(){ try { localStorage.removeItem(KEY); } catch(e){} }
+
+    // Erfolgreicher Serverlauf (?ok=1) -> Entwurf verwerfen und URL bereinigen.
+    if(/[?&]ok=1/.test(location.search)){
+      leere();
+      history.replaceState(null, '', location.pathname);
+      return;
+    }
+    // Vorhandenen (sinnvollen) Entwurf zum Wiederherstellen anbieten.
+    var d = null;
+    try { d = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch(e){}
+    if(d && (d.dokumentation || d.taetigkeit || d.unterschrift)){
+      var bar = document.createElement('div');
+      bar.className = 'alert'; bar.setAttribute('role', 'status');
+      bar.style.cssText = 'padding:11px 14px;border-radius:9px;margin-bottom:12px;background:var(--warnbg);color:var(--warn);display:flex;gap:10px;align-items:center;flex-wrap:wrap';
+      var when = d._ts ? new Date(d._ts).toLocaleString('de-DE') : '';
+      var span = document.createElement('span'); span.style.flex = '1';
+      span.textContent = 'Nicht gesendeter Entwurf gefunden' + (when ? ' (' + when + ')' : '') + '.';
+      var bJa = document.createElement('button'); bJa.type = 'button'; bJa.className = 'btn'; bJa.textContent = 'Wiederherstellen'; bJa.style.cssText = 'padding:5px 12px;font-size:13px';
+      var bNein = document.createElement('button'); bNein.type = 'button'; bNein.className = 'btn ghost'; bNein.textContent = 'Verwerfen'; bNein.style.cssText = 'padding:5px 12px;font-size:13px';
+      bar.appendChild(span); bar.appendChild(bJa); bar.appendChild(bNein);
+      form.parentNode.insertBefore(bar, form);
+      bJa.addEventListener('click', function(){
+        FELDER.forEach(function(n){ if(form[n] && d[n] != null) form[n].value = d[n]; });
+        if(d.klient) ladeZiele(d.klient);
+        if(d.unterschrift && window.sigRestore) window.sigRestore(d.unterschrift);
+        bar.remove();
+      });
+      bNein.addEventListener('click', function(){ leere(); bar.remove(); });
+    }
+    // Laufend sichern (jede Eingabe).
+    form.addEventListener('input', speichere);
+    form.addEventListener('change', speichere);
   })();
 </script>
 {% endblock %}

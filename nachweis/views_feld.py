@@ -11,6 +11,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -132,4 +133,5 @@ def feld_speichern(request):
     messages.success(
         request, f"{klient.name}: {leistung.dauer_stunden} h ({art}){extra} gespeichert – "
                  f"im Leistungsnachweis sichtbar.")
-    return redirect("nachweis:feld_heute")
+    # ?ok=1 signalisiert dem Client den erfolgreichen Speichervorgang -> lokalen Entwurf löschen
+    return redirect(f"{reverse('nachweis:feld_heute')}?ok=1")
