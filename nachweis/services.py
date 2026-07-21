@@ -488,6 +488,22 @@ def _jahr_anteil_bis_heute(jahr: int) -> Decimal:
     return Decimal(verstrichen) / Decimal(tage_jahr)
 
 
+def _betreuungs_anteil(k, jahr, heute) -> Decimal:
+    """Anteil des Jahres (0..1), in dem k bis heute betreut wurde – für ein am tatsächlichen
+    Betreuungszeitraum ausgerichtetes Jahres-Soll statt am vollen Kalenderjahr. So erscheint
+    ein unterjähriger Zugang (bzw. Austritt) nicht fälschlich als unterdeckt. Betreuungsbeginn
+    = gültig_von der Bewilligung, Ende = KÜ-Ende – jeweils auf das Jahr bis heute geclippt."""
+    jahr_anfang, jahr_ende = date(jahr, 1, 1), date(jahr, 12, 31)
+    if heute.year < jahr:
+        return Decimal("0")
+    bis_ref = jahr_ende if heute.year > jahr else min(heute, jahr_ende)
+    bew = k.aktive_bewilligung(bis_ref)
+    start = bew.gueltig_von if (bew and bew.gueltig_von and bew.gueltig_von > jahr_anfang) else jahr_anfang
+    ende = min(bis_ref, k.kue_bis) if k.kue_bis else bis_ref
+    tage = (ende - start).days + 1 if ende >= start else 0
+    return Decimal(tage) / Decimal((jahr_ende - jahr_anfang).days + 1)
+
+
 def fachleistungsstunden(jahr: int, klienten=None):
     """Auswertung je Klient (Tab 'Fachleistungsstunden'). Steuerungsgröße ist die
     AL (direkte Fachleistung = FLS-Arten FS/WFS/BAO): Ist gegen das AL-Kontingent
@@ -499,14 +515,15 @@ def fachleistungsstunden(jahr: int, klienten=None):
     ts_pro, n_do = teamsitzung_pro_klient(jahr)
     gruppen = gruppen_anteile(jahr)
     _serien, _tc, _gc = aktive_serien(), _team_betreuung_counts(), anzahl_klienten()
-    qs = (klienten if klienten is not None else Klient.objects.all()).select_related("bezugsbetreuer")
+    qs = ((klienten if klienten is not None else Klient.objects.all())
+          .select_related("bezugsbetreuer").prefetch_related("bewilligungen"))
     kl_list = list(qs)
     # Manuelle Leistungen des Jahres in EINEM Query laden und nach Klient gruppieren (kein N+1)
     manual_by_kl = defaultdict(list)
     for l in Leistung.objects.filter(
             klient_id__in=[k.id for k in kl_list], datum__year=jahr).exclude(auto=True):
         manual_by_kl[l.klient_id].append(l)
-    anteil = _jahr_anteil_bis_heute(jahr)
+    heute = date.today()
     zeilen = []
     for k in kl_list:
         manual = manual_by_kl.get(k.id, [])
@@ -521,7 +538,7 @@ def fachleistungsstunden(jahr: int, klienten=None):
 
         al_soll_monat = k.al or Decimal("0")
         al_soll_jahr = (al_soll_monat * 12).quantize(Q3, ROUND_HALF_UP)
-        soll_ytd = (al_soll_jahr * anteil).quantize(Q3, ROUND_HALF_UP)
+        soll_ytd = (al_soll_jahr * _betreuungs_anteil(k, jahr, heute)).quantize(Q3, ROUND_HALF_UP)
         rest = (al_soll_jahr - al_ist).quantize(Q3, ROUND_HALF_UP)
         auslastung = (al_ist / soll_ytd) if soll_ytd else Decimal("0")
         zeilen.append({

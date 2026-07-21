@@ -73,6 +73,17 @@ class BewilligungModellTests(TestCase):
             b = k.aktive_bewilligung()
         self.assertEqual(b, neu)
 
+    def test_betreuungs_anteil_am_bewilligungszeitraum(self):
+        # AL-Jahres-Soll richtet sich am Betreuungszeitraum aus (nicht am vollen Kalenderjahr):
+        # Bewilligung ab 1.10. -> im (vergangenen) Jahr 2025 nur 92/365 Anteil.
+        self._bew(gueltig_von=date(2025, 10, 1), gueltig_bis=date(2026, 12, 31))
+        self.k.refresh_from_db()
+        anteil = services._betreuungs_anteil(self.k, 2025, date(2026, 7, 1))
+        self.assertAlmostEqual(float(anteil), 92 / 365, places=2)
+        # ganzjährig betreut -> voller Anteil
+        voll = services._betreuungs_anteil(self.k, 2026, date(2026, 12, 31))
+        self.assertAlmostEqual(float(voll), 1.0, places=2)
+
     def test_migrations_rueckrechnung_roundtrip(self):
         # Bestand: Klient mit Monatswerten (wie vor der Migration). Die Migration leitet
         # daraus FLS/Woche = al/4,3482 und kLE/Tag = kle/30,4375 ab; die Bewilligung rechnet
