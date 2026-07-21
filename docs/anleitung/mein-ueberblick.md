@@ -12,14 +12,11 @@
 
 ## Aufbau der Seite
 
-```mermaid
-flowchart TB
-    B[Begrüßungskarte] --> H[Hinweise: fehlende Nachweise / fällige Berichte]
-    H --> R1["Obere Reihe: Stempeluhr* · Arbeitszeit · Klient*innen · offene Nachweise"]
-    R1 --> R2["Mittlere Reihe: Wochenkalender · Urlaubskonto"]
-    R2 --> T["Tabelle: Meine Klient*innen – Auslastung"]
-    T --> A[Schnellzugriffe]
-```
+Der Aufbau ist im Bildschirmfoto oben zu sehen: die Begrüßungskarte mit den Hinweisen
+(fehlende Nachweise / fällige Berichte), darunter die Kennzahl-Kacheln (Stempeluhr,
+Arbeitszeit, Klient\*innen, Urlaubskonto), der Wochenkalender, die Tabelle *Meine
+Klient\*innen – Auslastung* sowie die Schnellzugriffe. Die folgenden Abschnitte erklären
+jeden Bereich einzeln.
 
 ## 1. Begrüßung
 
