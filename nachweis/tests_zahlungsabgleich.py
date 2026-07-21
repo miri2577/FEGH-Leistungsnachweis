@@ -35,6 +35,12 @@ class CamtParseTests(TestCase):
     def test_ungueltiges_xml(self):
         self.assertIsNone(camt.parse_camt(b"kein xml"))
 
+    def test_doctype_entity_wird_abgelehnt(self):
+        # DoS-Schutz (Billion Laughs): DTD/ENTITY-Deklaration -> abgelehnt, bevor expandiert wird
+        boese = (b'<?xml version="1.0"?><!DOCTYPE lolz [<!ENTITY a "AAAA">]>'
+                 b'<Document><BkToCstmrStmt>&a;</BkToCstmrStmt></Document>')
+        self.assertIsNone(camt.parse_camt(boese))
+
     def test_rechnungsnummer_erkennen(self):
         self.assertEqual(camt.finde_rechnungsnummer("Ueberw. 2026-0042 BA"), "2026-0042")
         self.assertIsNone(camt.finde_rechnungsnummer("ohne Nummer"))

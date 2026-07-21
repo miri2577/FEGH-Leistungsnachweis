@@ -20,6 +20,12 @@ def parse_camt(xml_bytes):
     """Liest die Gutschrifts-Buchungen (CdtDbtInd = CRDT) aus einem camt.053.
     Rückgabe: Liste von {betrag: Decimal, datum: str|None (ISO), verwendungszweck: str}.
     None, wenn die Datei kein gültiges XML ist. Namespace-agnostisch (camt.053.001.02/08)."""
+    # DoS-Schutz (Billion Laughs / Entity-Expansion): ein camt.053 hat keine DTD – Dateien mit
+    # DOCTYPE-/ENTITY-Deklaration werden abgelehnt, bevor der Parser Entities expandieren kann.
+    roh = xml_bytes if isinstance(xml_bytes, (bytes, bytearray)) else str(xml_bytes).encode("utf-8", "ignore")
+    kopf = bytes(roh[:8192]).lower()
+    if b"<!doctype" in kopf or b"<!entity" in kopf:
+        return None
     try:
         root = ET.fromstring(xml_bytes)
     except ET.ParseError:

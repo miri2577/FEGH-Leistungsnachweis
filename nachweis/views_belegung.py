@@ -237,9 +237,18 @@ def belegung_speichern(request):
         messages.error(request, f"{klient.name} hat eine Belegung, die sich mit dem "
                                 f"Einzug am {einzug:%d.%m.%Y} überschneidet.")
         return redirect("nachweis:belegungskalender", pk=angebot.pk)
+    zimmer = _zimmer_fuer(angebot, request.POST.get("zimmer"))
+    if zimmer and zimmer.plaetze:
+        # Platzzahl durchsetzen: am Einzugstag aktive Belegungen des Zimmers zählen
+        # (einzug <= Stichtag und noch nicht vor dem Stichtag ausgezogen).
+        belegt = (Belegung.objects.filter(zimmer=zimmer, einzug__lte=einzug)
+                  .exclude(auszug__lt=einzug).count())
+        if belegt >= zimmer.plaetze:
+            messages.error(request, f"Zimmer {zimmer.name} ist zum {einzug:%d.%m.%Y} voll belegt "
+                                    f"({belegt}/{zimmer.plaetze} Plätze) – bitte ein anderes Zimmer wählen.")
+            return redirect("nachweis:belegungskalender", pk=angebot.pk)
     Belegung.objects.create(klient=klient, angebot=angebot, einzug=einzug,
-                            platz=(request.POST.get("platz") or "").strip()[:40],
-                            zimmer=_zimmer_fuer(angebot, request.POST.get("zimmer")))
+                            platz=(request.POST.get("platz") or "").strip()[:40], zimmer=zimmer)
     messages.success(request, f"{klient.name} eingezogen zum {einzug:%d.%m.%Y}.")
     return redirect("nachweis:belegungskalender", pk=angebot.pk)
 

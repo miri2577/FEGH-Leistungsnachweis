@@ -261,6 +261,21 @@ class BelegungViewTests(BelegungBasis):
             "angebot": self.angebot.id, "klient": self.k.id, "einzug": "2026-07-01"})
         self.assertEqual(Belegung.objects.count(), 1)
 
+    def test_zimmer_kapazitaet_durchgesetzt(self):
+        from .models import Zimmer, Klient, Status
+        zimmer = Zimmer.objects.create(angebot=self.angebot, name="101", plaetze=1)
+        k2 = Klient.objects.create(nachname="Zwei", team=self.team, bezugsbetreuer=self.betr,
+                                   status=Status.BETREUUNG)
+        self.client.post(reverse("nachweis:belegung_speichern"), {
+            "angebot": self.angebot.id, "klient": self.k.id, "einzug": "2026-06-01",
+            "zimmer": zimmer.id})
+        self.assertEqual(Belegung.objects.filter(zimmer=zimmer).count(), 1)
+        # zweiter Einzug ins volle Einzelzimmer -> abgelehnt (keine Überbelegung)
+        self.client.post(reverse("nachweis:belegung_speichern"), {
+            "angebot": self.angebot.id, "klient": k2.id, "einzug": "2026-06-05",
+            "zimmer": zimmer.id})
+        self.assertEqual(Belegung.objects.filter(zimmer=zimmer).count(), 1)
+
     def test_auszug_vor_einzug_geblockt(self):
         b = self._belegung(einzug=date(2026, 6, 10))
         self.client.post(reverse("nachweis:belegung_speichern"),

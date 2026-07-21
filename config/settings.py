@@ -175,8 +175,10 @@ LOGIN_URL = 'nachweis:login'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = 'nachweis:login'
 
-# Aktivierungs-/Passwort-Reset-Links: 7 Tage gültig (einmalig durch Token-Mechanik)
-PASSWORD_RESET_TIMEOUT = 60 * 60 * 24 * 7
+# Aktivierungs-/Passwort-Reset-Links: 48 Stunden gültig (einmalig durch Token-Mechanik).
+# Kurzes Fenster für den Erstzugang zu Art-9-Daten – ein abgefangener/liegengebliebener
+# Link ist nur begrenzt als Konto-Übernahme nutzbar (vorher 7 Tage).
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 48
 
 # Automatische Abmeldung nach Inaktivität (Sekunden). Bei besonders sensiblen Daten
 # üblich 10–15 Min. Serverseitig erzwungen (Middleware) + clientseitiger Timer.
