@@ -90,7 +90,13 @@
   {% endfor %}
 
   <h2 style="font-size:16px;margin:26px 0 4px">Rechnungen</h2>
-  <table class="abr">
+  <div style="margin:0 0 8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <input type="search" data-tsuche="#rg-tab" data-count="#rg-count"
+           placeholder="Nummer, Empfänger, Zeitraum oder Status suchen…" aria-label="Rechnungen durchsuchen"
+           style="padding:7px 11px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;min-width:min(320px,100%);font-family:inherit;background:var(--card);color:inherit">
+    <span id="rg-count" class="muted" style="font-size:12.5px;font-variant-numeric:tabular-nums" aria-live="polite"></span>
+  </div>
+  <table class="abr" id="rg-tab">
     <thead><tr><th>Nummer</th><th>Datum</th><th>Empfänger</th><th>Zeitraum</th><th class="num">Betrag</th><th>Status</th><th style="width:1%">—</th></tr></thead>
     <tbody>
       {% for r in rechnungen %}
@@ -105,7 +111,7 @@
         <td style="white-space:nowrap"><a class="btn ghost xs" href="{% url 'nachweis:rechnung_detail' r.id %}">Öffnen</a></td>
       </tr>
       {% empty %}
-      <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Noch keine Rechnungen.</td></tr>
+      <tr data-tsuche-skip><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Noch keine Rechnungen.</td></tr>
       {% endfor %}
     </tbody>
   </table>

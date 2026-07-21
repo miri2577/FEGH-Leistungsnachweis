@@ -25,9 +25,16 @@
     <a class="btn ghost" href="{% url 'nachweis:angebote' %}" title="Wohnformen/WGs/Gruppen mit Plätzen + Anwesenheitskalender">Angebote &amp; Belegung</a>
   </div>
 
+  <div style="margin:0 0 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <input type="search" data-tsuche="#bl-tab" data-count="#bl-count"
+           placeholder="Name, Bezugsbetreuer*in oder Team suchen…" aria-label="Belegungsliste durchsuchen"
+           style="padding:7px 11px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;min-width:min(320px,100%);font-family:inherit;background:var(--card);color:inherit">
+    <span id="bl-count" class="muted" style="font-size:12.5px;font-variant-numeric:tabular-nums" aria-live="polite"></span>
+  </div>
+
   <div class="panel">
     <div class="body">
-      <table class="grid">
+      <table class="grid" id="bl-tab">
         <thead><tr><th>Klient*in</th><th>Team</th><th>Bezugsbetreuer*in</th>
           <th class="num">AL</th><th class="num">kLE</th><th class="num">FLS/Monat</th>
           <th class="num">HBG</th><th>KÜ bis</th><th>…versendet am</th><th>Status</th><th></th></tr></thead>
@@ -50,7 +57,7 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="11" class="muted" style="text-align:center;padding:20px">Noch keine Klient*innen in deinem Team.</td></tr>
+          <tr data-tsuche-skip><td colspan="11" class="muted" style="text-align:center;padding:20px">Noch keine Klient*innen in deinem Team.</td></tr>
           {% endfor %}
         </tbody>
       </table>

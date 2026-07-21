@@ -142,6 +142,14 @@ class TemplateSmokeTests(TestCase):
         resp = self.client.get(reverse("nachweis:klient_neu"))
         self.assertEqual(resp.status_code, 200)
 
+    def test_belegungsliste_hat_tabellensuche(self):
+        # Client-Filter: Suchfeld verweist per data-tsuche auf die Tabelle; das JS wird geladen.
+        self.client.force_login(self.chef_u)
+        resp = self.client.get(reverse("nachweis:belegungsliste"))
+        self.assertContains(resp, 'data-tsuche="#bl-tab"')
+        self.assertContains(resp, 'id="bl-tab"')
+        self.assertContains(resp, "tabellensuche.js")
+
 
 class KlientHBGFallbackTests(TestCase):
     """HBG gewählt + AL/kLE leer -> Werte aus der Parameter-Tabelle ableiten."""
