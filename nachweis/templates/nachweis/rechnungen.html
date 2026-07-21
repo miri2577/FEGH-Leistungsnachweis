@@ -54,7 +54,7 @@
   <h2 style="font-size:16px;margin:20px 0 4px">Bereit zur Abrechnung <span class="muted" style="font-weight:400;font-size:14px">· {{ offen_summe|floatformat:2 }} €</span></h2>
   {% if gruppen %}
   <form method="post" action="{% url 'nachweis:rechnungslauf_ausfuehren' %}" style="margin:8px 0 14px"
-        onsubmit="return confirm('Ein-Klick-Rechnungslauf: für alle {{ gruppen|length }} Kostenträger je eine Sammelrechnung über zusammen {{ offen_summe|floatformat:2 }} € erstellen?')">
+        data-confirm="Ein-Klick-Rechnungslauf: für alle {{ gruppen|length }} Kostenträger je eine Sammelrechnung über zusammen {{ offen_summe|floatformat:2 }} € erstellen?">
     {% csrf_token %}
     <input type="hidden" name="jahr" value="{{ jahr }}"><input type="hidden" name="monat" value="{{ monat }}">
     <input type="hidden" name="datum" value="{{ heute }}">

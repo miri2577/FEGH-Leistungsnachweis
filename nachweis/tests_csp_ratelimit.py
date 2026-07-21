@@ -25,6 +25,29 @@ class CSPHeaderTests(TestCase):
         self.assertIn("Content-Security-Policy", resp)
         self.assertIn("default-src 'self'", resp["Content-Security-Policy"])
 
+    def test_script_src_per_nonce_ohne_unsafe_inline(self):
+        # Härtung: script-src trägt ein nonce statt 'unsafe-inline'; style-src behält es bewusst.
+        header = self.client.get(reverse("nachweis:login"))["Content-Security-Policy-Report-Only"]
+        self.assertRegex(header, r"script-src 'self' 'nonce-[^']+'")
+        self.assertNotIn("script-src 'self' 'unsafe-inline'", header)
+        self.assertIn("style-src 'self' 'unsafe-inline'", header)
+
+    def test_nonce_wechselt_pro_request_und_matcht_html(self):
+        import re
+        # base.html-erbende (eingeloggte) Seite trägt den Header-nonce an ihren Inline-Scripts.
+        u = accounts.konto_anlegen("Meier", "Tom", Rolle.USER)
+        from .models import Team, Teamtyp
+        team = Team.objects.create(name="TBEW", typ=Teamtyp.values[0])
+        Mitarbeiter.objects.create(user=u, name="Meier", rolle=Rolle.USER, team=team, kuerzel="mei")
+        u.set_password("x"); u.is_active = True; u.save()
+        self.client.force_login(u)
+        r1 = self.client.get(reverse("nachweis:erfassung"))
+        n1 = re.search(r"'nonce-([^']+)'", r1["Content-Security-Policy-Report-Only"]).group(1)
+        self.assertIn(f'nonce="{n1}"', r1.content.decode())        # nonce steht am Inline-<script>
+        r2 = self.client.get(reverse("nachweis:erfassung"))
+        n2 = re.search(r"'nonce-([^']+)'", r2["Content-Security-Policy-Report-Only"]).group(1)
+        self.assertNotEqual(n1, n2)                                # pro Request frisch
+
 
 class AktivierungRateLimitTests(TestCase):
     def setUp(self):

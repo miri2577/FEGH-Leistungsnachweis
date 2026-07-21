@@ -164,16 +164,16 @@
   <form method="get" class="kal-filter" id="kal-filter">
     <input type="hidden" name="ansicht" value="{{ ansicht }}">
     {% if teams|length > 1 %}
-    <select name="team" onchange="this.form.submit()">
+    <select name="team" data-autosubmit>
       <option value="">Alle Teams</option>
       {% for t in teams %}<option value="{{ t.id }}" {% if team_id == t.id|stringformat:'s' %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
     </select>
     {% endif %}
-    <select name="mitarbeiter" onchange="this.form.submit()">
+    <select name="mitarbeiter" data-autosubmit>
       <option value="">Alle Mitarbeiter*innen</option>
       {% for m in alle_ma %}<option value="{{ m.id }}" {% if ma_id == m.id|stringformat:'s' %}selected{% endif %}>{{ m.name }}{% if m.vorname %}, {{ m.vorname }}{% endif %}</option>{% endfor %}
     </select>
-    <select name="klient" onchange="this.form.submit()">
+    <select name="klient" data-autosubmit>
       <option value="">Alle Klient*innen</option>
       {% for k in klienten %}<option value="{{ k.id }}" {% if kl_id == k.id|stringformat:'s' %}selected{% endif %}>{{ k.name }}</option>{% endfor %}
     </select>
@@ -350,7 +350,7 @@
           </div>
         </form>
         <form method="post" action="{% url 'nachweis:termin_delete' %}" id="tf-delform" hidden
-              onsubmit="return confirm('Termin löschen?')" style="margin-top:6px">
+              data-confirm="Termin löschen?" style="margin-top:6px">
           {% csrf_token %}<input type="hidden" name="zurueck" value="{{ request.get_full_path }}">
           <input type="hidden" name="id" id="tf-delid">
           <button class="btn ghost" style="color:var(--bad)" type="submit">Termin löschen</button>
@@ -370,7 +370,7 @@
           <div class="sa">
             {% for sa in schichtarten %}
             <button type="submit" style="background:{{ sa.farbe }}" title="{{ sa.name }} ({{ sa.beginn|time:'H:i' }}–{{ sa.ende|time:'H:i' }})"
-              onclick="document.getElementById('mxp-sa').value='{{ sa.id }}'">{{ sa.kuerzel }}</button>
+              data-set-value="#mxp-sa" data-value="{{ sa.id }}">{{ sa.kuerzel }}</button>
             {% endfor %}
           </div>
           {% if plan_angebote %}
@@ -378,7 +378,7 @@
             <select name="angebot" style="width:100%;margin-top:3px"><option value="">—</option>{% for a in plan_angebote %}<option value="{{ a.id }}">{{ a.name }}</option>{% endfor %}</select></label>
           {% endif %}
           <div style="display:flex;gap:8px;margin-top:8px">
-            <button type="submit" class="btn ghost" style="color:var(--bad)" onclick="document.getElementById('mxp-sa').value=''">Dienst entfernen</button>
+            <button type="submit" class="btn ghost" style="color:var(--bad)" data-set-value="#mxp-sa" data-value="">Dienst entfernen</button>
           </div>
         </form>
       </div>
@@ -393,7 +393,7 @@
 {% endblock %}
 
 {% block extrajs %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
   // Vollbild bleibt über Ansichtswechsel (Tag/Woche/Monat) hinweg erhalten
   (function(){
     var KEY = 'kal-fs';

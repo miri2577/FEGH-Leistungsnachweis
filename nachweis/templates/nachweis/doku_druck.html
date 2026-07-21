@@ -24,7 +24,7 @@
 
 {% block content %}
   <div class="no-print" style="display:flex;gap:8px;margin-top:6px">
-    <button class="btn" onclick="window.print()">🖨️ Drucken / als PDF speichern</button>
+    <button class="btn" data-print>🖨️ Drucken / als PDF speichern</button>
     <a class="btn ghost" href="{% url 'nachweis:druck_center' %}">← Druck-Nachweise</a>
   </div>
 

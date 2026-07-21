@@ -32,7 +32,7 @@
             <td style="white-space:nowrap">
               {% if m.laeuft %}<form method="post" action="{% url 'nachweis:fem_beenden' klient.id %}" style="display:inline">{% csrf_token %}<input type="hidden" name="id" value="{{ m.id }}"><button class="btn ghost" style="padding:3px 8px;font-size:12px">Beenden</button></form>{% endif %}
               <a class="btn ghost" style="padding:3px 8px;font-size:12px" href="?edit={{ m.id }}">Bearbeiten</a>
-              <form method="post" action="{% url 'nachweis:fem_loeschen' klient.id %}" style="display:inline" onsubmit="return confirm('Maßnahme löschen?')">{% csrf_token %}<input type="hidden" name="id" value="{{ m.id }}"><button class="btn ghost" style="padding:3px 8px;font-size:12px;color:var(--bad)">✕</button></form>
+              <form method="post" action="{% url 'nachweis:fem_loeschen' klient.id %}" style="display:inline" data-confirm="Maßnahme löschen?">{% csrf_token %}<input type="hidden" name="id" value="{{ m.id }}"><button class="btn ghost" style="padding:3px 8px;font-size:12px;color:var(--bad)">✕</button></form>
             </td>
           </tr>
           {% empty %}

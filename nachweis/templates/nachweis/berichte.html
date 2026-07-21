@@ -51,7 +51,7 @@
                   <button class="btn ghost" style="color:var(--ok)">→ versendet</button></form>
                 {% endif %}
                 {% if ist_leitung %}
-                <form method="post" action="{% url 'nachweis:bericht_loeschen' %}" onsubmit="return confirm('Bericht löschen?')">{% csrf_token %}
+                <form method="post" action="{% url 'nachweis:bericht_loeschen' %}" data-confirm="Bericht löschen?">{% csrf_token %}
                   <input type="hidden" name="id" value="{{ b.id }}">
                   <button class="btn ghost" style="color:var(--bad)">✕</button></form>
                 {% endif %}

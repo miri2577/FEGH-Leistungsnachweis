@@ -39,10 +39,10 @@
                 {% csrf_token %}<input type="hidden" name="id" value="{{ e.m.id }}">
                 <button class="btn ghost mini" name="aktion" value="reset_link" title="Neuen Aktivierungs-/Passwortlink erzeugen">Link</button>
                 <button class="btn ghost mini" name="aktion" value="twofa_reset" title="2FA zurücksetzen"
-                  onclick="return confirm('2FA zurücksetzen?')">2FA↺</button>
+                  data-confirm="2FA zurücksetzen?">2FA↺</button>
                 {% if e.aktiv %}
                 <button class="btn ghost mini" name="aktion" value="deaktivieren" style="color:var(--bad)"
-                  onclick="return confirm('Konto sperren?')">Sperren</button>
+                  data-confirm="Konto sperren?">Sperren</button>
                 {% else %}
                 <button class="btn ghost mini" name="aktion" value="aktivieren" style="color:var(--ok)">Entsperren</button>
                 {% endif %}

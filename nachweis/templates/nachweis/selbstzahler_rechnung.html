@@ -55,7 +55,7 @@
         <input type="hidden" name="id" value="{{ r.id }}"><input type="hidden" name="aktion" value="offen">
         <button class="btn ghost">Zahlung zurücknehmen</button></form>
       {% endif %}
-      <form method="post" action="{% url 'nachweis:selbstzahler_aktion' %}" onsubmit="return confirm('Rechnung stornieren?')">{% csrf_token %}
+      <form method="post" action="{% url 'nachweis:selbstzahler_aktion' %}" data-confirm="Rechnung stornieren?">{% csrf_token %}
         <input type="hidden" name="id" value="{{ r.id }}"><input type="hidden" name="aktion" value="storno">
         <button class="btn ghost" style="color:var(--bad)">Stornieren</button></form>
     </div>

@@ -89,7 +89,7 @@
 {% endblock %}
 
 {% block extrajs %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 const KLIENTEN = JSON.parse(document.getElementById('klienten-data').textContent);
 const ARTEN    = JSON.parse(document.getElementById('arten-data').textContent);
 const klientMap = {}; KLIENTEN.forEach(k => klientMap[k.id] = k.name);

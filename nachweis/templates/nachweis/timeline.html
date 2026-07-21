@@ -26,11 +26,11 @@
     <div class="head">
       <h2>Letzte Änderungen</h2>
       <form class="filter" method="get">
-        <select name="model" onchange="this.form.submit()">
+        <select name="model" data-autosubmit>
           <option value="">Alle Objekte</option>
           {% for m in modelle %}<option value="{{ m }}" {% if model == m %}selected{% endif %}>{{ m }}</option>{% endfor %}
         </select>
-        <select name="aktion" onchange="this.form.submit()">
+        <select name="aktion" data-autosubmit>
           <option value="">Alle Aktionen</option>
           <option value="0" {% if aktion == '0' %}selected{% endif %}>Angelegt</option>
           <option value="1" {% if aktion == '1' %}selected{% endif %}>Geändert</option>
@@ -62,7 +62,7 @@
           </div>
           <div>
             {% if e.kann_zuruecksetzen %}
-            <form method="post" action="{% url 'nachweis:timeline_restore' %}" onsubmit="return confirm('Diese Änderung rückgängig machen (auf den Stand davor)?')">
+            <form method="post" action="{% url 'nachweis:timeline_restore' %}" data-confirm="Diese Änderung rückgängig machen (auf den Stand davor)?">
               {% csrf_token %}<input type="hidden" name="id" value="{{ e.le.id }}">
               <button class="btn ghost" style="font-size:12px;padding:4px 10px" type="submit">↩ Rückgängig</button>
             </form>

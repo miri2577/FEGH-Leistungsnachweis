@@ -30,7 +30,7 @@
             <td class="muted">{{ k.adresse|default:"—" }}{% if k.notiz %}<br><span style="font-size:12px">{{ k.notiz }}</span>{% endif %}</td>
             <td style="white-space:nowrap">
               <a class="btn ghost" style="padding:3px 8px;font-size:12px" href="?edit={{ k.id }}">Bearbeiten</a>
-              <form method="post" action="{% url 'nachweis:kontakt_loeschen' klient.id %}" style="display:inline" onsubmit="return confirm('Kontakt löschen?')">
+              <form method="post" action="{% url 'nachweis:kontakt_loeschen' klient.id %}" style="display:inline" data-confirm="Kontakt löschen?">
                 {% csrf_token %}<input type="hidden" name="id" value="{{ k.id }}">
                 <button class="btn ghost" style="padding:3px 8px;font-size:12px;color:var(--bad)">✕</button>
               </form>

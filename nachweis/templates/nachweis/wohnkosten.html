@@ -24,7 +24,7 @@
     <div class="head"><h2>Monatslauf</h2></div>
     <div class="body" style="padding:14px 18px">
       <form method="post" action="{% url 'nachweis:wohnkosten_erzeugen' %}" class="run"
-            onsubmit="return confirm('Selbstzahler-Rechnungen für den gewählten Monat erzeugen?');">
+            data-confirm="Selbstzahler-Rechnungen für den gewählten Monat erzeugen?">
         {% csrf_token %}
         <label>Monat <select name="monat">{% for m, n in monate %}<option value="{{ m }}" {% if m == monat_default %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></label>
         <label>Jahr <input type="number" name="jahr" value="{{ jahr_default }}" style="width:90px"></label>

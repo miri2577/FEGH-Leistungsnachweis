@@ -72,7 +72,7 @@
           <button class="btn ghost" title="wieder aktiv setzen">↻ aktiv</button></form>
         {% endif %}
         {% if ist_leitung %}
-        <form method="post" action="{% url 'nachweis:ziel_loeschen' %}" style="display:inline" onsubmit="return confirm('Ziel löschen? Fachlich korrekt ist meist der Status „nicht weiterverfolgt“.')">{% csrf_token %}
+        <form method="post" action="{% url 'nachweis:ziel_loeschen' %}" style="display:inline" data-confirm="Ziel löschen? Fachlich korrekt ist meist der Status „nicht weiterverfolgt“.">{% csrf_token %}
           <input type="hidden" name="id" value="{{ z.id }}">
           <button class="btn ghost" style="color:var(--bad)">✕</button></form>
         {% endif %}

@@ -61,7 +61,7 @@
               <form method="post" action="{% url 'nachweis:abwesenheit_status' %}" style="display:inline">
                 {% csrf_token %}<input type="hidden" name="id" value="{{ a.id }}">
                 <button class="btn" style="padding:4px 9px" name="status" value="genehmigt"
-                  {% if a.ueberlappt %}onclick="return confirm('Achtung: {{ a.ueberlappt|length }} Kolleg*in(nen) sind im selben Zeitraum abwesend. Trotzdem genehmigen?');"{% endif %}>✓</button>
+                  {% if a.ueberlappt %}data-confirm="Achtung: {{ a.ueberlappt|length }} Kolleg*in(nen) sind im selben Zeitraum abwesend. Trotzdem genehmigen?"{% endif %}>✓</button>
                 <button class="btn ghost" style="padding:4px 9px;color:var(--bad)" name="status" value="abgelehnt">✕</button>
               </form>
             </td>

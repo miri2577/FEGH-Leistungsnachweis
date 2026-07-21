@@ -32,7 +32,7 @@
     <div><h1 class="page">Kassen-Nachweis</h1>
       <p class="sub">{{ kasse.bezeichnung|default:kasse.team.name }} · {{ monat_name }} {{ jahr }} — Kassenblatt & Zählprotokoll zum Ausdrucken.</p></div>
     <div style="display:flex;gap:8px">
-      <button class="btn" onclick="window.print()">🖨️ Drucken / PDF</button>
+      <button class="btn" data-print>🖨️ Drucken / PDF</button>
       <a class="btn ghost" href="{% url 'nachweis:kasse' %}?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}">← Zurück</a>
     </div>
   </div>

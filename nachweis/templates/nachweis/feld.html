@@ -136,7 +136,7 @@
 {% endblock %}
 
 {% block extrajs %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
   // Termin antippen -> Formular vorausfüllen (Klient, Datum, Von/Bis) und dorthin scrollen.
   document.querySelectorAll('.tchip').forEach(function(c){
     c.addEventListener('click', function(){

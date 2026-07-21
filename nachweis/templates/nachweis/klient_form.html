@@ -86,7 +86,7 @@
 {% endblock %}
 
 {% block extrajs %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
   // Bewilligungs-Vorschlag aus der HBG-Tabelle (Team-Parameter, Senats-Tool Output 5.):
   // AL/Monat = FLS/Woche × 4,3482 · kLE/Monat = kLE/Tag × 30,4375.
   // Beim Wählen einer HBG werden leere AL/kLE-Felder automatisch befüllt; bereits

@@ -50,7 +50,7 @@
 
   {% if daten %}
   <div style="margin:14px 0" class="no-print">
-    <button class="btn" onclick="window.print()">🖨️ Drucken / als PDF speichern</button>
+    <button class="btn" data-print>🖨️ Drucken / als PDF speichern</button>
     <a class="btn ghost" href="{% url 'nachweis:druck_pdf' %}?klient={{ klient.id }}&monat={{ monat }}&jahr={{ jahr }}">PDF herunterladen</a>
   </div>
 

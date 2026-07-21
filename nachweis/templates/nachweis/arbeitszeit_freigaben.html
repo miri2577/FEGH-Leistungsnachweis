@@ -22,7 +22,7 @@
         {% csrf_token %}<input type="hidden" name="mitarbeiter" value="{{ g.ma.id }}">
         <button class="btn mini" name="aktion" value="alle_genehmigen">Alle genehmigen</button>
         <button class="btn ghost mini" name="aktion" value="alle_ablehnen" style="color:var(--bad)"
-          onclick="return confirm('Alle Einträge ablehnen?')">Alle ablehnen</button>
+          data-confirm="Alle Einträge ablehnen?">Alle ablehnen</button>
       </form>
     </div>
     <div class="body">

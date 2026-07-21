@@ -33,7 +33,7 @@
 
   <form method="get" class="filter">
     <label style="font-size:12px;color:var(--muted)">Mitarbeiter*in
-      <select name="ma" onchange="this.form.submit()" style="padding:7px 9px;border:1px solid var(--border);border-radius:8px">
+      <select name="ma" data-autosubmit style="padding:7px 9px;border:1px solid var(--border);border-radius:8px">
         <option value="">— alle —</option>
         {% for m in mitarbeitende %}<option value="{{ m.id }}" {% if ma_filter == m.id|stringformat:'s' %}selected{% endif %}>{{ m.name }}{% if m.vorname %}, {{ m.vorname }}{% endif %}</option>{% endfor %}
       </select></label>
@@ -55,7 +55,7 @@
             <td class="muted">{{ q.gueltig_bis|date:"d.m.Y"|default:"—" }}</td>
             <td style="white-space:nowrap">
               <a class="btn ghost" style="padding:3px 8px;font-size:12px" href="?edit={{ q.id }}">Bearbeiten</a>
-              <form method="post" action="{% url 'nachweis:qualifikation_loeschen' %}" style="display:inline" onsubmit="return confirm('Qualifikation löschen?')">
+              <form method="post" action="{% url 'nachweis:qualifikation_loeschen' %}" style="display:inline" data-confirm="Qualifikation löschen?">
                 {% csrf_token %}<input type="hidden" name="id" value="{{ q.id }}">
                 <button class="btn ghost" style="padding:3px 8px;font-size:12px;color:var(--bad)">✕</button>
               </form>

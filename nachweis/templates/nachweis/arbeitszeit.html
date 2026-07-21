@@ -50,7 +50,7 @@
 
 {% block extrajs %}
 {% if me %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 function getCookie(n){const m=document.cookie.match('(^|;)\\s*'+n+'\\s*=\\s*([^;]+)');return m?m.pop():'';}
 const CSRF=getCookie('csrftoken');
 const setStatus=t=>document.getElementById('status').textContent=t;

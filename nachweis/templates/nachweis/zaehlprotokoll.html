@@ -87,7 +87,7 @@
 {% endblock %}
 
 {% block extrajs %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 (function(){
   var vortrag={{ km.vortrag|stringformat:"f"|default:"0" }};
   var einnahmen={{ km.einnahmen|stringformat:"f"|default:"0" }};

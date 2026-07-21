@@ -39,7 +39,7 @@
             <td style="white-space:nowrap">
               <a class="btn ghost" style="padding:3px 8px;font-size:12px" href="?edit={{ b.id }}">Bearbeiten</a>
               <a class="btn ghost" style="padding:3px 8px;font-size:12px" href="?fort={{ b.id }}" title="Neue Fassung (Fortschreibung)">Fortschreiben</a>
-              <form method="post" action="{% url 'nachweis:bewilligung_loeschen' %}" style="display:inline" onsubmit="return confirm('Bewilligung löschen?')">
+              <form method="post" action="{% url 'nachweis:bewilligung_loeschen' %}" style="display:inline" data-confirm="Bewilligung löschen?">
                 {% csrf_token %}<input type="hidden" name="id" value="{{ b.id }}">
                 <button class="btn ghost" style="padding:3px 8px;font-size:12px;color:var(--bad)">✕</button>
               </form>
@@ -100,7 +100,7 @@
   {% endwith %}
 {% endblock %}
 {% block extrajs %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
   // FLS/Woche + kLE/Tag aus der HBG-Tabelle (Parameter) übernehmen – nur leere Felder automatisch.
   (function(){
     var V = {{ hbg_json|safe }};

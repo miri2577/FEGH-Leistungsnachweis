@@ -31,7 +31,7 @@
     <div><h1 class="page">Arbeitszeit-Nachweis</h1>
       <p class="sub">{{ ziel.vorname }} {{ ziel.name }} · {{ monat_name }} {{ jahr }}</p></div>
     <div style="display:flex;gap:8px">
-      <button class="btn" onclick="window.print()">🖨️ Drucken / PDF</button>
+      <button class="btn" data-print>🖨️ Drucken / PDF</button>
       <a class="btn ghost" href="{% url 'nachweis:arbeitszeit' %}">← Zurück</a>
     </div>
   </div>

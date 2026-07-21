@@ -30,7 +30,7 @@
             <td class="num"><span class="belg {% if z.frei == 0 %}voll{% elif z.frei == z.plaetze %}frei{% else %}teil{% endif %}">{{ z.frei }}</span></td>
             <td style="white-space:nowrap">
               <a class="btn ghost" style="padding:3px 8px;font-size:12px" href="?edit={{ z.id }}">Bearbeiten</a>
-              <form method="post" action="{% url 'nachweis:zimmer_loeschen' %}" style="display:inline" onsubmit="return confirm('Zimmer löschen? Belegungen bleiben, verlieren aber die Zimmer-Zuordnung.')">
+              <form method="post" action="{% url 'nachweis:zimmer_loeschen' %}" style="display:inline" data-confirm="Zimmer löschen? Belegungen bleiben, verlieren aber die Zimmer-Zuordnung.">
                 {% csrf_token %}<input type="hidden" name="id" value="{{ z.id }}">
                 <button class="btn ghost" style="padding:3px 8px;font-size:12px;color:var(--bad)">✕</button>
               </form>

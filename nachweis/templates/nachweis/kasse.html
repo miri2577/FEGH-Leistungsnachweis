@@ -35,14 +35,14 @@
     <div class="head kopf">
       <form method="get" class="kopf" style="gap:10px">
         {% if kassen|length > 1 %}
-        <select name="kasse" onchange="this.form.submit()">
+        <select name="kasse" data-autosubmit>
           {% for k in kassen %}<option value="{{ k.id }}" {% if k.id == kasse.id %}selected{% endif %}>{{ k.bezeichnung|default:k.team.name }}</option>{% endfor %}
         </select>
         {% else %}<input type="hidden" name="kasse" value="{{ kasse.id }}">{% endif %}
-        <select name="monat" onchange="this.form.submit()">
+        <select name="monat" data-autosubmit>
           {% for m,l in monate %}<option value="{{ m }}" {% if m == monat %}selected{% endif %}>{{ l }}</option>{% endfor %}
         </select>
-        <input type="number" name="jahr" value="{{ jahr }}" style="width:88px" onchange="this.form.submit()">
+        <input type="number" name="jahr" value="{{ jahr }}" style="width:88px" data-autosubmit>
       </form>
       <a class="btn ghost" href="{% url 'nachweis:zaehlprotokoll' %}?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}">Zählprotokoll →</a>
     </div>
@@ -100,7 +100,7 @@
             <td class="num"><b>{{ z.bestand|floatformat:2 }}</b></td>
             <td style="white-space:nowrap">
               <a class="btn ghost" style="padding:3px 8px;font-size:12px" href="?kasse={{ kasse.id }}&jahr={{ jahr }}&monat={{ monat }}&edit={{ z.b.id }}">✎</a>
-              <form method="post" action="{% url 'nachweis:kasse_buchung_delete' %}" style="display:inline" onsubmit="return confirm('Beleg löschen?')">
+              <form method="post" action="{% url 'nachweis:kasse_buchung_delete' %}" style="display:inline" data-confirm="Beleg löschen?">
                 {% csrf_token %}<input type="hidden" name="kasse" value="{{ kasse.id }}"><input type="hidden" name="id" value="{{ z.b.id }}">
                 <button class="btn ghost" style="padding:3px 8px;font-size:12px;color:var(--bad)">✕</button>
               </form>

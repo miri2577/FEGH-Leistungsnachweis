@@ -14,7 +14,7 @@
       <div class="codes">{% for c in codes %}<span>{{ c }}</span>{% endfor %}</div>
       <p class="note">Drucke sie aus oder speichere sie in einem Passwort-Manager. Sie werden <b>nicht erneut angezeigt</b>.</p>
       <div style="margin-top:14px;display:flex;gap:10px">
-        <button class="btn" onclick="window.print()">Drucken</button>
+        <button class="btn" data-print>Drucken</button>
         <a class="btn ghost" href="{% url 'nachweis:2fa_status' %}">Ich habe sie notiert</a>
       </div>
     </div>

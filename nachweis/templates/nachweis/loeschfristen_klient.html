@@ -47,7 +47,7 @@
 
   {% if vorschau.aktionen %}
   <form class="conf" method="post" action="{% url 'nachweis:loeschfristen_anonymisieren' %}"
-        onsubmit="return confirm('Anonymisierung unwiderruflich ausführen?');">
+        data-confirm="Anonymisierung unwiderruflich ausführen?">
     {% csrf_token %}
     <input type="hidden" name="klient" value="{{ klient.id }}">
     <label style="font-size:13.5px;color:var(--muted);font-weight:600">Zur Bestätigung den Nachnamen „<b>{{ klient.nachname }}</b>“ eingeben:

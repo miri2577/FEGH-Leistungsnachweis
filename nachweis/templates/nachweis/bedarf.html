@@ -30,7 +30,7 @@
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
     <form method="get" style="display:flex;gap:8px;align-items:center">
       {% if erhebungen %}<label class="muted" style="font-size:12.5px">Erhebung
-        <select name="erhebung" onchange="this.form.submit()" style="margin-left:6px;padding:6px 9px;border:1px solid var(--border);border-radius:8px">
+        <select name="erhebung" data-autosubmit style="margin-left:6px;padding:6px 9px;border:1px solid var(--border);border-radius:8px">
           {% for b in erhebungen %}<option value="{{ b.id }}" {% if aktuell.id == b.id %}selected{% endif %}>{{ b.datum|date:"d.m.Y" }} · {{ b.get_anlass_display }}</option>{% endfor %}
         </select></label>{% endif %}
     </form>
@@ -42,7 +42,7 @@
       <button class="btn ghost" type="submit">+ Neue Erhebung</button>
     </form>
     {% if ist_leitung and aktuell %}
-    <form method="post" action="{% url 'nachweis:bedarf_loeschen' %}" onsubmit="return confirm('Diese Erhebung löschen?')">
+    <form method="post" action="{% url 'nachweis:bedarf_loeschen' %}" data-confirm="Diese Erhebung löschen?">
       {% csrf_token %}<input type="hidden" name="erhebung" value="{{ aktuell.id }}">
       <button class="btn ghost" style="color:var(--bad)" type="submit">Erhebung löschen</button></form>
     {% endif %}

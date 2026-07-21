@@ -7,6 +7,7 @@ Auch der Break-Glass-Superuser unterliegt der 2FA-Pflicht (TOTP + Recovery-Codes
 die letzte Rückfallebene im Notfall ist der Server-Shell-Zugang (manage.py), nicht
 der Web-Login. So ist nicht ausgerechnet das mächtigste Konto nur passwortgeschützt.
 """
+import secrets
 import time as _time
 
 from django.conf import settings
@@ -104,14 +105,17 @@ class OTPErzwingenMiddleware:
         return self.get_response(request)
 
 
-# Content-Security-Policy: 'unsafe-inline' bleibt nötig (Templates nutzen Inline-
-# Style/Script); default-src/self + frame-ancestors 'none' + object-src 'none'
-# blocken aber externe Skripte/Datenabfluss und Framing – zweite XSS-Verteidigung.
+# Content-Security-Policy: script-src OHNE 'unsafe-inline' – stattdessen ein pro Request
+# frisch gewürfeltes nonce (an request.csp_nonce; die Inline-<script> tragen es, die früheren
+# Inline-Handler wurden nach aktionen.js ausgelagert). Damit führt der Browser eingeschleustes
+# Inline-JS NICHT mehr aus (zweite XSS-Verteidigung hinter Djangos Auto-Escaping). style-src
+# behält 'unsafe-inline' bewusst: 858 Inline-style-Attribute wären unverhältnismäßig, und
+# CSS-Injection ist ein weit geringeres Risiko. {nonce} wird pro Request ersetzt.
 DEFAULT_CSP = (
     "default-src 'self'; "
     "img-src 'self' data:; "
     "style-src 'self' 'unsafe-inline'; "
-    "script-src 'self' 'unsafe-inline'; "
+    "script-src 'self' 'nonce-{nonce}'; "
     "font-src 'self'; "
     "connect-src 'self'; "
     "frame-ancestors 'none'; "
@@ -124,19 +128,25 @@ DEFAULT_CSP = (
 class CSPMiddleware:
     """Setzt eine Content-Security-Policy (Defense-in-Depth gegen XSS/Datenabfluss).
     Standard: Report-Only (bricht nichts). settings.CSP_ENFORCE=True schaltet scharf;
-    optionales settings.CSP_REPORT_URI hängt eine report-uri an."""
+    optionales settings.CSP_REPORT_URI hängt eine report-uri an. Pro Request wird ein
+    nonce erzeugt und – VOR dem View-Rendering – an request.csp_nonce gelegt, damit die
+    Templates es in ihre <script>-Tags schreiben können."""
     def __init__(self, get_response):
         self.get_response = get_response
-        policy = getattr(settings, "CSP_POLICY", DEFAULT_CSP)
-        report_uri = getattr(settings, "CSP_REPORT_URI", "")
-        self.policy = f"{policy}; report-uri {report_uri}" if report_uri else policy
+        self.base = getattr(settings, "CSP_POLICY", DEFAULT_CSP)
+        self.report_uri = getattr(settings, "CSP_REPORT_URI", "")
         self.enforce = getattr(settings, "CSP_ENFORCE", False)
 
     def __call__(self, request):
+        nonce = secrets.token_urlsafe(16)
+        request.csp_nonce = nonce
         resp = self.get_response(request)
+        policy = self.base.replace("{nonce}", nonce)
+        if self.report_uri:
+            policy = f"{policy}; report-uri {self.report_uri}"
         header = "Content-Security-Policy" if self.enforce else "Content-Security-Policy-Report-Only"
         # Nicht überschreiben, falls schon gesetzt (z. B. durch einen Reverse-Proxy).
         if ("Content-Security-Policy" not in resp
                 and "Content-Security-Policy-Report-Only" not in resp):
-            resp[header] = self.policy
+            resp[header] = policy
         return resp

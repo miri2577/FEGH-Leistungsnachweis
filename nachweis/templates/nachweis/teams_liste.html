@@ -50,7 +50,7 @@
                 {% csrf_token %}<input type="hidden" name="id" value="{{ row.t.id }}">
                 <button class="btn ghost mini" name="aktion" value="toggle">{% if row.t.aktiv %}Deaktivieren{% else %}Aktivieren{% endif %}</button>
                 {% if not row.mitglieder and not row.klienten %}
-                <button class="btn ghost mini" name="aktion" value="loeschen" style="color:var(--bad)" onclick="return confirm('Team löschen?')">Löschen</button>
+                <button class="btn ghost mini" name="aktion" value="loeschen" style="color:var(--bad)" data-confirm="Team löschen?">Löschen</button>
                 {% endif %}
               </form>
             </td>

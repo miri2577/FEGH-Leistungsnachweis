@@ -64,7 +64,7 @@
   </div>
 {% endblock %}
 {% block extrajs %}
-<script>
+<script nonce="{{ request.csp_nonce }}">
   // „Leitet Team(s)" nur bei Rolle Leitung anzeigen.
   (function(){
     var r = document.getElementById('rolle'), box = document.getElementById('leitet-wrap');

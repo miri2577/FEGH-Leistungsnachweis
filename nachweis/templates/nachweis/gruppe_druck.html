@@ -27,7 +27,7 @@
     <div><h1 class="page">Gruppen-Nachweis</h1>
       <p class="sub">{{ g.datum|date:"d.m.Y" }} · {{ g.thema }}</p></div>
     <div style="display:flex;gap:8px">
-      <button class="btn" onclick="window.print()">🖨️ Drucken / PDF</button>
+      <button class="btn" data-print>🖨️ Drucken / PDF</button>
       <a class="btn ghost" href="{% url 'nachweis:gruppen' %}">← Zurück</a>
     </div>
   </div>

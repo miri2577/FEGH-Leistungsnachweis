@@ -137,7 +137,7 @@
         <b>Gegenprobe (Erlösneutralität):</b> Budget alt {{ ergebnis.gp_alt }} € · Budget neu {{ ergebnis.gp_neu }} € ·
         Differenz <b style="color:{% if ergebnis.gp_diff == 0 %}var(--ok){% else %}var(--bad){% endif %}">{{ ergebnis.gp_diff }} €</b>
       </p>
-      <form method="post" onsubmit="return confirm('FLS-Satz, kLE/Tag und FLS/Woche je HBG in die Abrechnungsparameter übernehmen?')">
+      <form method="post" data-confirm="FLS-Satz, kLE/Tag und FLS/Woche je HBG in die Abrechnungsparameter übernehmen?">
         {% csrf_token %}
         <input type="hidden" name="aktion" value="uebernehmen">
         <button class="btn" type="submit">Ergebnisse in die Abrechnungsparameter übernehmen</button>
@@ -165,7 +165,7 @@
             <td class="num">{% if s.im_kalender %}✓{% else %}–{% endif %}</td>
             <td style="text-align:right;white-space:nowrap">
               <a class="btn ghost" href="?jahr={{ jahr }}&serie={{ s.id }}">Bearbeiten</a>
-              <form method="post" action="{% url 'nachweis:serie_delete' %}" style="display:inline" onsubmit="return confirm('Diesen Eintrag wirklich löschen?')">{% csrf_token %}<input type="hidden" name="id" value="{{ s.id }}"><input type="hidden" name="jahr" value="{{ jahr }}"><button class="btn ghost" type="submit" style="color:var(--bad)" title="Löschen">×</button></form>
+              <form method="post" action="{% url 'nachweis:serie_delete' %}" style="display:inline" data-confirm="Diesen Eintrag wirklich löschen?">{% csrf_token %}<input type="hidden" name="id" value="{{ s.id }}"><input type="hidden" name="jahr" value="{{ jahr }}"><button class="btn ghost" type="submit" style="color:var(--bad)" title="Löschen">×</button></form>
             </td>
           </tr>
         {% empty %}
@@ -218,7 +218,7 @@
     </form>
   </div>
 
-  <script>
+  <script nonce="{{ request.csp_nonce }}">
   (function(){
     var r=document.getElementById('f-rhythmus'), a=document.getElementById('f-anrechnung');
     if(!r) return;

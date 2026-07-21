@@ -50,7 +50,7 @@
             <td>{{ p.bezeichnung }}</td>
             <td class="num">{{ p.monatsbetrag|floatformat:2 }} €</td>
             <td>
-              <form method="post" action="{% url 'nachweis:wohnkosten_position_loeschen' %}" onsubmit="return confirm('Position löschen?')" style="display:inline">{% csrf_token %}
+              <form method="post" action="{% url 'nachweis:wohnkosten_position_loeschen' %}" data-confirm="Position löschen?" style="display:inline">{% csrf_token %}
                 <input type="hidden" name="id" value="{{ p.id }}">
                 <button class="btn ghost" style="padding:2px 9px;font-size:12px;color:var(--bad)">✕</button></form>
             </td>

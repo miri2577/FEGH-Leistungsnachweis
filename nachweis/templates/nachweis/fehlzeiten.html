@@ -19,7 +19,7 @@
 
   <form method="get" class="filter">
     {% if teams|length > 1 %}<label style="font-size:12px;color:var(--muted)">Team
-      <select name="team" onchange="this.form.submit()"><option value="">Alle</option>
+      <select name="team" data-autosubmit><option value="">Alle</option>
         {% for t in teams %}<option value="{{ t.id }}" {% if team_id == t.id|stringformat:'s' %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></label>{% endif %}
     <label style="font-size:12px;color:var(--muted)">Jahr <input type="number" name="jahr" value="{{ jahr }}" style="width:90px"></label>
     <button class="btn" type="submit">Anzeigen</button>

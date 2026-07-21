@@ -30,7 +30,7 @@
             <td>{{ b.zweck }}</td>
             <td class="muted">{{ b.beleg_nr|default:"—" }}</td>
             <td class="num {% if b.betrag < 0 %}aus{% else %}ein{% endif %}">{{ b.betrag|floatformat:2 }} €</td>
-            <td style="width:1%"><form method="post" action="{% url 'nachweis:kontobuchung_loeschen' klient.id %}" style="display:inline" onsubmit="return confirm('Buchung löschen?')">{% csrf_token %}<input type="hidden" name="id" value="{{ b.id }}"><button class="btn ghost" style="padding:2px 8px;font-size:12px;color:var(--bad)">✕</button></form></td>
+            <td style="width:1%"><form method="post" action="{% url 'nachweis:kontobuchung_loeschen' klient.id %}" style="display:inline" data-confirm="Buchung löschen?">{% csrf_token %}<input type="hidden" name="id" value="{{ b.id }}"><button class="btn ghost" style="padding:2px 8px;font-size:12px;color:var(--bad)">✕</button></form></td>
           </tr>
           {% empty %}
           <tr><td colspan="5" class="muted" style="text-align:center;padding:14px">Noch keine Buchungen.</td></tr>
@@ -46,7 +46,7 @@
         <button class="btn" type="submit">Buchen</button>
       </form>
       {% if not k.buchungsliste %}
-      <div style="padding:0 14px 12px"><form method="post" action="{% url 'nachweis:konto_loeschen' klient.id %}" style="display:inline" onsubmit="return confirm('Leeres Konto löschen?')">{% csrf_token %}<input type="hidden" name="id" value="{{ k.id }}"><button class="btn ghost" style="color:var(--bad);font-size:12px;padding:4px 10px">Konto löschen</button></form></div>
+      <div style="padding:0 14px 12px"><form method="post" action="{% url 'nachweis:konto_loeschen' klient.id %}" style="display:inline" data-confirm="Leeres Konto löschen?">{% csrf_token %}<input type="hidden" name="id" value="{{ k.id }}"><button class="btn ghost" style="color:var(--bad);font-size:12px;padding:4px 10px">Konto löschen</button></form></div>
       {% endif %}
     </div>
   </div>

@@ -19,8 +19,8 @@
     <div class="body" style="padding:16px 18px">
       <p style="margin-top:0">Gib diesen Link an die Person weiter. Darüber vergibt sie ihr <b>eigenes Passwort</b>. Der Link funktioniert genau einmal.</p>
       <div class="linkbox">
-        <input type="text" id="link" value="{{ link }}" readonly onclick="this.select()">
-        <button class="btn" type="button" onclick="navigator.clipboard.writeText(document.getElementById('link').value); this.textContent='kopiert ✓'">Kopieren</button>
+        <input type="text" id="link" value="{{ link }}" readonly data-select-on-click>
+        <button class="btn" type="button" data-copy-from="#link">Kopieren</button>
       </div>
       <p class="note">Danach meldet sich die Person mit Benutzername + selbst gewähltem Passwort an; ist Zwei-Faktor Pflicht, wird sie beim ersten Login zur Einrichtung geführt.</p>
     </div>

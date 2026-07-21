@@ -80,7 +80,7 @@
 {% endblock %}
 {% block extrajs %}
 {{ chart|json_script:"ctr-data" }}
-<script>
+<script nonce="{{ request.csp_nonce }}">
   const D = JSON.parse(document.getElementById('ctr-data').textContent);
   new Chart(document.getElementById('c-erloese'), {
     type: 'bar',

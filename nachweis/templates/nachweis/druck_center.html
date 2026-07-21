@@ -95,7 +95,7 @@
           <select id="gruppe-sel">
             {% for g in gruppen %}<option value="{{ g.id }}">{{ g.datum|date:"d.m.Y" }} · {{ g.thema }}</option>{% endfor %}
           </select>
-          <button class="btn" type="button" onclick="var s=document.getElementById('gruppe-sel');if(s.value)location.href='/gruppen/'+s.value+'/druck/';">Öffnen</button>
+          <button class="btn" type="button" data-nav-select="#gruppe-sel" data-nav-tpl="/gruppen/{v}/druck/">Öffnen</button>
         </div>
       </div>
       {% else %}<p class="hint"><i>Noch keine Gruppen erfasst.</i></p>{% endif %}

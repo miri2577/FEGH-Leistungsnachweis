@@ -162,7 +162,7 @@
 
 {% block extrajs %}
   {{ zeitreihe_json|json_script:"zr-data" }}
-  <script>
+  <script nonce="{{ request.csp_nonce }}">
     const ZR = JSON.parse(document.getElementById('zr-data').textContent);
     const barColor = (arr) => arr.map(v => v > 100 ? 'rgba(192,57,43,.85)' : 'rgba(31,123,192,.85)');
     function auslChart(id, rows){

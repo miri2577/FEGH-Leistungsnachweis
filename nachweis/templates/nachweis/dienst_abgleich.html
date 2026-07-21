@@ -24,7 +24,7 @@
 
   <form method="get" class="filter">
     {% if teams|length > 1 %}<label style="font-size:12px;color:var(--muted)">Team
-      <select name="team" onchange="this.form.submit()">{% for t in teams %}<option value="{{ t.id }}" {% if t.id == team.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></label>{% endif %}
+      <select name="team" data-autosubmit>{% for t in teams %}<option value="{{ t.id }}" {% if t.id == team.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></label>{% endif %}
     <label style="font-size:12px;color:var(--muted)">Monat
       <select name="monat">{% for m, n in monate %}<option value="{{ m }}" {% if m == monat %}selected{% endif %}>{{ n }}</option>{% endfor %}</select></label>
     <label style="font-size:12px;color:var(--muted)">Jahr <input type="number" name="jahr" value="{{ jahr }}" style="width:90px"></label>
