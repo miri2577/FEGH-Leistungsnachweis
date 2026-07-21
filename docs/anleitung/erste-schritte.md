@@ -46,10 +46,17 @@ Die blaue Kopfleiste ist immer sichtbar und enthält:
 | Element | Bedeutung |
 |---|---|
 | **F · FEGH-Leistungsnachweis** | Logo und App-Name (links) |
-| **Team TBEW · Berlin** | Kontext-Chip zum Team |
+| **Suchfeld** | Globale Suche (auch mit **Strg/⌘ + K**) |
+| **Sonne/Mond-Symbol** | Schaltet zwischen **Hell** und **Dunkel** um (die Wahl bleibt gespeichert) |
 | **Name · Rolle** | Ihr angemeldeter Name und Ihre Rolle (z. B. *Betreuer\*in*, *Leitung*) |
 | **Schild-Symbol** | Direktlink zur **Zwei-Faktor-Sicherheit** (Status/Einrichtung) |
 | **Abmelden** | Beendet die Sitzung |
+
+Die App unterstützt einen **dunklen Modus** – hilfreich bei Nachtdiensten oder lichtempfindlichen Augen. Er folgt standardmäßig der Systemeinstellung und lässt sich über das Sonne/Mond-Symbol jederzeit fest umschalten.
+
+![Dieselbe Oberfläche im dunklen Modus (Beispiel: Controlling) – Farben und Diagramme sind auf ausreichenden Kontrast ausgelegt.](../assets/screenshots/dark-mode.png)
+
+*Dunkler Modus am Beispiel des Controllings – gleiche Funktionen, augenschonende Darstellung.*
 
 ### Seitenleiste (links)
 

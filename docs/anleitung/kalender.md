@@ -57,11 +57,20 @@ Ein Zeitraster von 6 bis 22 Uhr mit einer Spalte je Mitarbeiter*in. Termine ersc
 
 Ein **Klick auf eine Tages-Zelle** (in jeder Ansicht) öffnet die schwebende **Tages-Card**. Sie ist die zentrale Bedienfläche und ersetzt die frühere rechte Formularspalte – das komplette Termin-Formular steckt jetzt in der Card selbst.
 
+![Die schwebende Tages-Card über der Monatsmatrix – Termine, „Neuer Termin" und (für die Leitung) die Dienst-Sektion.](../assets/screenshots/kalender-dialog.png)
+
+*Tages-Card: Termine des Tages, „＋ Neuer Termin" und – für die Leitung – die Dienst-Schichtarten.*
+
 Die Card zeigt zuerst die **Termine des Tages** als Liste. Von hier aus:
 
 - **Bestehenden Termin anklicken** → Formular öffnet sich vorausgefüllt im Bearbeiten-Modus (Button **Speichern**, dazu **Termin löschen** mit Sicherheitsabfrage).
 - **＋ Neuer Termin** → leeres Formular mit vorbelegtem Datum (und, aus der Tagesansicht heraus, vorbelegter Uhrzeit).
 - **← Termine** bringt dich vom Formular zurück zur Tagesliste; **Schließen** oder **Esc** schließt die Card.
+
+!!! tip "Tastaturbedienung (barrierefrei)"
+    Tages-Zellen sind mit **Tab** erreichbar und mit **Enter/Leertaste** zu öffnen. In der
+    offenen Card bleibt der Fokus **gefangen** (Tab springt nur zwischen den Card-Elementen),
+    **Esc** schließt sie, und der Fokus kehrt danach auf die auslösende Zelle zurück.
 
 !!! warning "Wessen Termine du bearbeiten darfst"
     Du bearbeitest **deine eigenen** Termine. Als **Leitung** darfst du zusätzlich alle Termine der von dir geleiteten Teams bearbeiten und Termine für Teammitglieder anlegen bzw. umhängen. Termine, die du nicht bearbeiten darfst, siehst du zwar, kannst sie aber nicht anklicken/ändern – das wird serverseitig erzwungen.

@@ -79,15 +79,23 @@ Das Feld **Status** kennt genau zwei Werte:
 !!! tip "Beenden statt löschen"
     Setzen Sie eine auslaufende Betreuung auf **Beendigung**, statt den Datensatz zu löschen. Zurückliegende Leistungen bleiben so für die Abrechnung und die Revision erhalten. Ein echtes Löschen erfolgt erst im Rahmen des [Löschkonzepts](../sicherheit/backups-loeschkonzept.md).
 
-## Suchen und Filtern
+## Sofortsuche
 
-Die Listenansicht bietet:
+Über der Tabelle gibt es ein **Suchfeld**, das die Liste sofort beim Tippen filtert –
+ohne die Seite neu zu laden. Durchsucht werden **alle** sichtbaren Spalten (Name,
+Team, Bezugsbetreuer\*in, Status …). Mehrere durch Leerzeichen getrennte Begriffe
+werden **und-verknüpft** – „lindenhof beend" zeigt also nur beendete Fälle im Team
+Lindenhof. Rechts neben dem Feld steht die Trefferzahl.
 
-- **Suche** nach Nachname, Vorname und Personen-ID
-- **Filter** nach Status, Team, Bezugsbetreuer*in und HBG
-- direkte Spalten für AL, kLE, FLS gesamt/Monat, HBG, KÜ bis und Status
+![Belegungsliste mit aktiver Sofortsuche – die Liste filtert live beim Tippen.](../assets/screenshots/belegungsliste-suche.png)
 
-So finden Sie z. B. schnell alle Klient*innen einer Bezugsbetreuung oder alle Datensätze mit demnächst ablaufender Kostenübernahme.
+*Sofortsuche: Beim Tippen bleiben nur die passenden Zeilen sichtbar (hier „Bau").*
+
+So finden Sie z. B. schnell alle Klient\*innen einer Bezugsbetreuung. Für längere
+Listen ist das der schnellste Weg; die Spalten AL, kLE, FLS gesamt/Monat, HBG, KÜ bis
+und Status bleiben dabei sichtbar.
+
+Dieselbe Sofortsuche gibt es auch über der [Rechnungsliste](../abrechnung/rechnungen.md).
 
 ## Typische Aufgaben (Kurzanleitung)
 

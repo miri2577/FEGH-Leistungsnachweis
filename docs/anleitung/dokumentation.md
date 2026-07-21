@@ -20,10 +20,14 @@ Ein Klick auf das Symbol öffnet den **Doku-Editor** – ein Modal mit einem gro
 
 ### So geht's
 
+![Der Dokumentations-Editor öffnet sich über dem Erfassungs-Grid; der Kopf zeigt Datum und Klient*in zur Kontrolle.](../assets/screenshots/doku-editor.png)
+
+*Der Doku-Editor als Dialog über dem Grid – mehrzeiliger Verlaufstext, „Speichern"/„Abbrechen".*
+
 1. Im Grid die gewünschte Zeile finden und in der Spalte **„Doku“** auf 📝 bzw. ✎ klicken.
 2. Im Modal den **Verlaufstext** eintippen (mehrzeilig erlaubt, das Feld ist in der Höhe frei ziehbar).
 3. **„Speichern“** – der Text wird sofort per API gespeichert, das Symbol wechselt auf 📝.
-4. Alternativ **„Abbrechen“** (oder Klick auf den abgedunkelten Hintergrund) – Änderungen werden verworfen.
+4. Alternativ **„Abbrechen“** (oder **Esc**, oder Klick auf den abgedunkelten Hintergrund) – Änderungen werden verworfen. In der offenen Doku bleibt der Tastaturfokus im Dialog gefangen; nach dem Schließen springt er auf die Ausgangszeile zurück.
 
 !!! tip "Erst die Zeile, dann die Doku"
     Der Editor lässt sich nur öffnen, wenn die Zeile schon **Datum, Klient*in und Leistungsart** enthält. Fehlt eines davon, erscheint der Hinweis *„Erst Datum, Klient*in und Leistung ausfüllen, dann Doku.“* Der Kopf des Modals zeigt zur Kontrolle **Datum · Klient*in** an, damit man sieht, zu welcher Leistung man schreibt.
