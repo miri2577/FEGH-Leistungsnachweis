@@ -63,6 +63,25 @@ class KalenderTeamsitzungTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Teamsitzung")
 
+    def test_tages_popup_hat_dialog_semantik(self):
+        # Schwebende Tages-Card ist als modaler Dialog ausgezeichnet (Screenreader/Fokus-Trap).
+        self.client.force_login(self.u)
+        resp = self.client.get(reverse("nachweis:kalender"), {"ansicht": "woche", "jahr": 2026, "kw": 24})
+        self.assertContains(resp, 'role="dialog"')
+        self.assertContains(resp, 'aria-modal="true"')
+        self.assertContains(resp, 'aria-labelledby="mxp-title"')
+
+
+class ErfassungDialogTests(TestCase):
+    def test_doku_modal_hat_dialog_semantik(self):
+        team = Team.objects.create(name="TBEW", typ=Teamtyp.values[0])
+        u, _m = _mk("betr", Rolle.USER, team=team)
+        self.client.force_login(u)
+        resp = self.client.get(reverse("nachweis:erfassung"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'aria-labelledby="doku-title"')
+        self.assertContains(resp, 'aria-modal="true"')
+
 
 class AuditlogMaskierungTests(TestCase):
     def test_dokumentation_nicht_im_auditlog(self):

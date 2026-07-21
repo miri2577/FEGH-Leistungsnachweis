@@ -76,8 +76,8 @@
 
   <!-- Dokumentations-Editor (ausführlicher Verlaufstext je Leistung) -->
   <div class="doku-modal" id="dokuModal" hidden>
-    <div class="doku-box">
-      <div class="doku-head"><b>Dokumentation</b><span id="doku-info" class="muted"></span></div>
+    <div class="doku-box" role="dialog" aria-modal="true" aria-labelledby="doku-title">
+      <div class="doku-head"><b id="doku-title">Dokumentation</b><span id="doku-info" class="muted"></span></div>
       <textarea id="doku-text" placeholder="Ausführlicher Verlaufstext bei Bedarf …"></textarea>
       <div id="doku-ziele" style="margin-top:8px;font-size:12.5px"></div>
       <div class="doku-actions">
@@ -234,12 +234,30 @@ async function openDoku(row){
           z.titel.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</label>').join('');
     }
   }catch(e){ /* Ziele optional – Doku funktioniert auch ohne; Bezug wird dann NICHT angefasst */ }
+  dokuLastFocus = document.activeElement;   // für Fokus-Rückgabe beim Schließen
   document.getElementById('dokuModal').hidden = false;
   document.getElementById('doku-text').focus();
 }
-function closeDoku(){ document.getElementById('dokuModal').hidden = true; dokuRow = null; }
+let dokuLastFocus = null;
+function closeDoku(){
+  document.getElementById('dokuModal').hidden = true;
+  dokuRow = null;
+  if(dokuLastFocus && dokuLastFocus.focus){ dokuLastFocus.focus(); dokuLastFocus = null; }
+}
 document.getElementById('doku-cancel').addEventListener('click', closeDoku);
 document.getElementById('dokuModal').addEventListener('click', (e) => { if(e.target.id === 'dokuModal') closeDoku(); });
+// Modal-Semantik: ESC schließt, Tab bleibt im Dialog gefangen (Fokus-Trap).
+document.getElementById('dokuModal').addEventListener('keydown', (e) => {
+  if(e.key === 'Escape'){ e.preventDefault(); closeDoku(); return; }
+  if(e.key !== 'Tab') return;
+  const box = document.querySelector('#dokuModal .doku-box');
+  const f = box.querySelectorAll('a[href],button,textarea,input,select,[tabindex]:not([tabindex="-1"])');
+  const sichtbar = Array.from(f).filter(el => !el.disabled && el.offsetParent !== null);
+  if(!sichtbar.length) return;
+  const erste = sichtbar[0], letzte = sichtbar[sichtbar.length - 1];
+  if(e.shiftKey && document.activeElement === erste){ e.preventDefault(); letzte.focus(); }
+  else if(!e.shiftKey && document.activeElement === letzte){ e.preventDefault(); erste.focus(); }
+});
 document.getElementById('doku-save').addEventListener('click', async () => {
   if(!dokuRow) return;
   const d = Object.assign({}, dokuRow.getData());
