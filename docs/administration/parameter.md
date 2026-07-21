@@ -33,6 +33,21 @@ Konkret: Anzahl der Sitzungstage (alle Termine am eingestellten **Wochentag** im
 !!! tip "Warum das wichtig ist"
     Teamsitzungszeit ist mittelbare Betreuungszeit, die anteilig auf die Nachweise umgelegt wird. Ändert sich der Sitzungs-Wochentag oder die Dauer, passt der eingestellte Parameter die Berechnung für das gesamte Jahr an – ohne dass einzelne Nachweise angefasst werden müssen.
 
+### Einmalige Zusatz- oder Streich-Feiertage
+
+Die gesetzlichen Berliner Feiertage liefert eine Bibliothek automatisch. **Einmalige**
+Feiertage kennt sie jedoch nicht (z. B. der Berliner Einmal-Feiertag am 8. Mai). Dafür gibt
+es das Modell **Feiertags-Anpassung** (Django-Admin → *Feiertags-Anpassungen*, nur der
+Break-Glass-Superuser): je Eintrag ein **Datum**, eine **Bezeichnung** und der Schalter
+**Streichung**.
+
+- **Zusatz-Feiertag** (Streichung = aus): der Tag zählt zusätzlich als Feiertag – fällt also
+  als Sitzungstag/Werktag heraus.
+- **Streichung** (an): ein sonst gesetzlicher Feiertag gilt ausnahmsweise wieder als Werktag.
+
+Die Anpassungen fließen in die Teamsitzungs-, Werktags- und Fehlzeiten-Berechnung ein und
+damit über die Teamsitzungs-kLE auch in die Nachweise.
+
 ## FLS-Preis
 
 Der **FLS-Preis** ist der Euro-Betrag je Fachleistungsstunde. Er dient der späteren Umrechnung von geleisteten/bewilligten Stunden in Beträge für die Rechnungsstellung. Halten Sie ihn zu jeder Vergütungsanpassung (z. B. neuer Berliner Beschluss) aktuell.

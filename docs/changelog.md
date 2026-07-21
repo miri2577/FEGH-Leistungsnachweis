@@ -14,6 +14,45 @@ auf die jeweiligen Detailseiten.
 
 ---
 
+## ★ Feinschliff, Barrierefreiheit & CSP-Härtung (Juli 2026)
+
+Nach einer gründlichen Analyse (Fehler, Sicherheit ↔ Datenschutz, UI, Marktvergleich)
+wurde eine Reihe von Detail-Verbesserungen umgesetzt – mit Schwerpunkt auf der zweiten
+XSS-Verteidigungslinie, Barrierefreiheit und realistischen Demo-Daten.
+
+- **CSP-Härtung (Nonce statt `'unsafe-inline'`):** `script-src` kommt jetzt ohne
+  `'unsafe-inline'` aus – pro Request ein `secrets`-Nonce an `request.csp_nonce`, das nur
+  die eigenen Inline-`<script>` tragen. Alle **61 Inline-Event-Handler**
+  (`onclick`/`onsubmit`/`onchange`) wurden in die zentrale, per Event-Delegation gebundene
+  `nachweis/static/nachweis/js/aktionen.js` ausgelagert (deklarativ via `data-`Attribute).
+  Eingeschleustes Inline-JS führt der Browser damit nicht mehr aus. `style-src` behält
+  `'unsafe-inline'` bewusst (858 Inline-`style`-Attribute – unverhältnismäßig, CSS-Injection
+  ist ein weit geringeres Risiko). Details: [Sicherheitshärtung → CSP](sicherheit/haertung.md).
+- **AL-Jahres-Soll am Betreuungszeitraum:** das anteilige Jahres-Soll der
+  [Fachleistungsstunden](fachliches/fls-kle.md) richtet sich am tatsächlichen
+  Betreuungszeitraum aus (Bewilligung `gültig_von` … KÜ-Ende) statt am vollen Kalenderjahr –
+  ein unterjähriger Zugang erscheint nicht mehr fälschlich als unterdeckt
+  (`services._betreuungs_anteil`).
+- **Feiertags-Anpassung:** neues Modell `Feiertagsanpassung` (Datum, Bezeichnung,
+  Streichung) für einmalige Zusatz-/Streich-Feiertage, die die gepinnte `holidays`-Bibliothek
+  nicht kennt (z. B. der Berliner Einmal-Feiertag 8.5.). Fließt in Teamsitzungs-, Werktags-
+  und kLE-Berechnung ein; pflegbar über den Django-Admin (Break-Glass-Superuser).
+- **Barrierefreiheit (WCAG 2.1 AA):** Doku-Editor und die schwebende Tages-Card des
+  [Kalenders](anleitung/kalender.md) sind jetzt als `role="dialog"` `aria-modal` ausgezeichnet,
+  mit **Fokus-Trap**, ESC-Schließen und Fokus-Rückgabe zum auslösenden Element. Status-Badge-
+  Farben auf ≥ 4,5:1-Kontrast angehoben (Light **und** Dark).
+- **Listen-Sofortsuche:** Belegungsliste und Rechnungsliste haben ein Suchfeld, das die
+  Tabellenzeilen live nach Textinhalt filtert (mehrere Begriffe UND-verknüpft) – CSP-konform
+  über `nachweis/static/nachweis/js/tabellensuche.js`.
+- **Performance:** das ~23 KB große globale CSS wurde aus `base.html` in eine
+  WhiteNoise-versionierte Static-Datei (`nachweis/static/nachweis/css/app.css`) ausgelagert;
+  die pro Request ausgelieferte Seite schrumpft entsprechend.
+- **Demo-Daten realistischer:** die Seed-AL-Leistungen ergeben nun eine plausible
+  Auslastung (Ø ~92 %, Streuung „auf Kurs" / Mehrbedarf / Unterdeckung) statt einer
+  Handvoll Kontakte pro Woche; HBG-Mischung wie im Senats-Tool (HBG 1–3 häufig, genau eine 4).
+
+---
+
 ## ★ Fach-Ausbau: Vivendi-Roadmap P1–P5, Mehr-Bereichs-Kette & Teilhabe (Juli 2026)
 
 Aufbauend auf der Vivendi-Analyse wurde die App vom reinen Stundennachweis zur

@@ -214,10 +214,12 @@ if not DEBUG and not os.environ.get("DJANGO_SECRET_KEY"):
 
 ### Content-Security-Policy (CSP)
 
-`nachweis.middleware.CSPMiddleware` setzt eine Content-Security-Policy als **zweite XSS-Verteidigungslinie**: `default-src 'self'`, `object-src 'none'` und `frame-ancestors 'none'` blocken externe Skripte, Datenabfluss an fremde Hosts und das Einbetten in fremde Seiten. `style-src`/`script-src` erlauben zusätzlich `'unsafe-inline'`, weil die Templates Inline-Style/-Script nutzen.
+`nachweis.middleware.CSPMiddleware` setzt eine Content-Security-Policy als **zweite XSS-Verteidigungslinie** (hinter Djangos Auto-Escaping): `default-src 'self'`, `object-src 'none'` und `frame-ancestors 'none'` blocken externe Skripte, Datenabfluss an fremde Hosts und das Einbetten in fremde Seiten.
 
+- **`script-src` ist Nonce-basiert – ohne `'unsafe-inline'`.** Die Middleware würfelt pro Request ein `secrets`-Nonce, legt es _vor_ dem Rendern an `request.csp_nonce` und hängt es als `'nonce-…'` an `script-src`. Nur die eigenen Inline-`<script>` tragen dieses Nonce (`nonce="{{ request.csp_nonce }}"`); **eingeschleustes** Inline-JS führt der Browser nicht mehr aus. Damit die Policy ohne `'unsafe-inline'` auskommt, wurden **alle 61 Inline-Event-Handler** (`onclick`/`onsubmit`/`onchange`) in die zentrale, per Event-Delegation gebundene `nachweis/static/nachweis/js/aktionen.js` ausgelagert – deklarativ über `data-`Attribute (`data-confirm`, `data-autosubmit`, `data-print`, `data-copy-from`, `data-set-value`, `data-nav-select`, `data-select-on-click`).
+- **`style-src` behält `'unsafe-inline'` bewusst.** Die Templates nutzen 858 Inline-`style`-Attribute; diese zu eliminieren wäre unverhältnismäßig, und CSS-Injection ist ein weit geringeres Risiko als Script-Injection.
 - **Standard: Report-Only** (`Content-Security-Policy-Report-Only`) – meldet Verstöße, blockiert nichts. So lässt sich die Policy gefahrlos beobachten.
-- **Scharf schalten** mit `DJANGO_CSP_ENFORCE=1` (Header wird zu `Content-Security-Policy`).
+- **Scharf schalten** mit `DJANGO_CSP_ENFORCE=1` (Header wird zu `Content-Security-Policy`); in Produktion (`DEBUG=False`) ist das **fail-closed an**.
 - Optional `DJANGO_CSP_REPORT_URI=…` für einen Melde-Endpunkt.
 
 ---
@@ -301,8 +303,7 @@ aus dem Internet ohne Zugangsdaten ausnutzbare Lücke. Die bestätigten Befunde 
     `createcachetable` an (idempotent). Darauf setzt das IP-Rate-Limit des Aktivierungs-Endpunkts auf.
 
 !!! note "Bewusst offen / organisatorisch"
-    Verbliebene niedrigpriore Härtungen: CSP zusätzlich **Nonce-basiert** (statt `'unsafe-inline'` –
-    wegen der vielen Inline-`style`-Attribute unverhältnismäßig aufwändig), **DB-TLS** im internen
+    Verbliebene niedrigpriore Härtungen: **DB-TLS** im internen
     Docker-Netz (geringer Nutzen, da nicht exponiert) und Migrationen aus dem Container-Start
     entkoppeln (bei **einem** Web-Container unkritisch – der aktuelle Weg ist korrekt). Der
     **wichtigste** verbleibende Schritt ist organisatorisch: die Datenschutz-Dokumente
