@@ -3,7 +3,15 @@ from django.contrib import admin
 from .models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
                      Arbeitszeit, Abwesenheit, Team, Stempelung,
                      Kasse, Kassenmonat, Kassenbuchung, Zaehlprotokoll, Termin,
-                     WiederkehrendeLeistung, Rechnung, Monatsfreigabe)
+                     WiederkehrendeLeistung, Rechnung, Monatsfreigabe,
+                     Feiertagsanpassung)
+
+
+@admin.register(Feiertagsanpassung)
+class FeiertagsanpassungAdmin(admin.ModelAdmin):
+    list_display = ("datum", "name", "streichung")
+    list_filter = ("streichung",)
+    date_hierarchy = "datum"
 
 
 @admin.register(WiederkehrendeLeistung)

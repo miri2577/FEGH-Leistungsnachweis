@@ -119,6 +119,19 @@ class TeamsitzungFeiertageTests(TestCase):
     def test_werktage_ende_vor_beginn_null(self):
         self.assertEqual(services.werktage(date(2026, 5, 15), date(2026, 5, 11)), 0)
 
+    def test_feiertagsanpassung_zusatz_und_streichung(self):
+        from .models import Feiertagsanpassung
+        # Zusatz-Feiertag an einem sonst normalen Werktag (Fr 8.5.2026) -> zählt als Feiertag
+        zusatz = date(2026, 5, 8)
+        self.assertNotIn(zusatz, services.berliner_feiertage(2026))
+        Feiertagsanpassung.objects.create(datum=zusatz, name="Tag der Befreiung")
+        self.assertIn(zusatz, services.berliner_feiertage(2026))
+        self.assertEqual(services.werktage(date(2026, 5, 4), date(2026, 5, 8)), 4)  # Fr fällt raus
+        # Streichung eines gesetzlichen Feiertags -> gilt wieder als Werktag
+        Feiertagsanpassung.objects.create(datum=date(2026, 5, 14), streichung=True)  # Himmelfahrt
+        self.assertNotIn(date(2026, 5, 14), services.berliner_feiertage(2026))
+        self.assertIn(date(2026, 5, 14), services.teamsitzungstage(2026))
+
 
 class IsoWochenTests(TestCase):
     def test_wochenbereich_montag_sonntag(self):

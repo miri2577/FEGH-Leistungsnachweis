@@ -299,8 +299,17 @@ def undokumentierte_termine(me, tage: int = 30):
 
 
 def berliner_feiertage(jahr: int):
-    """Gesetzliche Feiertage in Berlin (inkl. Internationaler Frauentag 8.3.)."""
-    return _holidays.Germany(subdiv="BE", years=jahr)
+    """Gesetzliche Feiertage in Berlin (inkl. Internationaler Frauentag 8.3.) plus die
+    per Feiertagsanpassung gepflegten einmaligen Zusatz-/Streichfeiertage des Jahres –
+    die gepinnte holidays-Bibliothek kennt künftige Einmal-Feiertage (z. B. 8.5.2025) nicht."""
+    ft = _holidays.Germany(subdiv="BE", years=jahr)
+    from .models import Feiertagsanpassung
+    for a in Feiertagsanpassung.objects.filter(datum__year=jahr):
+        if a.streichung:
+            ft.pop(a.datum, None)
+        else:
+            ft[a.datum] = a.name or "Sonderfeiertag"
+    return ft
 
 
 def wochentage_im_jahr(jahr: int, wochentag: int = 3):

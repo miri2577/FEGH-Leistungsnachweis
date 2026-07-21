@@ -2450,3 +2450,20 @@ class Zugriffslog(models.Model):
     def __str__(self):
         who = self.mitarbeiter or "?"
         return f"{who} sah {self.get_bereich_display()} · {self.klient} · {self.zeit:%d.%m.%Y %H:%M}"
+
+
+class Feiertagsanpassung(models.Model):
+    """Einmalige Zusatz- oder Streich-Feiertage, die die (gepinnte) holidays-Bibliothek nicht
+    kennt – z. B. der Berliner Einmal-Feiertag 8.5.2025. Fließt in Teamsitzungs-, Werktags-
+    und Fehlzeiten-Berechnung ein und damit über die Teamsitzungs-kLE auch in Nachweise."""
+    datum = models.DateField("Datum", unique=True)
+    name = models.CharField("Bezeichnung", max_length=120, blank=True)
+    streichung = models.BooleanField("Streichung (Tag ist KEIN Feiertag)", default=False)
+
+    class Meta:
+        verbose_name = "Feiertags-Anpassung"
+        verbose_name_plural = "Feiertags-Anpassungen"
+        ordering = ["datum"]
+
+    def __str__(self):
+        return f"{'−' if self.streichung else '+'} {self.datum} {self.name}".strip()
