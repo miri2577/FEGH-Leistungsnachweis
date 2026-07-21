@@ -19,7 +19,8 @@ from nachweis.models import (Mitarbeiter, Klient, Leistung, Gruppe, Parameter,
                              Leistungsart, Rolle, Status, Team, Teamtyp, Arbeitszeit,
                              Abwesenheit, AbwesenheitArt, AbwesenheitStatus, Stempelung,
                              Kasse, Kassenmonat, Kassenbuchung, Zaehlprotokoll, Termin,
-                             Monatsfreigabe, Rechnung, Vorkommnis, Angebot)
+                             Monatsfreigabe, Rechnung, Vorkommnis, Angebot,
+                             SelbstzahlerRechnung)
 
 JAHR = 2026
 RNG = random.Random(42)
@@ -93,9 +94,10 @@ class Command(BaseCommand):
             # Klient VOR Angebot (Belegung.angebot ist PROTECT, hängt aber an Klient-CASCADE);
             # Vorkommnis/Angebot VOR Team (team ist PROTECT). Klientenkonto/FEM/Kontaktperson/
             # Belegung/Ziel/Bericht kaskadieren mit dem Klienten.
-            for M in (Monatsfreigabe, Rechnung, Zaehlprotokoll, Kassenbuchung, Kassenmonat,
-                      Kasse, Termin, Stempelung, Arbeitszeit, Abwesenheit, Leistung, Gruppe,
-                      Klient, Vorkommnis, Angebot, Mitarbeiter, Team, Parameter):
+            for M in (Monatsfreigabe, Rechnung, SelbstzahlerRechnung, Zaehlprotokoll,
+                      Kassenbuchung, Kassenmonat, Kasse, Termin, Stempelung, Arbeitszeit,
+                      Abwesenheit, Leistung, Gruppe, Klient, Vorkommnis, Angebot,
+                      Mitarbeiter, Team, Parameter):
                 M.objects.all().delete()
             # 2FA-Geräte zurücksetzen -> Demo-Logins bleiben ohne 2FA nutzbar (OTP_REQUIRED=0)
             try:
