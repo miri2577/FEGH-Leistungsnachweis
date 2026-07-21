@@ -1,0 +1,3225 @@
+
+<!doctype html>
+<html lang="de" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Handbuch für das Team TBEW (Berliner Eingliederungshilfe)">
+      
+      
+      
+      
+        <link rel="prev" href="../../fachliches/rollen-teams/">
+      
+      
+        <link rel="next" href="../datenmodell/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Datenbank-Grundlagen - FEGH-Leistungsnachweis · Handbuch</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#datenbank-grundlagen" class="md-skip">
+          Zum Inhalt
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Kopfzeile">
+    <a href="../.." title="FEGH-Leistungsnachweis · Handbuch" class="md-header__button md-logo" aria-label="FEGH-Leistungsnachweis · Handbuch" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            FEGH-Leistungsnachweis · Handbuch
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Datenbank-Grundlagen
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Suche" placeholder="Suche" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Suche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Zurücksetzen" aria-label="Zurücksetzen" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Suche wird initialisiert
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="FEGH-Leistungsnachweis · Handbuch" class="md-nav__button md-logo" aria-label="FEGH-Leistungsnachweis · Handbuch" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    FEGH-Leistungsnachweis · Handbuch
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Was wurde umgesetzt (Juli 2026)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anleitung
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Anleitung
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/erste-schritte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Erste Schritte
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/zwei-faktor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zwei-Faktor-Anmeldung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/mein-ueberblick/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mein Überblick (Startseite)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/fallakte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fallakte & Belegungsliste
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/leistungsnachweis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Leistung erfassen (Grid)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/dokumentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dokumentation (Verlaufstexte)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/unterwegs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unterwegs-Modus (mobil)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/ziele-zlp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ziele (ZLP)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/wirkung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wirkungsmessung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/bedarf-icf-tib/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ICF-Bedarfsermittlung (TIB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/berichte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Berichte & TeilhabeAssist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/dokumente-ablage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dokumente ablegen & ansehen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/globale-suche/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Globale Suche
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/kalender/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kalender & Planungsbrett
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/arbeitszeit-stempeluhr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arbeitszeit & Stempeluhr
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/urlaub-abwesenheit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Urlaub & Abwesenheit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/fehlzeiten/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fehlzeiten-Statistik
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/kasse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kasse (Kassenbuch & Zählprotokoll)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/gruppen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gruppen anlegen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/druck-nachweis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Druck-Nachweis erstellen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Abrechnung
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Abrechnung
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/bewilligungen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bewilligungen & Kontingent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/rechnungen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rechnungen & XRechnung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/mahnwesen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mahnwesen, Offene Posten & Storno
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/wohnkosten/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wohnkosten / Selbstzahler (WBVG)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/controlling-datev/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Controlling & DATEV-Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bereiche (Wohnheim/WG/Jugendhilfe)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Bereiche (Wohnheim/WG/Jugendhilfe)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bereiche/angebote-belegung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Angebote, Belegung & Tagessatz
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Qualität & Dienstplanung
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Qualität & Dienstplanung
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../qm/vorkommnisse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vorkommnis-Meldewesen (QM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../qm/dienstplan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dienstplan & SOLL/IST-Abgleich
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fachliches
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Fachliches
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/fls-kle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fachleistungsstunden (FLS) & kLE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/teamsitzung-gruppen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Teamsitzung & Gruppen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/berichtsfristen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Berichtsfristen (KÜ-Ende)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/rollen-teams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rollen & Team-Typen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technik
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Technik
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenbank-Grundlagen
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenbank-Grundlagen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Inhaltsverzeichnis">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Inhaltsverzeichnis
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#was-ist-eine-relationale-datenbank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was ist eine relationale Datenbank?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tabellen-zeilen-und-spalten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tabellen, Zeilen und Spalten
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#der-primarschlussel-primary-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Der Primärschlüssel (Primary Key)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#der-fremdschlussel-foreign-key-tabellen-verknupfen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Der Fremdschlüssel (Foreign Key) – Tabellen verknüpfen
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#beziehungstypen-1n-und-nm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Beziehungstypen: 1:n und n:m
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Beziehungstypen: 1:n und n:m">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1n-eins-zu-viele" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1:n (eins-zu-viele)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-eins-zu-eins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1:1 (eins-zu-eins)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nm-viele-zu-viele-manytomany" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        n:m (viele-zu-viele, ManyToMany)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#was-passiert-beim-loschen-on_delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was passiert beim Löschen? (on_delete)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#datentypen-in-dieser-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Datentypen in dieser App
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sql-die-sprache-dahinter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQL – die Sprache dahinter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wo-liegen-die-daten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wo liegen die Daten?
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../datenmodell/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenmodell
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrationen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrationen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../python-django-grundlagen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python, Django & MTV-Grundlagen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../projektstruktur/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projektstruktur des Repos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../entwicklung-lokal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lokale Entwicklung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Administration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/erststart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Erststart für ein echtes Team
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/belegungsliste/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Belegungsliste pflegen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/teams-mitarbeiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Teams & Mitarbeitende
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/parameter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Team-Parameter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Betrieb & Sicherheit
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Betrieb & Sicherheit
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/datenschutz/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenschutz
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/haertung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sicherheitshärtung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/vpn/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VPN-Zugang & Admin-Schutz (WireGuard)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/rls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datentrennung & Row-Level-Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment (Produktivbetrieb)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/backup-restore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Wiederherstellung (verschlüsselt)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/wiederherstellung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wiederherstellung (Audit-Timeline)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/backups-loeschkonzept/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aufbewahrung & Löschkonzept (Konzept)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/loeschkonzept/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aufbewahrungsfristen & Anonymisierung (Modul)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenschutz-Vorlagen (Träger/DSB)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datenschutz-Vorlagen (Träger/DSB)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/vvt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verzeichnis von Verarbeitungstätigkeiten (Art. 30)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/dsfa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenschutz-Folgenabschätzung (Art. 35)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/meldeprozess/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Meldeprozess bei Datenpannen (Art. 33/34)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/avv-traeger-betreiber/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AVV Träger ↔ Betreiber (Art. 28)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/rechtsgrundlage-informationspflichten/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rechtsgrundlage & Informationspflichten (Art. 6/9/13)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Inhaltsverzeichnis">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Inhaltsverzeichnis
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#was-ist-eine-relationale-datenbank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was ist eine relationale Datenbank?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tabellen-zeilen-und-spalten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tabellen, Zeilen und Spalten
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#der-primarschlussel-primary-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Der Primärschlüssel (Primary Key)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#der-fremdschlussel-foreign-key-tabellen-verknupfen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Der Fremdschlüssel (Foreign Key) – Tabellen verknüpfen
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#beziehungstypen-1n-und-nm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Beziehungstypen: 1:n und n:m
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Beziehungstypen: 1:n und n:m">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1n-eins-zu-viele" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1:n (eins-zu-viele)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-eins-zu-eins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1:1 (eins-zu-eins)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nm-viele-zu-viele-manytomany" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        n:m (viele-zu-viele, ManyToMany)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#was-passiert-beim-loschen-on_delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was passiert beim Löschen? (on_delete)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#datentypen-in-dieser-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Datentypen in dieser App
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sql-die-sprache-dahinter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SQL – die Sprache dahinter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wo-liegen-die-daten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wo liegen die Daten?
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="datenbank-grundlagen">Datenbank-Grundlagen<a class="headerlink" href="#datenbank-grundlagen" title="Permanent link">&para;</a></h1>
+<p>Diese Seite richtet sich an technisch interessierte Leser<em>innen </em><em>ohne Django-Vorwissen</em><em> – etwa künftige Entwickler</em>innen, die den Leistungsnachweis übernehmen oder erweitern. Sie erklärt die Begriffe, die man braucht, um die Seite <a href="../datenmodell/">Datenmodell</a> zu verstehen. Wer sich mit relationalen Datenbanken auskennt, kann direkt dorthin springen.</p>
+<div class="admonition note">
+<p class="admonition-title">Kurzfassung</p>
+<p>Die App speichert ihre Daten in einer <strong>relationalen Datenbank</strong>. Man kann sich diese wie eine Sammlung von Excel-Tabellen vorstellen, die über eindeutige Nummern (Schlüssel) miteinander verknüpft sind. Django übersetzt Python-Klassen automatisch in solche Tabellen.</p>
+</div>
+<h2 id="was-ist-eine-relationale-datenbank">Was ist eine relationale Datenbank?<a class="headerlink" href="#was-ist-eine-relationale-datenbank" title="Permanent link">&para;</a></h2>
+<p>Eine <strong>relationale Datenbank</strong> ist ein Programm, das Daten in <strong>Tabellen</strong> ablegt und dafür sorgt, dass diese Daten dauerhaft, widerspruchsfrei und schnell durchsuchbar bleiben. „Relational“ heißt: Die Tabellen stehen in <strong>Beziehung</strong> (englisch <em>relation</em>) zueinander.</p>
+<p>Die App wurde ursprünglich als <strong>Excel-Mappe</strong> (<code>TBEW_Leistungsnachweis_2026</code>) geführt – mit Blättern wie <em>Belegungsliste</em>, <em>Leistungsnachweis</em>, <em>Gruppennachweise</em> und <em>Teamsitzung</em>. Genau diese Blätter finden sich jetzt als Tabellen in der Datenbank wieder. Der große Unterschied zu Excel:</p>
+<table>
+<thead>
+<tr>
+<th>Excel</th>
+<th>Relationale Datenbank</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Beliebige freie Zellen, jede kann alles enthalten</td>
+<td>Feste <strong>Spalten</strong> mit festgelegtem Datentyp (Datum, Text, Zahl …)</td>
+</tr>
+<tr>
+<td>Verweise über Zellbezüge (<code>=Blatt1!A5</code>), leicht kaputt</td>
+<td>Verweise über <strong>stabile Schlüssel</strong>, von der DB geprüft</td>
+</tr>
+<tr>
+<td>Mehrbenutzer schwierig</td>
+<td>Viele Nutzer*innen gleichzeitig, mit Zugriffsschutz</td>
+</tr>
+<tr>
+<td>Keine Garantie gegen Widersprüche</td>
+<td>DB verhindert z. B. Löschen eines noch benutzten Datensatzes</td>
+</tr>
+</tbody>
+</table>
+<h2 id="tabellen-zeilen-und-spalten">Tabellen, Zeilen und Spalten<a class="headerlink" href="#tabellen-zeilen-und-spalten" title="Permanent link">&para;</a></h2>
+<p>Jede Tabelle beschreibt <strong>eine Art von Ding</strong>. In dieser App gibt es z. B. eine Tabelle für Teams, eine für Mitarbeiter<em>innen, eine für Klient</em>innen und eine für erfasste Leistungen.</p>
+<ul>
+<li><strong>Spalte</strong> (englisch <em>column</em> / <em>field</em>): eine Eigenschaft, die jedes Ding dieser Art hat. Bei einem Team z. B. <code>name</code>, <code>typ</code>, <code>aktiv</code>. Jede Spalte hat einen <strong>Datentyp</strong> – Text, ganze Zahl, Dezimalzahl, Datum, Ja/Nein.</li>
+<li><strong>Zeile</strong> (englisch <em>row</em> / <em>record</em>): ein einzelnes konkretes Ding – ein bestimmtes Team, eine bestimmte Person. Eine Zeile füllt jede Spalte mit einem Wert.</li>
+</ul>
+<p>Schematisch – die Tabelle „Team“ mit drei Zeilen (fiktive Demodaten):</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>name</th>
+<th>typ</th>
+<th>aktiv</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>BEW Nord</td>
+<td>BEW</td>
+<td>true</td>
+</tr>
+<tr>
+<td>2</td>
+<td>WG Sonnenallee</td>
+<td>WG</td>
+<td>true</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Verwaltung</td>
+<td>Verwaltung</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<p>Die Spalte <code>id</code> ist besonders – dazu gleich mehr.</p>
+<h2 id="der-primarschlussel-primary-key">Der Primärschlüssel (Primary Key)<a class="headerlink" href="#der-primarschlussel-primary-key" title="Permanent link">&para;</a></h2>
+<p>Jede Zeile braucht einen Namen, unter dem man sie eindeutig wiederfindet. Diesen eindeutigen „Ausweis“ nennt man <strong>Primärschlüssel</strong> (englisch <em>primary key</em>, kurz <strong>PK</strong>). In dieser App ist das immer eine fortlaufende Nummer in der Spalte <code>id</code>, die die Datenbank <strong>automatisch</strong> vergibt: Team 1, Team 2, Team 3 …</p>
+<ul>
+<li>Der Primärschlüssel ist innerhalb einer Tabelle <strong>einmalig</strong> – es gibt nie zwei Teams mit <code>id = 2</code>.</li>
+<li>Er ändert sich nie, auch wenn sich der Name ändert. „BEW Nord“ kann in „BEW Mitte“ umbenannt werden – die <code>id</code> bleibt <code>1</code>.</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Django vergibt den Primärschlüssel automatisch</p>
+<p>In den Modellen (siehe <a href="../datenmodell/">Datenmodell</a>) ist die <code>id</code>-Spalte nirgends ausgeschrieben. Django legt sie für jedes Modell selbst an. In dieser App als großer Ganzzahltyp (<code>BigAutoField</code>, siehe <code>DEFAULT_AUTO_FIELD</code> in den Einstellungen) – reicht für sehr viele Datensätze.</p>
+</div>
+<h2 id="der-fremdschlussel-foreign-key-tabellen-verknupfen">Der Fremdschlüssel (Foreign Key) – Tabellen verknüpfen<a class="headerlink" href="#der-fremdschlussel-foreign-key-tabellen-verknupfen" title="Permanent link">&para;</a></h2>
+<p>Ein <strong>Fremdschlüssel</strong> (englisch <em>foreign key</em>, kurz <strong>FK</strong>) ist eine Spalte, die auf den Primärschlüssel einer <strong>anderen</strong> Tabelle zeigt. So entstehen die Beziehungen.</p>
+<p>Beispiel: Jede<em>r Klient</em>in gehört zu einem Team. Statt den Teamnamen in die Klienten-Tabelle zu kopieren (fehleranfällig, redundant), speichert man dort nur die <strong>Nummer</strong> des Teams:</p>
+<p>Tabelle „Klient“ (Ausschnitt, fiktive Demodaten):</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>nachname</th>
+<th>team_id</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Muster</td>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Beispiel</td>
+<td>1</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Probst</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<p>Die Spalte <code>team_id</code> ist der Fremdschlüssel. <code>team_id = 1</code> bedeutet: „gehört zu dem Team, das in der Team-Tabelle die <code>id = 1</code> hat“ – also „BEW Nord“. Muster und Beispiel sind im selben Team, Probst in der WG.</p>
+<p>Vorteile:</p>
+<ul>
+<li><strong>Keine Doppelspeicherung.</strong> Der Teamname steht nur an einer Stelle.</li>
+<li><strong>Konsistenz.</strong> Die Datenbank kann verhindern, dass ein <code>team_id</code> auf ein nicht existierendes Team zeigt.</li>
+<li><strong>Schutz beim Löschen.</strong> Man kann festlegen, was passiert, wenn das Ziel gelöscht wird (siehe unten).</li>
+</ul>
+<h2 id="beziehungstypen-1n-und-nm">Beziehungstypen: 1:n und n:m<a class="headerlink" href="#beziehungstypen-1n-und-nm" title="Permanent link">&para;</a></h2>
+<h3 id="1n-eins-zu-viele">1:n (eins-zu-viele)<a class="headerlink" href="#1n-eins-zu-viele" title="Permanent link">&para;</a></h3>
+<p>Die häufigste Beziehung. <strong>Ein</strong> Datensatz auf der einen Seite hängt mit <strong>vielen</strong> auf der anderen Seite zusammen, aber jeder von diesen vielen gehört zu genau einem.</p>
+<blockquote>
+<p>Ein Team hat <strong>viele</strong> Klient*innen – aber jede*r Klient*in gehört zu <strong>einem</strong> Team.</p>
+</blockquote>
+<p>Technisch wird 1:n durch <strong>einen Fremdschlüssel auf der „viele“-Seite</strong> umgesetzt – im Beispiel die Spalte <code>team_id</code> in der Klienten-Tabelle. In Django schreibt man dafür ein <code>ForeignKey</code>-Feld.</p>
+<pre class="mermaid"><code>erDiagram
+    TEAM ||--o{ KLIENT : "hat"
+    TEAM {
+        int id PK
+        string name
+    }
+    KLIENT {
+        int id PK
+        int team_id FK
+        string nachname
+    }</code></pre>
+<p>Weitere 1:n-Beispiele in der App: ein*e Klient*in hat viele <strong>Leistungen</strong>; ein*e Mitarbeiter*in hat viele <strong>Arbeitszeiten</strong>, <strong>Abwesenheiten</strong> und <strong>Stempelungen</strong>.</p>
+<h3 id="11-eins-zu-eins">1:1 (eins-zu-eins)<a class="headerlink" href="#11-eins-zu-eins" title="Permanent link">&para;</a></h3>
+<p>Ein Sonderfall von 1:n, bei dem beide Seiten höchstens <strong>einen</strong> Partner haben. In der App verbindet so ein Feld die Tabelle <code>Mitarbeiter</code> mit dem <strong>Login-Konto</strong> (Django-User): Ein Login gehört zu genau einem Mitarbeiter-Profil und umgekehrt (<code>OneToOneField</code>).</p>
+<h3 id="nm-viele-zu-viele-manytomany">n:m (viele-zu-viele, ManyToMany)<a class="headerlink" href="#nm-viele-zu-viele-manytomany" title="Permanent link">&para;</a></h3>
+<p>Hier hängen <strong>viele mit vielen</strong> zusammen, in beide Richtungen.</p>
+<blockquote>
+<p>Ein Gruppenangebot hat <strong>mehrere</strong> teilnehmende Klient*innen – und ein*e Klient*in nimmt an <strong>mehreren</strong> Gruppen teil.</p>
+</blockquote>
+<p>Das lässt sich nicht mit einer einzelnen Fremdschlüssel-Spalte abbilden (eine Zelle kann nur eine Nummer enthalten). Die Lösung: eine <strong>Zwischentabelle</strong> (auch Verknüpfungs- oder Zuordnungstabelle). Sie enthält Paare aus zwei Fremdschlüsseln – je eine Zeile pro Teilnahme.</p>
+<p>Zwischentabelle „gruppe_teilnehmer“ (fiktive Demodaten):</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>gruppe_id</th>
+<th>klient_id</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>5</td>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>5</td>
+<td>2</td>
+</tr>
+<tr>
+<td>3</td>
+<td>6</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>Gruppe 5 hat die Klient*innen 1 und 2; Klient*in 1 ist in den Gruppen 5 und 6.</p>
+<pre class="mermaid"><code>erDiagram
+    GRUPPE }o--o{ KLIENT : "Teilnahme (n:m)"</code></pre>
+<div class="admonition tip">
+<p class="admonition-title">Django legt die Zwischentabelle selbst an</p>
+<p>Bei einem <code>ManyToManyField</code> erzeugt Django die Zwischentabelle automatisch im Hintergrund. Im Modellcode sieht man nur das eine Feld <code>teilnehmer = models.ManyToManyField(Klient, …)</code>. Auch die Zuordnung „welche*r Leiter*in leitet welche Teams“ ist so ein n:m (<code>Mitarbeiter.leitet</code>).</p>
+</div>
+<h2 id="was-passiert-beim-loschen-on_delete">Was passiert beim Löschen? (on_delete)<a class="headerlink" href="#was-passiert-beim-loschen-on_delete" title="Permanent link">&para;</a></h2>
+<p>Wenn ein Datensatz gelöscht wird, auf den anderswo ein Fremdschlüssel zeigt, muss die Datenbank wissen, was mit den Verweisen geschehen soll. Django legt das pro Fremdschlüssel mit <code>on_delete</code> fest. In dieser App kommen drei Varianten vor:</p>
+<table>
+<thead>
+<tr>
+<th>Regel</th>
+<th>Bedeutung</th>
+<th>Beispiel in der App</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PROTECT</code></td>
+<td><strong>Löschen verbieten</strong>, solange noch Verweise bestehen. Schützt vor Datenverlust.</td>
+<td>Ein*e Klient*in mit erfassten Leistungen kann nicht einfach gelöscht werden; Leistungen verweisen <code>PROTECT</code> auf Klient und Betreuer.</td>
+</tr>
+<tr>
+<td><code>SET_NULL</code></td>
+<td>Verweis auf <strong>leer</strong> (NULL) setzen, Datensatz bleibt erhalten.</td>
+<td>Wird ein Team gelöscht, verlieren Mitarbeiter*in/Klient*in nur die Team-Zuordnung.</td>
+</tr>
+<tr>
+<td><code>CASCADE</code></td>
+<td><strong>Mitlöschen</strong>: Verweisende Zeilen werden mit entfernt.</td>
+<td>Löscht man eine*n Mitarbeiter*in, verschwinden auch deren Arbeitszeiten, Abwesenheiten und Stempelungen.</td>
+</tr>
+</tbody>
+</table>
+<p><code>NULL</code> bedeutet dabei „kein Wert / leer“ – nicht dasselbe wie die Zahl 0 oder ein leerer Text.</p>
+<h2 id="datentypen-in-dieser-app">Datentypen in dieser App<a class="headerlink" href="#datentypen-in-dieser-app" title="Permanent link">&para;</a></h2>
+<p>Jede Spalte hat einen festen Typ. Die wichtigsten hier:</p>
+<table>
+<thead>
+<tr>
+<th>Typ (Django)</th>
+<th>Speichert</th>
+<th>Beispiel-Feld</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CharField</code></td>
+<td>kurzer Text mit Maximallänge</td>
+<td><code>Team.name</code>, <code>Klient.nachname</code></td>
+</tr>
+<tr>
+<td><code>TextField</code></td>
+<td>langer Freitext ohne feste Länge</td>
+<td><code>Klient.kommentar</code></td>
+</tr>
+<tr>
+<td><code>DateField</code></td>
+<td>Datum (Tag)</td>
+<td><code>Leistung.datum</code></td>
+</tr>
+<tr>
+<td><code>TimeField</code></td>
+<td>Uhrzeit</td>
+<td><code>Leistung.beginn</code>, <code>Leistung.ende</code></td>
+</tr>
+<tr>
+<td><code>DateTimeField</code></td>
+<td>Datum + Uhrzeit</td>
+<td><code>Stempelung.beginn</code>, <code>Leistung.erstellt</code></td>
+</tr>
+<tr>
+<td><code>DecimalField</code></td>
+<td><strong>exakte</strong> Dezimalzahl</td>
+<td><code>Klient.al</code> (FLS/Monat), <code>Parameter.fls_preis</code></td>
+</tr>
+<tr>
+<td><code>PositiveSmallIntegerField</code></td>
+<td>kleine positive Ganzzahl</td>
+<td><code>Mitarbeiter.urlaubstage</code>, <code>Arbeitszeit.pause_min</code></td>
+</tr>
+<tr>
+<td><code>BooleanField</code></td>
+<td>Ja/Nein</td>
+<td><code>Team.aktiv</code>, <code>Leistung.auto</code></td>
+</tr>
+<tr>
+<td><code>ForeignKey</code></td>
+<td>Verweis (1:n)</td>
+<td><code>Klient.team</code></td>
+</tr>
+<tr>
+<td><code>OneToOneField</code></td>
+<td>Verweis (1:1)</td>
+<td><code>Mitarbeiter.user</code></td>
+</tr>
+<tr>
+<td><code>ManyToManyField</code></td>
+<td>Verweis (n:m)</td>
+<td><code>Gruppe.teilnehmer</code></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Geld und Zeiten niemals als Fließkommazahl</p>
+<p>Für alle abrechnungsrelevanten Größen (Stunden, FLS-Mengen, Preise) verwendet die App bewusst <code>DecimalField</code> (exakte Dezimalzahlen), <strong>nicht</strong> Fließkommazahlen (<code>float</code>). Fließkommazahlen können Werte wie <code>0,1</code> nicht exakt darstellen und führen zu Rundungsfehlern – bei einer Rechnungsgrundlage inakzeptabel. Der Kommentar im Modellkopf sagt es klar: „Alle Zeit-/Betragsgrößen als Decimal (keine Floats) – abrechnungsrelevant.“</p>
+</div>
+<h2 id="sql-die-sprache-dahinter">SQL – die Sprache dahinter<a class="headerlink" href="#sql-die-sprache-dahinter" title="Permanent link">&para;</a></h2>
+<p>Mit relationalen Datenbanken spricht man über <strong>SQL</strong> (Structured Query Language). Eine Abfrage „alle aktiven Teams, alphabetisch“ sieht so aus:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">nachweis_team</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">aktiv</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">name</span><span class="p">;</span>
+</code></pre></div>
+<p>Das Schöne an Django: Man muss dieses SQL <strong>selten selbst schreiben</strong>. Man arbeitet mit Python-Objekten, und Djangos <strong>ORM</strong> (Object-Relational Mapper) erzeugt das passende SQL. Dieselbe Abfrage in Django-Python:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">Team</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">aktiv</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>Wie aus den Python-Klassen echte Tabellen werden, steht auf der Seite <a href="../migrationen/">Migrationen</a>. Welche Tabellen und Beziehungen es konkret gibt, zeigt die Seite <a href="../datenmodell/">Datenmodell</a>.</p>
+<h2 id="wo-liegen-die-daten">Wo liegen die Daten?<a class="headerlink" href="#wo-liegen-die-daten" title="Permanent link">&para;</a></h2>
+<p>Im Prototyp speichert die App alles in einer einzigen Datei: <strong>SQLite</strong> (<code>db.sqlite3</code> im Projektverzeichnis). Das ist eine vollwertige relationale Datenbank ohne eigenen Server – ideal zum Entwickeln. Für den Produktivbetrieb ist ein Wechsel zu <strong>PostgreSQL</strong> vorgesehen (mehrbenutzerfest, robuster). Beides ist bereits vorbereitet; Details dazu ebenfalls unter <a href="../migrationen/">Migrationen</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Zurück zum Seitenanfang
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "navigation.instant", "navigation.indexes", "search.suggest", "search.highlight", "content.code.copy", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "In Zwischenablage kopiert", "clipboard.copy": "In Zwischenablage kopieren", "search.result.more.one": "1 weiteres Suchergebnis auf dieser Seite", "search.result.more.other": "# weitere Suchergebnisse auf dieser Seite", "search.result.none": "Keine Suchergebnisse", "search.result.one": "1 Suchergebnis", "search.result.other": "# Suchergebnisse", "search.result.placeholder": "Suchbegriff eingeben", "search.result.term.missing": "Es fehlt", "select.version": "Version ausw\u00e4hlen"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,3338 @@
+
+<!doctype html>
+<html lang="de" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Handbuch für das Team TBEW (Berliner Eingliederungshilfe)">
+      
+      
+      
+      
+        <link rel="prev" href="../deployment/">
+      
+      
+        <link rel="next" href="../wiederherstellung/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Backup & Wiederherstellung (verschlüsselt) - FEGH-Leistungsnachweis · Handbuch</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#backup-wiederherstellung-verschlusselt" class="md-skip">
+          Zum Inhalt
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Kopfzeile">
+    <a href="../.." title="FEGH-Leistungsnachweis · Handbuch" class="md-header__button md-logo" aria-label="FEGH-Leistungsnachweis · Handbuch" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            FEGH-Leistungsnachweis · Handbuch
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Backup & Wiederherstellung (verschlüsselt)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Suche" placeholder="Suche" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Suche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Zurücksetzen" aria-label="Zurücksetzen" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Suche wird initialisiert
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="FEGH-Leistungsnachweis · Handbuch" class="md-nav__button md-logo" aria-label="FEGH-Leistungsnachweis · Handbuch" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    FEGH-Leistungsnachweis · Handbuch
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Was wurde umgesetzt (Juli 2026)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anleitung
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Anleitung
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/erste-schritte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Erste Schritte
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/zwei-faktor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zwei-Faktor-Anmeldung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/mein-ueberblick/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mein Überblick (Startseite)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/fallakte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fallakte & Belegungsliste
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/leistungsnachweis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Leistung erfassen (Grid)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/dokumentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dokumentation (Verlaufstexte)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/unterwegs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unterwegs-Modus (mobil)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/ziele-zlp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ziele (ZLP)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/wirkung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wirkungsmessung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/bedarf-icf-tib/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ICF-Bedarfsermittlung (TIB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/berichte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Berichte & TeilhabeAssist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/dokumente-ablage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dokumente ablegen & ansehen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/globale-suche/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Globale Suche
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/kalender/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kalender & Planungsbrett
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/arbeitszeit-stempeluhr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arbeitszeit & Stempeluhr
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/urlaub-abwesenheit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Urlaub & Abwesenheit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/fehlzeiten/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fehlzeiten-Statistik
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/kasse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kasse (Kassenbuch & Zählprotokoll)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/gruppen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gruppen anlegen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/druck-nachweis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Druck-Nachweis erstellen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Abrechnung
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Abrechnung
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/bewilligungen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bewilligungen & Kontingent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/rechnungen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rechnungen & XRechnung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/mahnwesen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mahnwesen, Offene Posten & Storno
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/wohnkosten/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wohnkosten / Selbstzahler (WBVG)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/controlling-datev/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Controlling & DATEV-Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bereiche (Wohnheim/WG/Jugendhilfe)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Bereiche (Wohnheim/WG/Jugendhilfe)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bereiche/angebote-belegung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Angebote, Belegung & Tagessatz
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Qualität & Dienstplanung
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Qualität & Dienstplanung
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../qm/vorkommnisse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vorkommnis-Meldewesen (QM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../qm/dienstplan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dienstplan & SOLL/IST-Abgleich
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fachliches
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Fachliches
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/fls-kle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fachleistungsstunden (FLS) & kLE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/teamsitzung-gruppen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Teamsitzung & Gruppen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/berichtsfristen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Berichtsfristen (KÜ-Ende)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/rollen-teams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rollen & Team-Typen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technik
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Technik
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../technik/datenbank-grundlagen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenbank-Grundlagen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../technik/datenmodell/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenmodell
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../technik/migrationen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrationen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../technik/python-django-grundlagen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python, Django & MTV-Grundlagen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../technik/projektstruktur/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projektstruktur des Repos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../technik/entwicklung-lokal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lokale Entwicklung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Administration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/erststart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Erststart für ein echtes Team
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/belegungsliste/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Belegungsliste pflegen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/teams-mitarbeiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Teams & Mitarbeitende
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/parameter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Team-Parameter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Betrieb & Sicherheit
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Betrieb & Sicherheit
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../datenschutz/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenschutz
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../haertung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sicherheitshärtung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vpn/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VPN-Zugang & Admin-Schutz (WireGuard)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datentrennung & Row-Level-Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment (Produktivbetrieb)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Wiederherstellung (verschlüsselt)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Wiederherstellung (verschlüsselt)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Inhaltsverzeichnis">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Inhaltsverzeichnis
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prinzip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prinzip
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#einrichtung-schritt-fur-schritt-server-als-root" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Einrichtung Schritt für Schritt (Server, als root)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Einrichtung Schritt für Schritt (Server, als root)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-age-installieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. age installieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-schlusselpaar-erzeugen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Schlüsselpaar erzeugen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-offentlichen-schlussel-auf-dem-server-hinterlegen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Öffentlichen Schlüssel auf dem Server hinterlegen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-bus-faktor-zweiter-empfanger-empfohlen-vor-echtbetrieb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Bus-Faktor: zweiter Empfänger (empfohlen vor Echtbetrieb)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backup-script-deploybackupsh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backup-Script deploy/backup.sh
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backup-Script deploy/backup.sh">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#testlauf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testlauf
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cron-einrichten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cron einrichten
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#restore-test-deployrestore-testsh-vierteljahrlich" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Restore-Test deploy/restore-test.sh (vierteljährlich!)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Restore-Test deploy/restore-test.sh (vierteljährlich!)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ablauf-des-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ablauf des Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#warum-die-rolle-fegh-angelegt-wird" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Warum die Rolle fegh angelegt wird
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#offsite-spiegel-hidrive-pflicht-vor-echtbetrieb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Offsite-Spiegel (HiDrive) — Pflicht vor Echtbetrieb
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Offsite-Spiegel (HiDrive) — Pflicht vor Echtbetrieb">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#uberwachung-dead-mans-switch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Überwachung (Dead-Man's-Switch)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#in-app-wiederherstellung-einzelner-datensatze" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In-App-Wiederherstellung einzelner Datensätze
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#checkliste" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checkliste
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../wiederherstellung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wiederherstellung (Audit-Timeline)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backups-loeschkonzept/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aufbewahrung & Löschkonzept (Konzept)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../loeschkonzept/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aufbewahrungsfristen & Anonymisierung (Modul)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenschutz-Vorlagen (Träger/DSB)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datenschutz-Vorlagen (Träger/DSB)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/vvt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verzeichnis von Verarbeitungstätigkeiten (Art. 30)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/dsfa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenschutz-Folgenabschätzung (Art. 35)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/meldeprozess/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Meldeprozess bei Datenpannen (Art. 33/34)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/avv-traeger-betreiber/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AVV Träger ↔ Betreiber (Art. 28)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/rechtsgrundlage-informationspflichten/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rechtsgrundlage & Informationspflichten (Art. 6/9/13)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Inhaltsverzeichnis">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Inhaltsverzeichnis
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prinzip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prinzip
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#einrichtung-schritt-fur-schritt-server-als-root" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Einrichtung Schritt für Schritt (Server, als root)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Einrichtung Schritt für Schritt (Server, als root)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-age-installieren" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. age installieren
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-schlusselpaar-erzeugen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Schlüsselpaar erzeugen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-offentlichen-schlussel-auf-dem-server-hinterlegen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Öffentlichen Schlüssel auf dem Server hinterlegen
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-bus-faktor-zweiter-empfanger-empfohlen-vor-echtbetrieb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Bus-Faktor: zweiter Empfänger (empfohlen vor Echtbetrieb)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backup-script-deploybackupsh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backup-Script deploy/backup.sh
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Backup-Script deploy/backup.sh">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#testlauf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testlauf
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cron-einrichten" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cron einrichten
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#restore-test-deployrestore-testsh-vierteljahrlich" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Restore-Test deploy/restore-test.sh (vierteljährlich!)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Restore-Test deploy/restore-test.sh (vierteljährlich!)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ablauf-des-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ablauf des Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#warum-die-rolle-fegh-angelegt-wird" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Warum die Rolle fegh angelegt wird
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#offsite-spiegel-hidrive-pflicht-vor-echtbetrieb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Offsite-Spiegel (HiDrive) — Pflicht vor Echtbetrieb
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Offsite-Spiegel (HiDrive) — Pflicht vor Echtbetrieb">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#uberwachung-dead-mans-switch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Überwachung (Dead-Man's-Switch)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#in-app-wiederherstellung-einzelner-datensatze" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In-App-Wiederherstellung einzelner Datensätze
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#checkliste" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checkliste
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="backup-wiederherstellung-verschlusselt">Backup &amp; Wiederherstellung (verschlüsselt)<a class="headerlink" href="#backup-wiederherstellung-verschlusselt" title="Permanent link">&para;</a></h1>
+<p>Diese Seite beschreibt, <strong>wie</strong> die Datenbank des Leistungsnachweises nächtlich gesichert wird und <strong>warum</strong> die Sicherungen so aufgebaut sind, dass selbst ein kompromittierter Server oder ein abgegriffenes Offsite-Backup keine Klientendaten preisgibt. Sie ist so geschrieben, dass ein Restore-Test von Grund auf nachgebaut werden kann.</p>
+<div class="admonition danger">
+<p class="admonition-title">Warum das hier ernst ist</p>
+<p>Die Datenbank enthält Gesundheits- und Sozialdaten von Klient*innen – besondere Kategorien personenbezogener Daten nach <strong>Art. 9 DSGVO</strong>. Ein unverschlüsseltes <code>pg_dump</code> auf einer Festplatte, einem Cloud-Speicher oder in einem Chat ist ein meldepflichtiger Datenschutzvorfall. Deshalb: <strong>Es verlässt kein Backup den Server unverschlüsselt.</strong></p>
+</div>
+<hr />
+<h2 id="prinzip">Prinzip<a class="headerlink" href="#prinzip" title="Permanent link">&para;</a></h2>
+<p>Jede Nacht wird ein logischer Datenbank-Dump (<code>pg_dump</code>) erstellt und <strong>sofort im Datenstrom</strong> mit <a href="https://github.com/FiloSottile/age"><code>age</code></a> verschlüsselt. <code>age</code> wird hier <strong>asymmetrisch</strong> eingesetzt:</p>
+<ul>
+<li>Der <strong>öffentliche Schlüssel</strong> (Recipient, <code>age1…</code>) liegt auf dem Server und wird nur zum <strong>Verschlüsseln</strong> verwendet. Er ist unkritisch – wer ihn hat, kann damit nur Backups erzeugen, nicht lesen.</li>
+<li>Der <strong>private Schlüssel</strong> (<code>AGE-SECRET-KEY-…</code>) liegt <strong>niemals auf dem Server</strong>. Er wird offline (Passwort-Manager) aufbewahrt und nur für einen Restore kurzzeitig eingespielt.</li>
+</ul>
+<pre class="mermaid"><code>flowchart LR
+    A[pg_dump] --&gt;|Stdout-Stream| B[age -r age1…]
+    B --&gt; C[fegh_STAMP.sql.age&lt;br/&gt;verschlüsselt]
+    C -.optional.-&gt; D[Offsite HiDrive]
+    C --&gt;|Restore-Test| E[age -d -i privater Key]
+    E --&gt; F[Wegwerf-Postgres]</code></pre>
+<div class="admonition note">
+<p class="admonition-title">Konsequenz</p>
+<p>Selbst mit vollem Root-Zugriff auf den Server kann ein Angreifer die Backups <strong>nicht</strong> entschlüsseln. Der einzige Weg zurück zu Klartext führt über den privaten Schlüssel, den nur die verantwortliche Person offline besitzt.</p>
+</div>
+<p>Betroffene Dateien im Repo:</p>
+<table>
+<thead>
+<tr>
+<th>Datei</th>
+<th>Zweck</th>
+<th>Im Git?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>deploy/backup.sh</code></td>
+<td>Nächtliches Backup + Rotation</td>
+<td>ja</td>
+</tr>
+<tr>
+<td><code>deploy/restore-test.sh</code></td>
+<td>Vierteljährlicher Restore-Test</td>
+<td>ja</td>
+</tr>
+<tr>
+<td><code>deploy/age-recipient.txt</code></td>
+<td>Öffentlicher age-Key (Einzel-Recipient)</td>
+<td><strong>nein</strong> (gitignored)</td>
+</tr>
+<tr>
+<td><code>deploy/age-recipients.txt</code></td>
+<td>Öffentliche age-Keys (mehrere, Bus-Faktor)</td>
+<td><strong>nein</strong> (gitignored)</td>
+</tr>
+<tr>
+<td><code>deploy/backups/*.sql.age</code></td>
+<td>Verschlüsselte Backups</td>
+<td><strong>nein</strong> (gitignored)</td>
+</tr>
+<tr>
+<td><code>~/age-key.txt</code></td>
+<td>Privater Schlüssel (nur temporär beim Restore)</td>
+<td><strong>niemals</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Die <code>.gitignore</code> sperrt diese Pfade explizit:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a># Deployment-Secrets / Backups (niemals committen)
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>deploy/.env.prod
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>deploy/backups/
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>deploy/logs/
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>deploy/age-recipient.txt
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>*.age
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>*.key
+</code></pre></div>
+<hr />
+<h2 id="einrichtung-schritt-fur-schritt-server-als-root">Einrichtung Schritt für Schritt (Server, als root)<a class="headerlink" href="#einrichtung-schritt-fur-schritt-server-als-root" title="Permanent link">&para;</a></h2>
+<h3 id="1-age-installieren">1. age installieren<a class="headerlink" href="#1-age-installieren" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>apt<span class="w"> </span>update
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>age
+</code></pre></div>
+<h3 id="2-schlusselpaar-erzeugen">2. Schlüsselpaar erzeugen<a class="headerlink" href="#2-schlusselpaar-erzeugen" title="Permanent link">&para;</a></h3>
+<p><code>age-keygen</code> gibt den <strong>privaten</strong> Schlüssel auf Stdout aus und schreibt in <code>stderr</code> den zugehörigen <strong>öffentlichen</strong> Schlüssel (Recipient).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>age-keygen
+</code></pre></div>
+<p>Beispielausgabe:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a># created: 2026-07-04T02:15:00Z
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a># public key: age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>AGE-SECRET-KEY-1QYQSZQGPQYQSZQGPQYQSZQGPQYQSZQGPQYQSZQGPQYQSZQGPQYQ...
+</code></pre></div>
+<ul>
+<li>Die Zeile <code># public key: age1…</code> ist dein <strong>Recipient</strong> (öffentlich, unkritisch).</li>
+<li>Die Zeile <code>AGE-SECRET-KEY-…</code> ist dein <strong>privater Schlüssel</strong> (streng geheim).</li>
+</ul>
+<div class="admonition danger">
+<p class="admonition-title">Der private Schlüssel darf den sicheren Ort nie verlassen</p>
+<ul>
+<li><strong>Sofort</strong> in den Passwort-Manager (z. B. als sicheres Notizfeld) kopieren.</li>
+<li><strong>Niemals</strong> in Git committen, in einen Chat, ein Ticket oder eine E-Mail einfügen.</li>
+<li><strong>Nicht</strong> dauerhaft auf dem Server ablegen. Er wird nur für den Restore-Test kurz gebraucht (siehe Abschnitt <em>Restore-Test</em>).</li>
+<li>Ohne diesen Schlüssel sind alle Backups unwiederbringlich verloren. Bewahre ihn deshalb an <strong>mindestens zwei</strong> getrennten sicheren Orten auf.</li>
+</ul>
+</div>
+<h3 id="3-offentlichen-schlussel-auf-dem-server-hinterlegen">3. Öffentlichen Schlüssel auf dem Server hinterlegen<a class="headerlink" href="#3-offentlichen-schlussel-auf-dem-server-hinterlegen" title="Permanent link">&para;</a></h3>
+<p>Zwei Varianten – das Backup-Script akzeptiert beide, die Env-Variable hat Vorrang:</p>
+<p><strong>Variante A – Datei (empfohlen):</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>&gt;<span class="w"> </span>/srv/fegh/deploy/age-recipient.txt
+</code></pre></div>
+<p><strong>Variante B – Umgebungsvariable</strong> (z. B. in der Cron-Umgebung oder <code>.env</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">AGE_RECIPIENT</span><span class="o">=</span><span class="s1">&#39;age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p&#39;</span>
+</code></pre></div>
+<p>Das Script liest die Empfänger in dieser Reihenfolge (siehe <code>deploy/backup.sh</code>): <code>AGE_RECIPIENTS</code> (Env, mehrere durch Leerzeichen/Zeilenumbruch) → <code>deploy/age-recipients.txt</code> (eine Zeile je Key) → <code>AGE_RECIPIENT</code> bzw. <code>deploy/age-recipient.txt</code> (Einzelschlüssel, abwärtskompatibel).</p>
+<div class="admonition warning">
+<p class="admonition-title">Platzhalter zählt nicht</p>
+<p>Das Script bricht bewusst ab, wenn kein gültiger Recipient gesetzt ist <strong>oder</strong> nur der Platzhalter <code>age1DEIN_PUBLIC_KEY</code> drinsteht. So kann kein „Backup" entstehen, das in Wahrheit gar nicht sinnvoll verschlüsselt wurde.</p>
+</div>
+<h3 id="4-bus-faktor-zweiter-empfanger-empfohlen-vor-echtbetrieb">4. Bus-Faktor: zweiter Empfänger (empfohlen vor Echtbetrieb)<a class="headerlink" href="#4-bus-faktor-zweiter-empfanger-empfohlen-vor-echtbetrieb" title="Permanent link">&para;</a></h3>
+<p>Hängen Betrieb und der einzige private Schlüssel an einer Person, sind bei deren Ausfall <strong>plus</strong> Serververlust alle Backups unwiederbringlich. <code>age</code> kann eine Datei an <strong>mehrere Empfänger</strong> gleichzeitig verschlüsseln – jede*r mit einem der zugehörigen privaten Schlüssel kann sie entschlüsseln. Lege dafür einen zweiten Schlüssel an (z. B. für die Trägerleitung) und trage <strong>beide öffentlichen</strong> Keys ein, einen je Zeile:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>cat<span class="w"> </span>&gt;<span class="w"> </span>/srv/fegh/deploy/age-recipients.txt<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="s"># Betrieb – privater Key im Passwort-Manager</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="s">age1ql3z7hjy54pw3hyww5ayyfg7zqgvc7w3j2elw8zmrj2kg5sfn9aqmcac8p</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="s"># Träger-Notfallschlüssel – privater Key versiegelt im Safe</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="s">age1TRAEGER_PUBLIC_KEY</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="s">EOF</span>
+</code></pre></div>
+<p>Den <strong>privaten</strong> Träger-Schlüssel auf einem sicheren Rechner mit <code>age-keygen</code> erzeugen, ausdrucken bzw. auf einen verschlüsselten Datenträger legen und <strong>versiegelt beim Träger</strong> hinterlegen – er kommt nie auf den Server und nie in ein digitales Postfach. Damit ist der Bus-Faktor 1 aufgelöst: Fällt die betreibende Person dauerhaft aus, kann der Träger mit dem Notfallschlüssel jedes Backup wiederherstellen.</p>
+<div class="admonition tip">
+<p class="admonition-title">Bestehende Backups bleiben lesbar</p>
+<p>Ein zusätzlicher Empfänger wirkt nur für <strong>neue</strong> Sicherungen. Ältere <code>.age</code>-Dateien bleiben mit dem ursprünglichen Schlüssel lesbar – unkritisch, da der Bestand nach der 7-Tage-Rotation ohnehin durch neue, an beide Schlüssel verschlüsselte Backups ersetzt wird.</p>
+</div>
+<hr />
+<h2 id="backup-script-deploybackupsh">Backup-Script <code>deploy/backup.sh</code><a class="headerlink" href="#backup-script-deploybackupsh" title="Permanent link">&para;</a></h2>
+<p>Das Script läuft als <code>deploy</code>-User, liest den Recipient aus Env oder Datei, streamt <code>pg_dump</code> durch <code>age</code> in eine Datei und rotiert alte Sicherungen nach 7 Tagen.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="ch">#!/bin/bash</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nb">set</span><span class="w"> </span>-euo<span class="w"> </span>pipefail
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>dirname<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$0</span><span class="s2">&quot;</span><span class="k">)</span><span class="s2">&quot;</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="nv">STAMP</span><span class="o">=</span><span class="k">$(</span>date<span class="w"> </span>+%F_%H%M<span class="k">)</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="nv">OUT</span><span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/backups&quot;</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="nv">AGE_RECIPIENT</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">AGE_RECIPIENT</span><span class="k">:-$(</span>cat<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>dirname<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$0</span><span class="s2">&quot;</span><span class="k">)</span><span class="s2">/age-recipient.txt&quot;</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span><span class="k">)</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-z<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">AGE_RECIPIENT</span><span class="k">:-</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$AGE_RECIPIENT</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;age1DEIN_PUBLIC_KEY&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;FEHLER: age-Recipient fehlt. Lege deploy/age-recipient.txt an (age1…).&quot;</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">  </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="k">fi</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$OUT</span><span class="s2">&quot;</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-T<span class="w"> </span>db<span class="w"> </span>pg_dump<span class="w"> </span>-U<span class="w"> </span>fegh<span class="w"> </span>fegh<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">  </span><span class="p">|</span><span class="w"> </span>age<span class="w"> </span>-r<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$AGE_RECIPIENT</span><span class="s2">&quot;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$OUT</span><span class="s2">/fegh_</span><span class="nv">$STAMP</span><span class="s2">.sql.age&quot;</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="c1"># Rotation: tägliche Backups 7 Tage behalten</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>find<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$OUT</span><span class="s2">&quot;</span><span class="w"> </span>-name<span class="w"> </span><span class="s1">&#39;fegh_*.sql.age&#39;</span><span class="w"> </span>-mtime<span class="w"> </span>+7<span class="w"> </span>-delete
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Backup ok: fegh_</span><span class="nv">$STAMP</span><span class="s2">.sql.age&quot;</span>
+</code></pre></div>
+<p>Wichtige Details:</p>
+<ul>
+<li><code>docker compose exec -T db</code> spricht den <code>db</code>-Service aus <code>deploy/docker-compose.yml</code> an (Image <code>postgres:16</code>, User/DB heißen jeweils <code>fegh</code>). Das <code>-T</code> schaltet die Pseudo-TTY-Zuweisung ab, damit der Stream sauber durch die Pipe läuft.</li>
+<li>Die Verschlüsselung passiert <strong>im Stream</strong> – zu keinem Zeitpunkt liegt ein unverschlüsselter Dump auf der Platte.</li>
+<li>Dateiname: <code>fegh_&lt;YYYY-MM-DD_HHMM&gt;.sql.age</code>.</li>
+<li><code>set -euo pipefail</code> sorgt dafür, dass ein Fehler in <code>pg_dump</code> <strong>nicht</strong> in einer leeren, aber scheinbar erfolgreichen <code>.age</code>-Datei endet.</li>
+</ul>
+<h3 id="testlauf">Testlauf<a class="headerlink" href="#testlauf" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">cd</span><span class="w"> </span>/srv/fegh/deploy
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>./backup.sh
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>ls<span class="w"> </span>-lh<span class="w"> </span>backups/
+</code></pre></div>
+<p>Erwartete Ausgabe: <code>Backup ok: fegh_2026-07-04_0230.sql.age</code> und eine <code>.age</code>-Datei mit mehreren KB/MB Größe. Eine <strong>0-Byte-Datei</strong> ist ein Fehler – dann Recipient/Docker prüfen.</p>
+<hr />
+<h2 id="cron-einrichten">Cron einrichten<a class="headerlink" href="#cron-einrichten" title="Permanent link">&para;</a></h2>
+<p>Falls <code>cron</code> fehlt:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>cron
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>--now<span class="w"> </span>cron
+</code></pre></div>
+<p>Crontab des <code>deploy</code>-Users bearbeiten (<code>crontab -e</code>) und eintragen:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>30 2 * * * /srv/fegh/deploy/backup.sh &gt;&gt; /srv/fegh/deploy/logs/backup.log 2&gt;&amp;1
+</code></pre></div>
+<p>Das bedeutet: <strong>täglich um 02:30 Uhr</strong>, Ausgabe (inkl. Fehler via <code>2&gt;&amp;1</code>) an <code>deploy/logs/backup.log</code> angehängt.</p>
+<div class="admonition tip">
+<p class="admonition-title">Log-Verzeichnis anlegen und Lauf prüfen</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>/srv/fegh/deploy/logs
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="c1"># am Folgetag kontrollieren:</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>tail<span class="w"> </span>-n<span class="w"> </span><span class="m">20</span><span class="w"> </span>/srv/fegh/deploy/logs/backup.log
+</code></pre></div>
+Sowohl <code>deploy/backups/</code> als auch <code>deploy/logs/</code> sind gitignored – sie landen nie versehentlich im Repo.</p>
+</div>
+<hr />
+<h2 id="restore-test-deployrestore-testsh-vierteljahrlich">Restore-Test <code>deploy/restore-test.sh</code> (vierteljährlich!)<a class="headerlink" href="#restore-test-deployrestore-testsh-vierteljahrlich" title="Permanent link">&para;</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Ein Backup ohne getesteten Restore ist kein Backup</p>
+<p>Führe diesen Test <strong>mindestens vierteljährlich</strong> durch und dokumentiere Datum + Ergebnis. Nur so ist sichergestellt, dass die Verschlüsselung, der private Schlüssel und der Dump tatsächlich zusammenpassen.</p>
+</div>
+<p>Der Test spielt ein Backup in eine <strong>Wegwerf-Postgres-Instanz</strong> (Docker) ein, listet die Tabellen und räumt anschließend restlos auf. Die Produktivdatenbank wird dabei <strong>nicht</strong> berührt.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="ch">#!/bin/bash</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nb">set</span><span class="w"> </span>-euo<span class="w"> </span>pipefail
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="nv">FILE</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">1</span><span class="p">:?Backup-Datei angeben</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nv">NAME</span><span class="o">=</span>fegh_restore_test
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>cleanup<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span>docker<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NAME</span><span class="s2">&quot;</span><span class="w"> </span>&gt;/dev/null<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span>true<span class="p">;</span><span class="w"> </span><span class="o">}</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="nb">trap</span><span class="w"> </span>cleanup<span class="w"> </span>EXIT<span class="w">          </span><span class="c1"># Wegwerf-DB IMMER entfernen (auch bei Abbruch/Fehler)</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>cleanup
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>--name<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NAME</span><span class="s2">&quot;</span><span class="w"> </span>-e<span class="w"> </span><span class="nv">POSTGRES_PASSWORD</span><span class="o">=</span>testpw<span class="w"> </span>postgres:16<span class="w"> </span>&gt;/dev/null
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>sleep<span class="w"> </span><span class="m">5</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NAME</span><span class="s2">&quot;</span><span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;CREATE ROLE fegh;&quot;</span><span class="w"> </span>&gt;/dev/null<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>age<span class="w"> </span>-d<span class="w"> </span>-i<span class="w"> </span>~/age-key.txt<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$FILE</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NAME</span><span class="s2">&quot;</span><span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>&gt;/dev/null
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Restore OK – Tabellen:&quot;</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NAME</span><span class="s2">&quot;</span><span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;\dt&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-40
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Restore-Test erfolgreich. Wegwerf-DB wird entfernt. Ergebnis mit Datum dokumentieren.&quot;</span>
+</code></pre></div>
+<h3 id="ablauf-des-tests">Ablauf des Tests<a class="headerlink" href="#ablauf-des-tests" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Privaten Schlüssel kurzzeitig bereitstellen.</strong> Aus dem Passwort-Manager holen und temporär als <code>~/age-key.txt</code> ablegen:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="c1"># Inhalt aus dem Passwort-Manager einfügen:</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>nano<span class="w"> </span>~/age-key.txt<span class="w">        </span><span class="c1"># Zeile &#39;AGE-SECRET-KEY-…&#39; einfügen, speichern</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>chmod<span class="w"> </span><span class="m">600</span><span class="w"> </span>~/age-key.txt
+</code></pre></div>
+</li>
+<li>
+<p><strong>Test ausführen</strong> mit der zu prüfenden Backup-Datei:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">cd</span><span class="w"> </span>/srv/fegh/deploy
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>./restore-test.sh<span class="w"> </span>backups/fegh_2026-07-04_0230.sql.age
+</code></pre></div>
+<p>Erwartet: <code>Restore OK – Tabellen:</code> gefolgt von einer Tabellenliste (<code>\dt</code>), z. B. <code>nachweis_leistung</code>, <code>nachweis_klient</code>, <code>auth_user</code> usw.</p>
+</li>
+<li>
+<p><strong>Privaten Schlüssel sofort wieder entfernen:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>rm<span class="w"> </span>~/age-key.txt
+</code></pre></div>
+</li>
+</ol>
+<div class="admonition danger">
+<p class="admonition-title">Privaten Schlüssel nach dem Test löschen</p>
+<p>Für den Restore-Test <strong>muss</strong> der private Schlüssel kurz auf dem Server liegen. Das ist der einzige Moment, in dem das der Fall sein darf. Direkt danach <code>rm ~/age-key.txt</code> – der Schlüssel gehört nur in den Passwort-Manager. Die Wegwerf-DB entfernt das Script über den <code>trap cleanup EXIT</code> in jedem Fall selbst.</p>
+</div>
+<h3 id="warum-die-rolle-fegh-angelegt-wird">Warum die Rolle <code>fegh</code> angelegt wird<a class="headerlink" href="#warum-die-rolle-fegh-angelegt-wird" title="Permanent link">&para;</a></h3>
+<p>Der Dump enthält <code>OWNER</code>- und <code>GRANT</code>-Zeilen für die Produktions-Rolle <code>fegh</code>. In der frischen Wegwerf-Instanz existiert diese Rolle nicht. Deshalb legt das Script sie vorab an (<code>CREATE ROLE fegh;</code>), damit diese Zeilen nicht als Fehler auflaufen. Der Rollen-Befehl ist mit <code>|| true</code> abgesichert, falls sie bereits existiert.</p>
+<hr />
+<h2 id="offsite-spiegel-hidrive-pflicht-vor-echtbetrieb">Offsite-Spiegel (HiDrive) — Pflicht vor Echtbetrieb<a class="headerlink" href="#offsite-spiegel-hidrive-pflicht-vor-echtbetrieb" title="Permanent link">&para;</a></h2>
+<div class="admonition danger">
+<p class="admonition-title">Ohne Offsite = Totalverlust bei Serververlust</p>
+<p>Liegen die Backups nur auf demselben Server wie die Datenbank, vernichtet ein Serverdefekt, Diebstahl oder Ransomware <strong>Datenbank UND Backups gleichzeitig</strong>. Der Offsite-Spiegel ist daher vor dem ersten echten Klientendatensatz zwingend zu aktivieren.</p>
+</div>
+<p>Weil die <code>.age</code>-Datei bereits verschlüsselt ist, kann sie gefahrlos auch <strong>extern</strong> liegen. <code>deploy/backup.sh</code> spiegelt sie automatisch, sobald die Umgebungsvariable <code>RCLONE_REMOTE</code> gesetzt ist:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>rclone
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>rclone<span class="w"> </span>config<span class="w">          </span><span class="c1"># Remote &#39;hidrive&#39; (WebDAV) einrichten</span>
+</code></pre></div>
+<p>Dann in der Cron-Umgebung (bzw. vor dem Skriptaufruf) setzen:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">RCLONE_REMOTE</span><span class="o">=</span><span class="s2">&quot;hidrive:fegh-backups/&quot;</span>
+</code></pre></div>
+<p>Ist <code>RCLONE_REMOTE</code> gesetzt, lädt das Skript jede Sicherung hoch; <strong>schlägt der Upload fehl, bricht <code>backup.sh</code> ab</strong> (kein „Backup ok", kein Erfolg-Ping → der Monitor alarmiert). Ist die Variable nicht gesetzt, warnt das Skript ausdrücklich, dass nur lokal gesichert wird. Der private Schlüssel bleibt weiterhin ausschließlich offline.</p>
+<h3 id="uberwachung-dead-mans-switch">Überwachung (Dead-Man's-Switch)<a class="headerlink" href="#uberwachung-dead-mans-switch" title="Permanent link">&para;</a></h3>
+<p>Ein stillschweigend fehlschlagendes Backup ist gefährlicher als ein lautes. Setze <code>HEALTHCHECK_URL</code> auf einen Ping-Dienst (z. B. healthchecks.io, EU-Hosting wählbar):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">HEALTHCHECK_URL</span><span class="o">=</span><span class="s2">&quot;https://hc-ping.com/&lt;deine-uuid&gt;&quot;</span>
+</code></pre></div>
+<p><code>backup.sh</code> pingt diese URL <strong>nur bei Erfolg</strong>. Bleibt der Ping zur erwarteten Zeit aus, alarmiert der Dienst automatisch. Ergänzend einen externen Uptime-Monitor auf <code>https://&lt;domain&gt;/healthz</code> richten (liefert <code>ok</code> und prüft die DB-Verbindung).</p>
+<div class="admonition note">
+<p class="admonition-title">3-2-1-Regel</p>
+<p>Mit lokalem Backup (7-Tage-Rotation) + HiDrive-Spiegel + dem Produktivsystem sind Sie an der 3-2-1-Regel: drei Kopien, zwei Medien, eine außer Haus.</p>
+</div>
+<hr />
+<h2 id="in-app-wiederherstellung-einzelner-datensatze">In-App-Wiederherstellung einzelner Datensätze<a class="headerlink" href="#in-app-wiederherstellung-einzelner-datensatze" title="Permanent link">&para;</a></h2>
+<p>Für den Alltag – versehentlich gelöschte oder falsch bearbeitete <strong>einzelne</strong> Leistungsnachweise – ist ein vollständiger DB-Restore das falsche Werkzeug. Dafür gibt es die <strong>In-App-Wiederherstellung</strong> (Soft-Delete / Versionierung innerhalb der Anwendung).</p>
+<div class="admonition tip">
+<p class="admonition-title">Richtiges Werkzeug wählen</p>
+<ul>
+<li><strong>Einzelner Datensatz</strong> versehentlich gelöscht → <a href="../wiederherstellung/">In-App-Wiederherstellung</a>.</li>
+<li><strong>Datenbank komplett verloren / Server-Neuaufbau / Datenschutz-Notfall</strong> → verschlüsselter Restore wie oben.</li>
+</ul>
+</div>
+<hr />
+<h2 id="checkliste">Checkliste<a class="headerlink" href="#checkliste" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] <code>age</code> installiert, Schlüsselpaar erzeugt</li>
+<li>[ ] Privater Schlüssel offline im Passwort-Manager (2 Orte), <strong>nicht</strong> auf dem Server</li>
+<li>[ ] Öffentlicher Key in <code>deploy/age-recipient.txt</code> oder <code>AGE_RECIPIENT</code></li>
+<li>[ ] <strong>Bus-Faktor</strong>: zweiter age-Empfänger (<code>deploy/age-recipients.txt</code>) hinterlegt, Träger-Notfallschlüssel versiegelt &amp; offline</li>
+<li>[ ] Testlauf <code>./backup.sh</code> liefert nicht-leere <code>.age</code>-Datei</li>
+<li>[ ] Cron-Job <code>30 2 * * *</code> aktiv, Log wächst</li>
+<li>[ ] Restore-Test vierteljährlich, danach <code>rm ~/age-key.txt</code>, Ergebnis dokumentiert</li>
+<li>[ ] <strong>Offsite-Spiegel</strong> (<code>RCLONE_REMOTE</code>) aktiv und einmal von der Offsite-Kopie zurückgespielt</li>
+<li>[ ] <strong>Backup-Überwachung</strong>: <code>HEALTHCHECK_URL</code> (Dead-Man's-Switch) + externer Uptime-Monitor auf <code>/healthz</code></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Zurück zum Seitenanfang
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "navigation.instant", "navigation.indexes", "search.suggest", "search.highlight", "content.code.copy", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "In Zwischenablage kopiert", "clipboard.copy": "In Zwischenablage kopieren", "search.result.more.one": "1 weiteres Suchergebnis auf dieser Seite", "search.result.more.other": "# weitere Suchergebnisse auf dieser Seite", "search.result.none": "Keine Suchergebnisse", "search.result.one": "1 Suchergebnis", "search.result.other": "# Suchergebnisse", "search.result.placeholder": "Suchbegriff eingeben", "search.result.term.missing": "Es fehlt", "select.version": "Version ausw\u00e4hlen"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

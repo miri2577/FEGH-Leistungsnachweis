@@ -1,0 +1,3285 @@
+
+<!doctype html>
+<html lang="de" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Handbuch für das Team TBEW (Berliner Eingliederungshilfe)">
+      
+      
+      
+      
+        <link rel="prev" href="../migrationen/">
+      
+      
+        <link rel="next" href="../projektstruktur/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Python, Django & MTV-Grundlagen - FEGH-Leistungsnachweis · Handbuch</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#python-django-das-mtv-muster" class="md-skip">
+          Zum Inhalt
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Kopfzeile">
+    <a href="../.." title="FEGH-Leistungsnachweis · Handbuch" class="md-header__button md-logo" aria-label="FEGH-Leistungsnachweis · Handbuch" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            FEGH-Leistungsnachweis · Handbuch
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Python, Django & MTV-Grundlagen
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Suche" placeholder="Suche" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Suche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Zurücksetzen" aria-label="Zurücksetzen" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Suche wird initialisiert
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="FEGH-Leistungsnachweis · Handbuch" class="md-nav__button md-logo" aria-label="FEGH-Leistungsnachweis · Handbuch" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    FEGH-Leistungsnachweis · Handbuch
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Was wurde umgesetzt (Juli 2026)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anleitung
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Anleitung
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/erste-schritte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Erste Schritte
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/zwei-faktor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zwei-Faktor-Anmeldung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/mein-ueberblick/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mein Überblick (Startseite)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/fallakte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fallakte & Belegungsliste
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/leistungsnachweis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Leistung erfassen (Grid)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/dokumentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dokumentation (Verlaufstexte)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/unterwegs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unterwegs-Modus (mobil)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/ziele-zlp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ziele (ZLP)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/wirkung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wirkungsmessung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/bedarf-icf-tib/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ICF-Bedarfsermittlung (TIB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/berichte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Berichte & TeilhabeAssist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/dokumente-ablage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dokumente ablegen & ansehen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/globale-suche/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Globale Suche
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/kalender/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kalender & Planungsbrett
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/arbeitszeit-stempeluhr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arbeitszeit & Stempeluhr
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/urlaub-abwesenheit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Urlaub & Abwesenheit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/fehlzeiten/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fehlzeiten-Statistik
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/kasse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kasse (Kassenbuch & Zählprotokoll)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/gruppen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gruppen anlegen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/druck-nachweis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Druck-Nachweis erstellen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Abrechnung
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Abrechnung
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/bewilligungen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bewilligungen & Kontingent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/rechnungen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rechnungen & XRechnung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/mahnwesen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mahnwesen, Offene Posten & Storno
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/wohnkosten/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wohnkosten / Selbstzahler (WBVG)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../abrechnung/controlling-datev/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Controlling & DATEV-Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bereiche (Wohnheim/WG/Jugendhilfe)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Bereiche (Wohnheim/WG/Jugendhilfe)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bereiche/angebote-belegung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Angebote, Belegung & Tagessatz
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Qualität & Dienstplanung
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Qualität & Dienstplanung
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../qm/vorkommnisse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vorkommnis-Meldewesen (QM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../qm/dienstplan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dienstplan & SOLL/IST-Abgleich
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fachliches
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Fachliches
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/fls-kle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fachleistungsstunden (FLS) & kLE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/teamsitzung-gruppen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Teamsitzung & Gruppen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/berichtsfristen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Berichtsfristen (KÜ-Ende)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/rollen-teams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rollen & Team-Typen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technik
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Technik
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../datenbank-grundlagen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenbank-Grundlagen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../datenmodell/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenmodell
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../migrationen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrationen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python, Django & MTV-Grundlagen
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python, Django & MTV-Grundlagen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Inhaltsverzeichnis">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Inhaltsverzeichnis
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#was-ist-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was ist Python?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#was-ist-django" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was ist Django?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Was ist Django?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#projekt-vs-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Projekt vs. App
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#das-mtv-muster-model-template-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Das MTV-Muster (Model – Template – View)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#der-request-ablauf-request-url-view-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Der Request-Ablauf: Request → URL → View → Template
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wie-urls-views-und-templates-hier-konkret-zusammenspielen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wie URLs, Views und Templates hier konkret zusammenspielen
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Wie URLs, Views und Templates hier konkret zusammenspielen">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schritt-1-die-oberste-url-verteilung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 1 – Die oberste URL-Verteilung
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schritt-2-die-urls-der-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 2 – Die URLs der App
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schritt-3-die-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 3 – Die View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schritt-4-das-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 4 – Das Template
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zwei-antwort-typen-html-seiten-und-json-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zwei Antwort-Typen: HTML-Seiten und JSON-APIs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#middleware-die-zwischenschichten-inkl-2fa-zwang" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Middleware – die Zwischenschichten (inkl. 2FA-Zwang)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Middleware – die Zwischenschichten (inkl. 2FA-Zwang)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#die-eigene-2fa-middleware-im-detail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Die eigene 2FA-Middleware im Detail
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zusammenfassung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zusammenfassung
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../projektstruktur/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projektstruktur des Repos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../entwicklung-lokal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lokale Entwicklung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Administration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/erststart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Erststart für ein echtes Team
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/belegungsliste/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Belegungsliste pflegen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/teams-mitarbeiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Teams & Mitarbeitende
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/parameter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Team-Parameter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Betrieb & Sicherheit
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Betrieb & Sicherheit
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/datenschutz/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenschutz
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/haertung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sicherheitshärtung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/vpn/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VPN-Zugang & Admin-Schutz (WireGuard)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/rls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datentrennung & Row-Level-Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment (Produktivbetrieb)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/backup-restore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Wiederherstellung (verschlüsselt)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/wiederherstellung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wiederherstellung (Audit-Timeline)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/backups-loeschkonzept/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aufbewahrung & Löschkonzept (Konzept)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/loeschkonzept/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aufbewahrungsfristen & Anonymisierung (Modul)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenschutz-Vorlagen (Träger/DSB)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datenschutz-Vorlagen (Träger/DSB)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/vvt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verzeichnis von Verarbeitungstätigkeiten (Art. 30)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/dsfa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenschutz-Folgenabschätzung (Art. 35)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/meldeprozess/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Meldeprozess bei Datenpannen (Art. 33/34)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/avv-traeger-betreiber/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AVV Träger ↔ Betreiber (Art. 28)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/rechtsgrundlage-informationspflichten/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rechtsgrundlage & Informationspflichten (Art. 6/9/13)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Inhaltsverzeichnis">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Inhaltsverzeichnis
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#was-ist-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was ist Python?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#was-ist-django" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Was ist Django?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Was ist Django?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#projekt-vs-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Projekt vs. App
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#das-mtv-muster-model-template-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Das MTV-Muster (Model – Template – View)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#der-request-ablauf-request-url-view-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Der Request-Ablauf: Request → URL → View → Template
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wie-urls-views-und-templates-hier-konkret-zusammenspielen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wie URLs, Views und Templates hier konkret zusammenspielen
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Wie URLs, Views und Templates hier konkret zusammenspielen">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schritt-1-die-oberste-url-verteilung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 1 – Die oberste URL-Verteilung
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schritt-2-die-urls-der-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 2 – Die URLs der App
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schritt-3-die-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 3 – Die View
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schritt-4-das-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schritt 4 – Das Template
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zwei-antwort-typen-html-seiten-und-json-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zwei Antwort-Typen: HTML-Seiten und JSON-APIs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#middleware-die-zwischenschichten-inkl-2fa-zwang" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Middleware – die Zwischenschichten (inkl. 2FA-Zwang)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Middleware – die Zwischenschichten (inkl. 2FA-Zwang)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#die-eigene-2fa-middleware-im-detail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Die eigene 2FA-Middleware im Detail
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zusammenfassung" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zusammenfassung
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="python-django-das-mtv-muster">Python, Django &amp; das MTV-Muster<a class="headerlink" href="#python-django-das-mtv-muster" title="Permanent link">&para;</a></h1>
+<p>Diese Seite richtet sich an Einsteiger<em>innen und künftige Entwickler</em>innen. Sie erklärt kurz, was Python und Django sind, wie das Django-typische <strong>MTV-Muster</strong> (Model – Template – View) funktioniert und wie ein Aufruf (Request) in <strong>dieser</strong> App vom Browser bis zur fertigen HTML-Seite läuft. Alle Beispiele stammen aus dem echten Code des Repos <code>FEGH-Leistungsnachweis</code>.</p>
+<div class="admonition info">
+<p class="admonition-title">In einem Satz</p>
+<p>Der Browser schickt eine Anfrage an eine <strong>URL</strong>, Django sucht die passende <strong>View</strong> (eine Python-Funktion), diese holt Daten über die <strong>Models</strong> aus der Datenbank, bereitet sie ggf. mit der <strong>Geschäftslogik</strong> auf und rendert ein <strong>Template</strong> (HTML) als Antwort zurück.</p>
+</div>
+<h2 id="was-ist-python">Was ist Python?<a class="headerlink" href="#was-ist-python" title="Permanent link">&para;</a></h2>
+<p><strong>Python</strong> ist eine weit verbreitete, gut lesbare Programmiersprache. Sie kommt ohne geschweifte Klammern aus und strukturiert Code über <strong>Einrückung</strong>. Für dieses Projekt muss man kein Python-Profi sein, aber ein paar Begriffe helfen:</p>
+<table>
+<thead>
+<tr>
+<th>Begriff</th>
+<th>Bedeutung</th>
+<th>Beispiel aus dem Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Funktion</strong></td>
+<td>benannter Block, der etwas tut und meist etwas zurückgibt (<code>return</code>)</td>
+<td><code>def stempeln(mitarbeiter): ...</code> in <code>services.py</code></td>
+</tr>
+<tr>
+<td><strong>Modul</strong></td>
+<td>eine <code>.py</code>-Datei mit Funktionen/Klassen</td>
+<td><code>views.py</code>, <code>services.py</code>, <code>context.py</code></td>
+</tr>
+<tr>
+<td><strong>Import</strong></td>
+<td>Code aus anderen Modulen einbinden</td>
+<td><code>from . import services</code></td>
+</tr>
+<tr>
+<td><strong>Dekorator</strong></td>
+<td>ein <code>@name</code> über einer Funktion, das ihr Verhalten erweitert</td>
+<td><code>@login_required</code> über jeder View</td>
+</tr>
+<tr>
+<td><strong>Dictionary</strong></td>
+<td>Schlüssel-Wert-Sammlung <code>{"a": 1}</code></td>
+<td>der Context, den eine View ans Template gibt</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition tip">
+<p class="admonition-title">Warum <code>Decimal</code> statt <code>float</code>?</p>
+<p>In <code>services.py</code> werden Stunden als <code>Decimal</code> gerechnet (z. B. <code>Decimal("3.0")</code>), nicht als Fließkommazahl. Bei Abrechnungen ist das wichtig: <code>Decimal</code> rundet kaufmännisch exakt (<code>ROUND_HALF_UP</code>) und vermeidet die typischen Rundungsfehler von <code>float</code>.</p>
+</div>
+<h2 id="was-ist-django">Was ist Django?<a class="headerlink" href="#was-ist-django" title="Permanent link">&para;</a></h2>
+<p><strong>Django</strong> ist ein „Web-Framework“ für Python: ein Baukasten, der die immer wiederkehrenden Aufgaben einer Web-Anwendung schon mitbringt – Routing (welche URL führt wohin), eine <strong>Datenbank-Anbindung</strong> (ORM), ein <strong>Template-System</strong> für HTML, Benutzerverwaltung (Login, Passwörter, Rechte), einen fertigen <strong>Admin-Bereich</strong> und Schutzmechanismen (z. B. gegen CSRF).</p>
+<p>Diese App nutzt <strong>Django 5.1</strong>. Ergänzt wird es u. a. durch:</p>
+<ul>
+<li><strong>django-otp</strong> – Zwei-Faktor-Anmeldung (TOTP, siehe Middleware-Abschnitt),</li>
+<li><strong>holidays</strong> – gesetzliche Feiertage in Berlin (für die Teamsitzungs-Berechnung),</li>
+<li><strong>Tabulator</strong> und <strong>Chart.js</strong> – Tabellen und Diagramme im Browser (lokal eingebunden).</li>
+</ul>
+<h3 id="projekt-vs-app">Projekt vs. App<a class="headerlink" href="#projekt-vs-app" title="Permanent link">&para;</a></h3>
+<p>Django unterscheidet zwei Ebenen:</p>
+<ul>
+<li>Das <strong>Projekt</strong> <code>config/</code> enthält die zentrale Konfiguration: <code>settings.py</code> (Einstellungen), <code>urls.py</code> (oberste URL-Verteilung), <code>wsgi.py</code>/<code>asgi.py</code> (Server-Einstieg).</li>
+<li>Die <strong>App</strong> <code>nachweis/</code> enthält die eigentliche Fachlichkeit: Models, Views, Templates, Geschäftslogik. In <code>settings.py</code> ist sie unter <code>INSTALLED_APPS</code> registriert.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># config/settings.py</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">INSTALLED_APPS</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="s1">&#39;django.contrib.admin&#39;</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="s1">&#39;django.contrib.auth&#39;</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">...</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="s1">&#39;django_otp&#39;</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="s1">&#39;django_otp.plugins.otp_totp&#39;</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="s1">&#39;nachweis&#39;</span><span class="p">,</span>        <span class="c1"># &lt;- unsere App</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">]</span>
+</code></pre></div>
+<h2 id="das-mtv-muster-model-template-view">Das MTV-Muster (Model – Template – View)<a class="headerlink" href="#das-mtv-muster-model-template-view" title="Permanent link">&para;</a></h2>
+<p>Django trennt eine Anwendung in drei Verantwortlichkeiten. In anderen Frameworks heißt das oft <strong>MVC</strong>; Django nennt es <strong>MTV</strong>:</p>
+<pre class="mermaid"><code>flowchart LR
+    subgraph Django-App nachweis
+        M["Model\n(models.py)\nDaten &amp; Datenbank"]
+        V["View\n(views.py)\nSteuerung / Ablauf"]
+        T["Template\n(*.html)\nDarstellung"]
+        S["Services\n(services.py)\nGeschäftslogik"]
+    end
+    V --&gt;|liest/schreibt| M
+    V --&gt;|ruft| S
+    S --&gt;|liest/schreibt| M
+    V --&gt;|übergibt Context| T</code></pre>
+<table>
+<thead>
+<tr>
+<th>Buchstabe</th>
+<th>Django-Begriff</th>
+<th>Aufgabe</th>
+<th>In dieser App</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>M</strong></td>
+<td>Model</td>
+<td>beschreibt die Daten und die Datenbank-Tabellen</td>
+<td><code>nachweis/models.py</code> (z. B. <code>Klient</code>, <code>Leistung</code>, <code>Mitarbeiter</code>, <code>Gruppe</code>)</td>
+</tr>
+<tr>
+<td><strong>T</strong></td>
+<td>Template</td>
+<td>erzeugt die HTML-Ausgabe für den Browser</td>
+<td><code>nachweis/templates/nachweis/*.html</code></td>
+</tr>
+<tr>
+<td><strong>V</strong></td>
+<td>View</td>
+<td>nimmt den Request an, steuert den Ablauf, gibt eine Antwort zurück</td>
+<td><code>nachweis/views.py</code></td>
+</tr>
+</tbody>
+</table>
+<p>Eine Besonderheit dieses Projekts: Die <strong>eigentliche Rechen- und Regel-Logik</strong> steckt nicht in den Views, sondern in einer eigenen Datei <code>services.py</code>. Die Views bleiben dadurch schlank und lesbar (siehe Seite „Services &amp; Context-Processor“ weiter unten).</p>
+<h2 id="der-request-ablauf-request-url-view-template">Der Request-Ablauf: Request → URL → View → Template<a class="headerlink" href="#der-request-ablauf-request-url-view-template" title="Permanent link">&para;</a></h2>
+<p>Wenn im Browser eine Seite aufgerufen wird, durchläuft die Anfrage immer dieselben Stationen:</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant B as Browser
+    participant MW as Middleware-Kette
+    participant U as URL-Router (urls.py)
+    participant V as View (views.py)
+    participant S as Services (services.py)
+    participant DB as Datenbank (Models)
+    participant T as Template (*.html)
+
+    B-&gt;&gt;MW: GET /fachleistungsstunden/?jahr=2026
+    MW-&gt;&gt;MW: Session, Auth, OTP-Prüfung
+    MW-&gt;&gt;U: Request (mit request.user)
+    U-&gt;&gt;V: passende View: views.dashboard
+    V-&gt;&gt;S: services.klienten_fuer(user), fachleistungsstunden(...)
+    S-&gt;&gt;DB: Abfragen (ORM)
+    DB--&gt;&gt;S: Klient-/Leistungs-Objekte
+    S--&gt;&gt;V: Zeilen + Summen
+    V-&gt;&gt;T: render("dashboard.html", context)
+    T--&gt;&gt;B: fertiges HTML</code></pre>
+<ol>
+<li><strong>Request</strong> – Der Browser schickt eine HTTP-Anfrage (z. B. <code>GET /fachleistungsstunden/</code>).</li>
+<li><strong>Middleware</strong> – Bevor die View läuft, durchläuft der Request eine Kette von „Zwischenschichten“ (Session laden, Nutzer erkennen, 2FA prüfen). Mehr dazu unten.</li>
+<li><strong>URL-Router</strong> – Django vergleicht den Pfad mit den Mustern in <code>urls.py</code> und wählt die passende View.</li>
+<li><strong>View</strong> – Die View-Funktion holt Daten, ruft die Geschäftslogik und stellt einen <strong>Context</strong> (Dictionary) zusammen.</li>
+<li><strong>Template</strong> – <code>render(...)</code> füllt das HTML-Template mit dem Context und schickt das Ergebnis als <strong>Response</strong> zurück.</li>
+</ol>
+<h2 id="wie-urls-views-und-templates-hier-konkret-zusammenspielen">Wie URLs, Views und Templates hier konkret zusammenspielen<a class="headerlink" href="#wie-urls-views-und-templates-hier-konkret-zusammenspielen" title="Permanent link">&para;</a></h2>
+<h3 id="schritt-1-die-oberste-url-verteilung">Schritt 1 – Die oberste URL-Verteilung<a class="headerlink" href="#schritt-1-die-oberste-url-verteilung" title="Permanent link">&para;</a></h3>
+<p><code>config/urls.py</code> ist die erste Anlaufstelle. Sie leitet nur weiter: <code>/admin/</code> zum Django-Admin, <strong>alles andere</strong> an die App <code>nachweis</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># config/urls.py</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">urlpatterns</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">path</span><span class="p">(</span><span class="s2">&quot;admin/&quot;</span><span class="p">,</span> <span class="n">admin</span><span class="o">.</span><span class="n">site</span><span class="o">.</span><span class="n">urls</span><span class="p">),</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">path</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">include</span><span class="p">(</span><span class="s2">&quot;nachweis.urls&quot;</span><span class="p">)),</span>   <span class="c1"># alles Übrige -&gt; nachweis/urls.py</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">]</span>
+</code></pre></div>
+<p>Welche Datei hier gilt, legt <code>ROOT_URLCONF = 'config.urls'</code> in <code>settings.py</code> fest.</p>
+<h3 id="schritt-2-die-urls-der-app">Schritt 2 – Die URLs der App<a class="headerlink" href="#schritt-2-die-urls-der-app" title="Permanent link">&para;</a></h3>
+<p><code>nachweis/urls.py</code> ordnet jedem Pfad genau eine View zu und gibt ihr einen <strong>Namen</strong> (<code>name=...</code>). Über diesen Namen werden Links im Code und in Templates gebaut – nie über fest verdrahtete Pfade.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># nachweis/urls.py</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">app_name</span> <span class="o">=</span> <span class="s2">&quot;nachweis&quot;</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">urlpatterns</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">path</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">views</span><span class="o">.</span><span class="n">mein_ueberblick</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;start&quot;</span><span class="p">),</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">path</span><span class="p">(</span><span class="s2">&quot;fachleistungsstunden/&quot;</span><span class="p">,</span> <span class="n">views</span><span class="o">.</span><span class="n">dashboard</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;dashboard&quot;</span><span class="p">),</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">path</span><span class="p">(</span><span class="s2">&quot;erfassung/&quot;</span><span class="p">,</span> <span class="n">views</span><span class="o">.</span><span class="n">erfassung</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;erfassung&quot;</span><span class="p">),</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">path</span><span class="p">(</span><span class="s2">&quot;druck/&quot;</span><span class="p">,</span> <span class="n">views</span><span class="o">.</span><span class="n">druck</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;druck&quot;</span><span class="p">),</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="o">...</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="n">path</span><span class="p">(</span><span class="s2">&quot;api/leistungen/&quot;</span><span class="p">,</span> <span class="n">views</span><span class="o">.</span><span class="n">api_leistungen</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;api_leistungen&quot;</span><span class="p">),</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="n">path</span><span class="p">(</span><span class="s2">&quot;login/&quot;</span><span class="p">,</span> <span class="n">auth_views</span><span class="o">.</span><span class="n">LoginView</span><span class="o">.</span><span class="n">as_view</span><span class="p">(</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>        <span class="n">template_name</span><span class="o">=</span><span class="s2">&quot;nachweis/login.html&quot;</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;login&quot;</span><span class="p">),</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="p">]</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Namensräume: <code>nachweis:start</code></p>
+<p>Durch <code>app_name = "nachweis"</code> heißen die Routen mit Präfix, z. B. <code>nachweis:dashboard</code>. Im Python-Code wird daraus ein Pfad über <code>reverse("nachweis:dashboard")</code> oder <code>redirect("nachweis:start")</code>, im Template über <code>{% url 'nachweis:dashboard' %}</code>. Ändert sich später ein Pfad, bleiben alle Links gültig.</p>
+</div>
+<h3 id="schritt-3-die-view">Schritt 3 – Die View<a class="headerlink" href="#schritt-3-die-view" title="Permanent link">&para;</a></h3>
+<p>Eine View ist eine gewöhnliche Python-Funktion mit einem Parameter <code>request</code>. Sie gibt ein <strong>Response</strong>-Objekt zurück. Beispiel: die Startseite „Mein Überblick“.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># nachweis/views.py (gekürzt)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nd">@login_required</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">mein_ueberblick</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">jahr</span> <span class="o">=</span> <span class="n">_jahr</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>                       <span class="c1"># ?jahr=... aus der URL, sonst aktuelles Jahr</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">me</span> <span class="o">=</span> <span class="n">services</span><span class="o">.</span><span class="n">mitarbeiter_fuer</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">)</span>   <span class="c1"># Mitarbeiter-Profil zum Login</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">eigene</span> <span class="o">=</span> <span class="n">services</span><span class="o">.</span><span class="n">eigene_klienten</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">)</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">zeilen</span><span class="p">,</span> <span class="n">summe</span> <span class="o">=</span> <span class="n">services</span><span class="o">.</span><span class="n">fachleistungsstunden</span><span class="p">(</span><span class="n">jahr</span><span class="p">,</span> <span class="n">klienten</span><span class="o">=</span><span class="n">eigene</span><span class="p">)</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s2">&quot;nachweis/mein_ueberblick.html&quot;</span><span class="p">,</span> <span class="p">{</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="s2">&quot;aktiv&quot;</span><span class="p">:</span> <span class="s2">&quot;start&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="s2">&quot;jahr&quot;</span><span class="p">:</span> <span class="n">jahr</span><span class="p">,</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="s2">&quot;me&quot;</span><span class="p">:</span> <span class="n">me</span><span class="p">,</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="s2">&quot;eigene_zeilen&quot;</span><span class="p">:</span> <span class="n">zeilen</span><span class="p">,</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>        <span class="s2">&quot;summe&quot;</span><span class="p">:</span> <span class="n">summe</span><span class="p">,</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        <span class="o">...</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>    <span class="p">})</span>
+</code></pre></div>
+<p>Wichtige Beobachtungen:</p>
+<ul>
+<li>Der Dekorator <strong><code>@login_required</code></strong> stellt sicher, dass nur angemeldete Nutzer*innen die View erreichen. Fehlt der Login, leitet Django auf <code>LOGIN_URL = 'nachweis:login'</code> (aus <code>settings.py</code>) um.</li>
+<li>Die View <strong>rechnet nicht selbst</strong>, sondern ruft <code>services....</code>. Das hält Views kurz und die Fachlogik testbar.</li>
+<li>Am Ende steht <code>render(request, template, context)</code>. Der dritte Parameter ist der <strong>Context</strong> – ein Dictionary, dessen Schlüssel im Template als Variablen verfügbar sind (<code>{{ jahr }}</code>, <code>{{ summe.ist }}</code> …).</li>
+</ul>
+<h3 id="schritt-4-das-template">Schritt 4 – Das Template<a class="headerlink" href="#schritt-4-das-template" title="Permanent link">&para;</a></h3>
+<p>Das Template ist HTML mit eingestreuten Django-Tags (<code>{{ ... }}</code> für Werte, <code>{% ... %}</code> für Logik). Alle Templates dieser App liegen unter <code>nachweis/templates/nachweis/</code> und erben von einem gemeinsamen Grundgerüst <code>base.html</code>. Vereinfacht:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="cp">{%</span> <span class="k">extends</span> <span class="s2">&quot;nachweis/base.html&quot;</span> <span class="cp">%}</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="cp">{%</span> <span class="k">block</span> <span class="nv">inhalt</span> <span class="cp">%}</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="x">  &lt;h1&gt;Mein Überblick </span><span class="cp">{{</span> <span class="nv">jahr</span> <span class="cp">}}</span><span class="x">&lt;/h1&gt;</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="x">  </span><span class="cp">{%</span> <span class="k">for</span> <span class="nv">z</span> <span class="k">in</span> <span class="nv">eigene_zeilen</span> <span class="cp">%}</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="x">    &lt;tr&gt;&lt;td&gt;</span><span class="cp">{{</span> <span class="nv">z.klient.name</span> <span class="cp">}}</span><span class="x">&lt;/td&gt;&lt;td&gt;</span><span class="cp">{{</span> <span class="nv">z.ist</span> <span class="cp">}}</span><span class="x"> h&lt;/td&gt;&lt;/tr&gt;</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="x">  </span><span class="cp">{%</span> <span class="k">endfor</span> <span class="cp">%}</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="cp">{%</span> <span class="k">endblock</span> <span class="cp">%}</span>
+</code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">Wo Django Templates sucht</p>
+<p>In <code>settings.py</code> steht <code>'APP_DIRS': True</code>. Dadurch findet Django Templates automatisch im Unterordner <code>templates/</code> jeder App – hier <code>nachweis/templates/nachweis/…</code>. Der doppelte <code>nachweis</code>-Ordner ist Absicht: Er verhindert Namenskollisionen zwischen Apps.</p>
+</div>
+<h2 id="zwei-antwort-typen-html-seiten-und-json-apis">Zwei Antwort-Typen: HTML-Seiten und JSON-APIs<a class="headerlink" href="#zwei-antwort-typen-html-seiten-und-json-apis" title="Permanent link">&para;</a></h2>
+<p>Nicht jede View rendert HTML. Die Erfassungs-Tabelle (Tabulator) lädt ihre Daten per JavaScript nach – dafür gibt es <strong>API-Views</strong>, die statt eines Templates ein <code>JsonResponse</code> zurückgeben:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># nachweis/views.py (gekürzt)</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nd">@login_required</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">api_leistungen</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">jahr</span> <span class="o">=</span> <span class="n">_jahr</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">qs</span> <span class="o">=</span> <span class="n">Leistung</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        <span class="n">datum__year</span><span class="o">=</span><span class="n">jahr</span><span class="p">,</span> <span class="n">klient__in</span><span class="o">=</span><span class="n">services</span><span class="o">.</span><span class="n">klienten_fuer</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">)</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="p">)</span><span class="o">.</span><span class="n">select_related</span><span class="p">(</span><span class="s2">&quot;klient&quot;</span><span class="p">,</span> <span class="s2">&quot;betreuer&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">_row</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">qs</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s2">&quot;-datum&quot;</span><span class="p">,</span> <span class="s2">&quot;beginn&quot;</span><span class="p">)]</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="k">return</span> <span class="n">JsonResponse</span><span class="p">({</span><span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">data</span><span class="p">})</span>
+</code></pre></div>
+<p>So entsteht ein sauberes Muster: <code>erfassung/</code> liefert die <strong>Seite</strong> (HTML), <code>api/leistungen/</code> liefert die <strong>Daten</strong> (JSON), und <code>api/leistungen/save/</code> bzw. <code>.../delete/</code> nehmen Änderungen entgegen (nur per <code>POST</code>, erzwungen durch <code>@require_POST</code>).</p>
+<div class="admonition warning">
+<p class="admonition-title">Berechtigungen stecken in der Abfrage</p>
+<p>Jede dieser Views filtert über <code>services.klienten_fuer(request.user)</code>. Dadurch sieht und ändert jede*r nur Daten im erlaubten Team. Diese Sichtbarkeits-Regeln sind zentral in <code>services.py</code> definiert – siehe die Seite „Services &amp; Context-Processor“.</p>
+</div>
+<h2 id="middleware-die-zwischenschichten-inkl-2fa-zwang">Middleware – die Zwischenschichten (inkl. 2FA-Zwang)<a class="headerlink" href="#middleware-die-zwischenschichten-inkl-2fa-zwang" title="Permanent link">&para;</a></h2>
+<p><strong>Middleware</strong> sind Bausteine, die <strong>jeden</strong> Request vor der View und jede Response danach durchlaufen. Sie sind in <code>settings.py</code> als Liste konfiguriert; die <strong>Reihenfolge</strong> ist entscheidend, weil sie von oben nach unten abgearbeitet wird.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># config/settings.py</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">MIDDLEWARE</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="s1">&#39;django.middleware.security.SecurityMiddleware&#39;</span><span class="p">,</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="s1">&#39;django.contrib.sessions.middleware.SessionMiddleware&#39;</span><span class="p">,</span>      <span class="c1"># lädt die Session</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="s1">&#39;django.middleware.common.CommonMiddleware&#39;</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="s1">&#39;django.middleware.csrf.CsrfViewMiddleware&#39;</span><span class="p">,</span>                 <span class="c1"># CSRF-Schutz</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="s1">&#39;django.contrib.auth.middleware.AuthenticationMiddleware&#39;</span><span class="p">,</span>   <span class="c1"># setzt request.user</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="s1">&#39;django_otp.middleware.OTPMiddleware&#39;</span><span class="p">,</span>                       <span class="c1"># NACH Auth: request.user.is_verified()</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="s1">&#39;nachweis.middleware.OTPErzwingenMiddleware&#39;</span><span class="p">,</span>                <span class="c1"># NACH OTP: erzwingt 2FA</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="s1">&#39;django.contrib.messages.middleware.MessageMiddleware&#39;</span><span class="p">,</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="s1">&#39;django.middleware.clickjacking.XFrameOptionsMiddleware&#39;</span><span class="p">,</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="p">]</span>
+</code></pre></div>
+<p>Was die wichtigsten Schichten tun:</p>
+<ul>
+<li><strong>SessionMiddleware</strong> – lädt die Sitzung (Cookie) und stellt <code>request.session</code> bereit.</li>
+<li><strong>CsrfViewMiddleware</strong> – schützt Formulare/POSTs vor gefälschten Fremd-Anfragen.</li>
+<li><strong>AuthenticationMiddleware</strong> – hängt den angemeldeten Nutzer als <code>request.user</code> an.</li>
+<li><strong>OTPMiddleware</strong> (django-otp) – ergänzt <code>request.user.is_verified()</code> (Zwei-Faktor bestätigt?).</li>
+<li><strong>OTPErzwingenMiddleware</strong> (eigene) – der 2FA-Zwang dieser App.</li>
+</ul>
+<h3 id="die-eigene-2fa-middleware-im-detail">Die eigene 2FA-Middleware im Detail<a class="headerlink" href="#die-eigene-2fa-middleware-im-detail" title="Permanent link">&para;</a></h3>
+<p>Die Datei <code>nachweis/middleware.py</code> sorgt dafür, dass angemeldete, aber <strong>noch nicht per Zweitfaktor bestätigte</strong> Nutzer*innen auf die 2FA-Seiten umgeleitet werden:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># nachweis/middleware.py (gekürzt)</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">OTPErzwingenMiddleware</span><span class="p">:</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>        <span class="n">u</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>        <span class="k">if</span> <span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">is_authenticated</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">u</span><span class="o">.</span><span class="n">is_verified</span><span class="p">()</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>                <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exempt</span><span class="p">(</span><span class="n">request</span><span class="p">)):</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>            <span class="n">hat_device</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">totpdevice_set</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">confirmed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>            <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">OTP_REQUIRED</span> <span class="ow">or</span> <span class="n">hat_device</span><span class="p">:</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>                <span class="n">ziel</span> <span class="o">=</span> <span class="s2">&quot;nachweis:2fa_verify&quot;</span> <span class="k">if</span> <span class="n">hat_device</span> <span class="k">else</span> <span class="s2">&quot;nachweis:2fa_setup&quot;</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>                <span class="k">return</span> <span class="n">redirect</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">reverse</span><span class="p">(</span><span class="n">ziel</span><span class="p">)</span><span class="si">}</span><span class="s2">?next=</span><span class="si">{</span><span class="n">request</span><span class="o">.</span><span class="n">get_full_path</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_response</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+</code></pre></div>
+<p>Die Logik in Worten:</p>
+<ul>
+<li><strong>Ausgenommen</strong> (<code>_exempt</code>) sind Login/Logout, die 2FA-Seiten selbst, statische Dateien und <code>/admin/</code> – sonst könnte man sich nie einrichten.</li>
+<li>Hat jemand bereits ein bestätigtes Gerät (<code>hat_device</code>), wird zur <strong>Code-Eingabe</strong> (<code>2fa_verify</code>) geleitet; sonst zur <strong>Einrichtung</strong> (<code>2fa_setup</code>).</li>
+<li>Über <code>settings.OTP_REQUIRED</code> schaltet man zwischen <strong>Opt-in</strong> (Prototyp) und <strong>Pflicht für alle</strong> (Produktion) um.</li>
+<li>Bei <code>OTP_REQUIRED=1</code> gilt die 2FA-Pflicht <strong>auch für den Break-Glass-Superuser</strong> (TOTP + Recovery-Codes); die letzte Rückfallebene im Notfall ist der Server-Shell-Zugang (<code>manage.py</code>), nicht der Web-Login.</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Opt-in vs. Pflicht per Umgebungsvariable</p>
+<p>In <code>settings.py</code>: <code>OTP_REQUIRED = os.environ.get("DJANGO_OTP_REQUIRED", "0") == "1"</code>. Lokal (Default <code>0</code>) ist 2FA freiwillig – wer ein Gerät einrichtet, wird künftig danach gefragt. In Produktion setzt man <code>DJANGO_OTP_REQUIRED=1</code> und 2FA wird für alle verpflichtend.</p>
+</div>
+<h2 id="zusammenfassung">Zusammenfassung<a class="headerlink" href="#zusammenfassung" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Python</strong> ist die Sprache, <strong>Django</strong> das Web-Framework darüber.</li>
+<li><strong>MTV</strong> trennt Daten (<strong>Model</strong>), Darstellung (<strong>Template</strong>) und Ablauf (<strong>View</strong>); die Fachlogik lagert diese App zusätzlich in <strong><code>services.py</code></strong> aus.</li>
+<li>Ein Request läuft <strong>Middleware → URL-Router → View → (Services/Models) → Template → Response</strong>.</li>
+<li>URLs tragen <strong>Namen</strong> (<code>nachweis:…</code>) und werden nie fest verdrahtet.</li>
+<li><strong>Middleware</strong> erledigt Querschnittsaufgaben; die eigene <code>OTPErzwingenMiddleware</code> setzt die <strong>Zwei-Faktor-Anmeldung</strong> durch.</li>
+</ul>
+<p>Wie die einzelnen Ordner und Dateien konkret aufgebaut sind, zeigt die Seite <strong>„Projektstruktur“</strong>. Wie man das Projekt lokal startet, erklärt <strong>„Lokale Entwicklung“</strong>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Zurück zum Seitenanfang
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "navigation.instant", "navigation.indexes", "search.suggest", "search.highlight", "content.code.copy", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "In Zwischenablage kopiert", "clipboard.copy": "In Zwischenablage kopieren", "search.result.more.one": "1 weiteres Suchergebnis auf dieser Seite", "search.result.more.other": "# weitere Suchergebnisse auf dieser Seite", "search.result.none": "Keine Suchergebnisse", "search.result.one": "1 Suchergebnis", "search.result.other": "# Suchergebnisse", "search.result.placeholder": "Suchbegriff eingeben", "search.result.term.missing": "Es fehlt", "select.version": "Version ausw\u00e4hlen"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

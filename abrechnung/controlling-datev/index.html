@@ -1,0 +1,3304 @@
+
+<!doctype html>
+<html lang="de" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Handbuch für das Team TBEW (Berliner Eingliederungshilfe)">
+      
+      
+      
+      
+        <link rel="prev" href="../wohnkosten/">
+      
+      
+        <link rel="next" href="../../bereiche/angebote-belegung/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Controlling & DATEV-Export - FEGH-Leistungsnachweis · Handbuch</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#controlling-datev-export" class="md-skip">
+          Zum Inhalt
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Kopfzeile">
+    <a href="../.." title="FEGH-Leistungsnachweis · Handbuch" class="md-header__button md-logo" aria-label="FEGH-Leistungsnachweis · Handbuch" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            FEGH-Leistungsnachweis · Handbuch
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Controlling & DATEV-Export
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Suche" placeholder="Suche" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Suche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Zurücksetzen" aria-label="Zurücksetzen" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Suche wird initialisiert
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="FEGH-Leistungsnachweis · Handbuch" class="md-nav__button md-logo" aria-label="FEGH-Leistungsnachweis · Handbuch" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    FEGH-Leistungsnachweis · Handbuch
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Was wurde umgesetzt (Juli 2026)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Anleitung
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Anleitung
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/erste-schritte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Erste Schritte
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/zwei-faktor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zwei-Faktor-Anmeldung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/mein-ueberblick/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mein Überblick (Startseite)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/fallakte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fallakte & Belegungsliste
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/leistungsnachweis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Leistung erfassen (Grid)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/dokumentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dokumentation (Verlaufstexte)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/unterwegs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unterwegs-Modus (mobil)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/ziele-zlp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ziele (ZLP)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/wirkung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wirkungsmessung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/bedarf-icf-tib/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ICF-Bedarfsermittlung (TIB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/berichte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Berichte & TeilhabeAssist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/dokumente-ablage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dokumente ablegen & ansehen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/globale-suche/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Globale Suche
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/kalender/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kalender & Planungsbrett
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/arbeitszeit-stempeluhr/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arbeitszeit & Stempeluhr
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/urlaub-abwesenheit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Urlaub & Abwesenheit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/fehlzeiten/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fehlzeiten-Statistik
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/kasse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kasse (Kassenbuch & Zählprotokoll)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/gruppen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gruppen anlegen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../anleitung/druck-nachweis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Druck-Nachweis erstellen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Abrechnung
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Abrechnung
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bewilligungen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bewilligungen & Kontingent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rechnungen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rechnungen & XRechnung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mahnwesen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mahnwesen, Offene Posten & Storno
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../wohnkosten/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wohnkosten / Selbstzahler (WBVG)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Controlling & DATEV-Export
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Controlling & DATEV-Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Inhaltsverzeichnis">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Inhaltsverzeichnis
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#wer-darf-das-controlling-sehen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wer darf das Controlling sehen?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#das-cockpit-im-uberblick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Das Cockpit im Überblick
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#erlose-je-monat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Erlöse je Monat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#offene-posten-stand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Offene-Posten-Stand
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fls-erbringungsquote-je-team-ampel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FLS-Erbringungsquote je Team (Ampel)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#abrechnungs-funnel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Abrechnungs-Funnel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fristen-compliance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fristen-Compliance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#csv-export-der-monats-kennzahlen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CSV-Export der Monats-Kennzahlen
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#datev-buchungsstapel-extf-700" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DATEV-Buchungsstapel (EXTF-700)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fur-neugierige-technik-dahinter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Für Neugierige: Technik dahinter
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bereiche (Wohnheim/WG/Jugendhilfe)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Bereiche (Wohnheim/WG/Jugendhilfe)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bereiche/angebote-belegung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Angebote, Belegung & Tagessatz
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Qualität & Dienstplanung
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Qualität & Dienstplanung
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../qm/vorkommnisse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vorkommnis-Meldewesen (QM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../qm/dienstplan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dienstplan & SOLL/IST-Abgleich
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fachliches
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Fachliches
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/fls-kle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fachleistungsstunden (FLS) & kLE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/teamsitzung-gruppen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Teamsitzung & Gruppen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/berichtsfristen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Berichtsfristen (KÜ-Ende)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fachliches/rollen-teams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rollen & Team-Typen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technik
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Technik
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../technik/datenbank-grundlagen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenbank-Grundlagen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../technik/datenmodell/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenmodell
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../technik/migrationen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migrationen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../technik/python-django-grundlagen/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python, Django & MTV-Grundlagen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../technik/projektstruktur/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projektstruktur des Repos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../technik/entwicklung-lokal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lokale Entwicklung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Administration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/erststart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Erststart für ein echtes Team
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/belegungsliste/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Belegungsliste pflegen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/teams-mitarbeiter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Teams & Mitarbeitende
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/parameter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Team-Parameter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Betrieb & Sicherheit
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Betrieb & Sicherheit
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/datenschutz/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenschutz
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/haertung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sicherheitshärtung
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/vpn/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VPN-Zugang & Admin-Schutz (WireGuard)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/rls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datentrennung & Row-Level-Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment (Produktivbetrieb)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/backup-restore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Wiederherstellung (verschlüsselt)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/wiederherstellung/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wiederherstellung (Audit-Timeline)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/backups-loeschkonzept/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aufbewahrung & Löschkonzept (Konzept)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sicherheit/loeschkonzept/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aufbewahrungsfristen & Anonymisierung (Modul)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenschutz-Vorlagen (Träger/DSB)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datenschutz-Vorlagen (Träger/DSB)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/vvt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verzeichnis von Verarbeitungstätigkeiten (Art. 30)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/dsfa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datenschutz-Folgenabschätzung (Art. 35)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/meldeprozess/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Meldeprozess bei Datenpannen (Art. 33/34)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/avv-traeger-betreiber/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AVV Träger ↔ Betreiber (Art. 28)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../datenschutz/rechtsgrundlage-informationspflichten/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rechtsgrundlage & Informationspflichten (Art. 6/9/13)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Inhaltsverzeichnis">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Inhaltsverzeichnis
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#wer-darf-das-controlling-sehen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wer darf das Controlling sehen?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#das-cockpit-im-uberblick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Das Cockpit im Überblick
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#erlose-je-monat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Erlöse je Monat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#offene-posten-stand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Offene-Posten-Stand
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fls-erbringungsquote-je-team-ampel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FLS-Erbringungsquote je Team (Ampel)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#abrechnungs-funnel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Abrechnungs-Funnel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fristen-compliance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fristen-Compliance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#csv-export-der-monats-kennzahlen" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CSV-Export der Monats-Kennzahlen
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#datev-buchungsstapel-extf-700" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DATEV-Buchungsstapel (EXTF-700)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fur-neugierige-technik-dahinter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Für Neugierige: Technik dahinter
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="controlling-datev-export">Controlling &amp; DATEV-Export<a class="headerlink" href="#controlling-datev-export" title="Permanent link">&para;</a></h1>
+<p><img alt="Controlling: Erlöse je Monat (fakturiert vs. Zahlungseingang), FLS-Erbringungsquote je Team, Abrechnungs-Funnel." src="../../assets/screenshots/controlling.png" /></p>
+<p><em>Controlling: Erlöse je Monat (fakturiert vs. Zahlungseingang), FLS-Erbringungsquote je Team, Abrechnungs-Funnel.</em></p>
+<p>Leitung und Verwaltung brauchen den Überblick über das Geld, aber ausdrücklich <strong>ohne</strong> in die Fallakten zu schauen. Genau dafür gibt es das <strong>Controlling</strong>: ein Kennzahlen-Cockpit, das nur mit <strong>Aggregaten</strong> arbeitet – Erlöse je Monat, Stand der offenen Posten, FLS-Erbringungsquote je Team (mit Ampel), der Abrechnungs-Funnel des Monats und die kritischen Fristen. Kein einziger Klientenname, kein Betrag pro Person, keine Dokumentation. Diese Seite erklärt, was du im Cockpit siehst, wie du die Zahlen als CSV herausziehst und wie aus den gestellten Rechnungen ein <strong>DATEV-Buchungsstapel (EXTF-700)</strong> für das Steuerbüro wird.</p>
+<div class="admonition warning">
+<p class="admonition-title">Nur Aggregate – kein Klientenbezug</p>
+<p>Das Controlling ist bewusst so gebaut, dass es <strong>keine personenbezogenen Einzeldaten</strong> anzeigt. Wo eine Zahl aus einzelnen Klient<em>innen entsteht (z. B. die Erbringungsquote eines Teams), wird </em><em>sofort summiert</em><em> und nur der aggregierte Wert an die Seite gegeben. So dürfen Leitung </em>und* Verwaltung dieselbe Seite sehen: Die Verwaltung bekommt die Geld-Sicht, ohne die für sie ohnehin gesperrte Tätigkeits-Dokumentation (Art-9-Gesundheitsdaten) zu berühren.</p>
+</div>
+<hr />
+<h2 id="wer-darf-das-controlling-sehen">Wer darf das Controlling sehen?<a class="headerlink" href="#wer-darf-das-controlling-sehen" title="Permanent link">&para;</a></h2>
+<p>Der Zugang ist auf zwei App-Rollen beschränkt. Wer beide nicht hat, wird auf die Startseite umgeleitet.</p>
+<table>
+<thead>
+<tr>
+<th>Rolle</th>
+<th>Zugriff aufs Controlling</th>
+<th>Was sie zusätzlich sieht</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Leitung</strong></td>
+<td>ja</td>
+<td>die volle Geld-Sicht (Erlöse, offene Posten) plus die Team-/Fristen-Kennzahlen</td>
+</tr>
+<tr>
+<td><strong>Verwaltung</strong></td>
+<td>ja</td>
+<td>dieselben Aggregate – weiterhin <strong>ohne</strong> Klientendokumentation</td>
+</tr>
+<tr>
+<td><strong>User (Betreuer*in)</strong></td>
+<td>nein</td>
+<td>–</td>
+</tr>
+<tr>
+<td><strong>Administration</strong></td>
+<td>nein</td>
+<td>– (Admin hat grundsätzlich keinen Klienten-/Geld-Bezug)</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Datensparsamkeit ist im Code erzwungen</p>
+<p>Die Zugangsprüfung (<code>_darf_controlling</code>) lässt nur <code>services.ist_leitung</code> <strong>oder</strong> <code>services.ist_verwaltung</code> durch. Die Seite baut ihre Werte nie aus einzelnen sichtbaren Klient*innen zusammen, sondern aggregiert intern und übergibt ans Template ausschließlich Summen und Quoten.</p>
+</div>
+<hr />
+<h2 id="das-cockpit-im-uberblick">Das Cockpit im Überblick<a class="headerlink" href="#das-cockpit-im-uberblick" title="Permanent link">&para;</a></h2>
+<p>Du erreichst das Cockpit über <strong>Controlling</strong> in der Navigation. Oben stellst du den Auswertungszeitraum ein:</p>
+<table>
+<thead>
+<tr>
+<th>Filter</th>
+<th>Bedeutung</th>
+<th>Vorbelegung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Jahr</strong></td>
+<td>Bezugsjahr für Erlöse, Team-Quoten und Funnel</td>
+<td>laufendes Jahr</td>
+</tr>
+<tr>
+<td><strong>Monat</strong></td>
+<td>betrifft <strong>nur</strong> den Abrechnungs-Funnel (auf 1–12 begrenzt)</td>
+<td>laufender Monat</td>
+</tr>
+</tbody>
+</table>
+<p>Darunter liegen vier Kennzahl-Kacheln (KPIs) und die einzelnen Panels. Die Kacheln fassen das Jahr zusammen:</p>
+<table>
+<thead>
+<tr>
+<th>Kachel</th>
+<th>Inhalt</th>
+<th>Ampel</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>fakturiert</strong></td>
+<td>Summe aller fakturierten Beträge des Jahres</td>
+<td>–</td>
+</tr>
+<tr>
+<td><strong>Zahlungseingang</strong></td>
+<td>Summe aller gebuchten Zahlungen des Jahres</td>
+<td>–</td>
+</tr>
+<tr>
+<td><strong>offene Posten</strong></td>
+<td>offener Gesamtbetrag, Anzahl offener Rechnungen, überfälliger Anteil</td>
+<td>orange, sobald etwas überfällig ist</td>
+</tr>
+<tr>
+<td><strong>kritische Fristen</strong></td>
+<td>fehlende Bewilligungen + überfällige Berichte</td>
+<td>orange, sobald es einen kritischen Fall gibt</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="erlose-je-monat">Erlöse je Monat<a class="headerlink" href="#erlose-je-monat" title="Permanent link">&para;</a></h2>
+<p>Das Balkendiagramm stellt für jeden Monat des gewählten Jahres zwei Werte gegenüber:</p>
+<table>
+<thead>
+<tr>
+<th>Reihe</th>
+<th>Woraus sie entsteht</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>fakturiert</strong></td>
+<td>Rechnungen mit Status <em>gestellt</em> oder <em>bezahlt</em>, verbucht nach <strong>Rechnungsdatum</strong> (Gutschriften wirken über ihren negativen Betrag saldierend)</td>
+</tr>
+<tr>
+<td><strong>Zahlungseingang</strong></td>
+<td>tatsächlich gebuchte Zahlungen, verbucht nach <strong>Zahldatum</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition tip">
+<p class="admonition-title">Fakturiert ist nicht gleich Zahlungseingang</p>
+<p>Weil die eine Reihe nach Rechnungsdatum und die andere nach Zahldatum läuft, klaffen die Balken je Monat auseinander – das ist gewollt. Der Abstand zwischen „fakturiert" und „Zahlungseingang" ist genau das Geld, das noch als <strong>offener Posten</strong> aussteht.</p>
+</div>
+<hr />
+<h2 id="offene-posten-stand">Offene-Posten-Stand<a class="headerlink" href="#offene-posten-stand" title="Permanent link">&para;</a></h2>
+<p>Die KPI-Kachel <em>offene Posten</em> verdichtet den kompletten OP-Stand:</p>
+<table>
+<thead>
+<tr>
+<th>Wert</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Summe</strong></td>
+<td>offener Gesamtbetrag über alle gestellten, noch nicht (voll) bezahlten Rechnungen</td>
+</tr>
+<tr>
+<td><strong>Anzahl</strong></td>
+<td>wie viele Rechnungen einen Restbetrag &gt; 0 haben</td>
+</tr>
+<tr>
+<td><strong>überfällig</strong></td>
+<td>Betrag der Rechnungen, deren Fälligkeit überschritten ist</td>
+</tr>
+<tr>
+<td><strong>n überfällig</strong></td>
+<td>Anzahl dieser überfälligen Rechnungen</td>
+</tr>
+</tbody>
+</table>
+<p>Sobald etwas überfällig ist, färbt sich die Kachel orange. Für die eigentliche Bearbeitung (Mahnen, Zahlungen buchen) wechselst du in die <strong>Offene-Posten-Liste</strong> der Verwaltung – das Controlling zeigt hier nur den Stand.</p>
+<hr />
+<h2 id="fls-erbringungsquote-je-team-ampel">FLS-Erbringungsquote je Team (Ampel)<a class="headerlink" href="#fls-erbringungsquote-je-team-ampel" title="Permanent link">&para;</a></h2>
+<p>Diese Tabelle vergleicht je Betreuungs-Team das <strong>Ist</strong> an Fachleistungsstunden mit dem <strong>Jahres-Kontingent</strong> aus den Bescheiden. Verwaltungs-Teams sind ausgenommen; Teams ohne Klient*innen erscheinen nicht.</p>
+<table>
+<thead>
+<tr>
+<th>Spalte</th>
+<th>Inhalt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Team</strong></td>
+<td>Name des Betreuungs-Teams</td>
+</tr>
+<tr>
+<td><strong>Klient*innen</strong></td>
+<td>Anzahl zugeordneter Klient*innen (nur die Zahl)</td>
+</tr>
+<tr>
+<td><strong>Kontingent (Std/Jahr)</strong></td>
+<td>bewilligtes Jahres-Kontingent des Teams</td>
+</tr>
+<tr>
+<td><strong>Ist</strong></td>
+<td>tatsächlich erbrachte Fachleistungsstunden</td>
+</tr>
+<tr>
+<td><strong>Quote</strong></td>
+<td>Ist ÷ Kontingent × 100, farbig als Ampel</td>
+</tr>
+</tbody>
+</table>
+<p>Die Ampel-Logik:</p>
+<table>
+<thead>
+<tr>
+<th>Quote</th>
+<th>Ampel</th>
+<th>Lesart</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>≥ 85 % und ≤ 105 %</strong></td>
+<td>grün</td>
+<td>im Zielkorridor</td>
+</tr>
+<tr>
+<td><strong>&lt; 85 %</strong></td>
+<td>orange</td>
+<td><strong>Erlösrisiko</strong> – dokumentierte Minderleistung fällt bei der Jahres-Spitzabrechnung auf</td>
+</tr>
+<tr>
+<td><strong>&gt; 105 %</strong></td>
+<td>rot</td>
+<td>über Kontingent – der Überhang ist <strong>nicht abrechenbar</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Unter 85 % ist ein Erlösrisiko</p>
+<p>Die Erbringungsfiktion greift nur, wenn eine Leistung <strong>nicht</strong> durch organisatorisches Versagen ausfällt. Dokumentierte Minderleistung fällt bei der Jahres-Spitzabrechnung auf – eine dauerhaft orange Quote ist also ein früher Hinweis, gegenzusteuern.</p>
+</div>
+<hr />
+<h2 id="abrechnungs-funnel">Abrechnungs-Funnel<a class="headerlink" href="#abrechnungs-funnel" title="Permanent link">&para;</a></h2>
+<p>Der Funnel zeigt für den <strong>gewählten Monat</strong>, in welchem Freigabe-Status die Monatsnachweise stehen – als Trichter von „noch gar nichts" bis „abgerechnet".</p>
+<table>
+<thead>
+<tr>
+<th>Stufe</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ohne Nachweis</strong></td>
+<td>Klient*innen in Betreuung, für die es diesen Monat noch keinen Monatsnachweis gibt (orange hervorgehoben)</td>
+</tr>
+<tr>
+<td><strong>offen</strong></td>
+<td>Nachweis existiert, wird noch bearbeitet</td>
+</tr>
+<tr>
+<td><strong>fertiggestellt (MA)</strong></td>
+<td>von der/dem Mitarbeiter*in eingereicht</td>
+</tr>
+<tr>
+<td><strong>freigegeben (Leitung)</strong></td>
+<td>fachlich freigegeben, bereit zur Abrechnung</td>
+</tr>
+<tr>
+<td><strong>abgerechnet</strong></td>
+<td>Position einer Rechnung</td>
+</tr>
+</tbody>
+</table>
+<p>So siehst du auf einen Blick, ob der Monat abrechnungsreif ist oder wo noch etwas hängt. Unter dem Funnel steht zusätzlich die Fristen-Zeile: wie viele Bewilligungen auslaufen und wie viele Entwicklungsberichte im 10-Wochen-Fenster fällig sind.</p>
+<div class="admonition note">
+<p class="admonition-title">„ohne Nachweis" nie negativ</p>
+<p>Die Stufe <em>ohne Nachweis</em> rechnet sich aus „Klient*innen in Betreuung minus vorhandene Nachweise" und wird nie unter 0 gedrückt. Bleibt sie über 0, fehlt für diese Fälle noch die Monatsdokumentation.</p>
+</div>
+<hr />
+<h2 id="fristen-compliance">Fristen-Compliance<a class="headerlink" href="#fristen-compliance" title="Permanent link">&para;</a></h2>
+<p>Die Fristen-Kennzahlen fassen zwei Compliance-Themen zusammen, die für die Abrechnung geschäftskritisch sind:</p>
+<table>
+<thead>
+<tr>
+<th>Wert</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ohne Bewilligung</strong></td>
+<td>Klient*innen in Betreuung ohne aktive Bewilligung – ohne rechtssichere Kostenzusage ist die Leistung nicht abrechenbar</td>
+</tr>
+<tr>
+<td><strong>Bewilligungen auslaufend</strong></td>
+<td>aktive Bewilligungen, die im Vorlauf-Fenster (Standard 70 Tage) enden</td>
+</tr>
+<tr>
+<td><strong>Berichte überfällig</strong></td>
+<td>Entwicklungsberichte, deren Fälligkeitsdatum überschritten und die noch nicht versendet sind</td>
+</tr>
+<tr>
+<td><strong>Berichte fällig</strong></td>
+<td>Entwicklungsberichte im 10-Wochen-Fenster vor dem KÜ-Ende</td>
+</tr>
+</tbody>
+</table>
+<p>Fehlende Bewilligungen und überfällige Berichte fließen in die orange <strong>„kritische Fristen"</strong>-Kachel oben.</p>
+<hr />
+<h2 id="csv-export-der-monats-kennzahlen">CSV-Export der Monats-Kennzahlen<a class="headerlink" href="#csv-export-der-monats-kennzahlen" title="Permanent link">&para;</a></h2>
+<p>Mit <strong>CSV-Export</strong> ziehst du die Erlös-Kennzahlen des gewählten Jahres als Tabelle heraus – für Träger, Steuerberatung oder eigene Auswertungen.</p>
+<table>
+<thead>
+<tr>
+<th>Eigenschaft</th>
+<th>Wert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dateiname</strong></td>
+<td><code>Controlling_&lt;Jahr&gt;.csv</code></td>
+</tr>
+<tr>
+<td><strong>Trennzeichen</strong></td>
+<td>Semikolon</td>
+</tr>
+<tr>
+<td><strong>Kodierung</strong></td>
+<td>UTF-8 mit BOM (LibreOffice/Excel-freundlich)</td>
+</tr>
+<tr>
+<td><strong>Spalten</strong></td>
+<td><code>Monat</code>, <code>Fakturiert_EUR</code>, <code>Zahlungseingang_EUR</code></td>
+</tr>
+<tr>
+<td><strong>Zeilen</strong></td>
+<td>12 Monatszeilen (<code>MM.JJJJ</code>) plus eine <code>SUMME</code>-Zeile</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Nur Erlöse, keine Klientendaten</p>
+<p>Der CSV-Export enthält bewusst nur die zwei Erlös-Reihen je Monat. Offene Posten, Team-Quoten und Funnel bleiben als Live-Ansicht im Cockpit – die Datei ist damit unbedenklich weiterzugeben.</p>
+</div>
+<hr />
+<h2 id="datev-buchungsstapel-extf-700">DATEV-Buchungsstapel (EXTF-700)<a class="headerlink" href="#datev-buchungsstapel-extf-700" title="Permanent link">&para;</a></h2>
+<p>Für die Buchhaltung erzeugt die App aus den Ausgangsrechnungen eines Zeitraums einen <strong>DATEV-Buchungsstapel im EXTF-Format (Version 700, Kategorie 21 „Buchungsstapel")</strong>. Gebucht wird die <strong>Sollstellung</strong>: Debitor (Kostenträger) an Erlöskonto. Gutschriften kommen mit umgekehrtem Soll/Haben-Kennzeichen (Haben auf den Debitor).</p>
+<p>Du wählst einen <strong>Von–Bis-Zeitraum</strong>; exportiert werden alle Rechnungen mit Status <em>gestellt</em> oder <em>bezahlt</em>, deren Rechnungsdatum im Zeitraum liegt.</p>
+<table>
+<thead>
+<tr>
+<th>Eigenschaft</th>
+<th>Wert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Format</strong></td>
+<td>DATEV EXTF, Version 700, Kategorie 21 (Buchungsstapel)</td>
+</tr>
+<tr>
+<td><strong>Dateiname</strong></td>
+<td><code>EXTF_Buchungsstapel_&lt;von&gt;-&lt;bis&gt;.csv</code></td>
+</tr>
+<tr>
+<td><strong>Kodierung</strong></td>
+<td><strong>cp1252</strong> (Windows-1252) – das von DATEV erwartete Format</td>
+</tr>
+<tr>
+<td><strong>Wirtschaftsjahr-Beginn</strong></td>
+<td>1. Januar des Von-Jahres</td>
+</tr>
+<tr>
+<td><strong>Belegdatum</strong></td>
+<td>Rechnungsdatum als <code>TTMM</code></td>
+</tr>
+<tr>
+<td><strong>Belegfeld 1</strong></td>
+<td>Rechnungsnummer (max. 36 Zeichen)</td>
+</tr>
+<tr>
+<td><strong>Buchungstext</strong></td>
+<td>„Rechnung"/„Gutschrift" + Nummer + Zeitraum (max. 60 Zeichen)</td>
+</tr>
+<tr>
+<td><strong>Nicht enthalten</strong></td>
+<td>Zahlungseingänge – die bucht das Steuerbüro über den Kontoauszug</td>
+</tr>
+</tbody>
+</table>
+<p>Die benötigten Konten kommen aus den <strong>Stammdaten</strong>, nicht aus dem Code:</p>
+<table>
+<thead>
+<tr>
+<th>Konto</th>
+<th>Herkunft</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Debitorenkonto</strong> (je Rechnung)</td>
+<td>am <strong>Kostenträger</strong> hinterlegt (<code>Kostentraeger.debitorenkonto</code>, DATEV-Debitor)</td>
+</tr>
+<tr>
+<td><strong>Erlöskonto</strong> (Gegenkonto)</td>
+<td>am <strong>Rechnungssteller</strong> hinterlegt (<code>Rechnungssteller.datev_erloeskonto</code>)</td>
+</tr>
+<tr>
+<td><strong>Berater-/Mandanten-Nr.</strong></td>
+<td>am Rechnungssteller (<code>datev_berater</code>, <code>datev_mandant</code>, in die EXTF-Kopfzeile)</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Ohne Konten kein Export</p>
+<p>Fehlt bei einem der einbezogenen Kostenträger das <strong>Debitorenkonto</strong>, bricht der Export mit einer Fehlermeldung ab und nennt die betroffenen Rechnungsnummern. Fehlt das <strong>Erlöskonto</strong> am Rechnungssteller, wirst du direkt auf die Rechnungssteller-Stammdaten geleitet. Ergänze die Konten (Werte vom Steuerbüro) und starte den Export erneut.</p>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Vor dem ersten Echt-Import mit dem Steuerbüro testen</p>
+<p>Der Buchungsstapel bildet die Sollstellung ab, wie sie hier verstanden wird. Konkrete Konten, Buchungslogik und Steuerschlüssel legt aber das Steuerbüro fest. <strong>Importiere die Datei zuerst als Test</strong>, gleiche das Ergebnis mit dem Steuerbüro ab und stelle den Echtbetrieb erst danach um.</p>
+</div>
+<hr />
+<h2 id="fur-neugierige-technik-dahinter">Für Neugierige: Technik dahinter<a class="headerlink" href="#fur-neugierige-technik-dahinter" title="Permanent link">&para;</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Nur zur Nachvollziehbarkeit</p>
+<p>Dieser Abschnitt richtet sich an alle, die verstehen (oder nachbauen) möchten, wie das Controlling und der DATEV-Export technisch aufgebaut sind. Für die tägliche Bedienung ist er nicht nötig.</p>
+</div>
+<ul>
+<li><strong>Controlling-View:</strong> <code>nachweis/views_controlling.py</code> → <code>controlling</code> (<code>@login_required</code>) prüft <code>_darf_controlling</code> (= <code>services.ist_leitung</code> <strong>oder</strong> <code>services.ist_verwaltung</code>), sonst Redirect auf <code>nachweis:start</code>. Übergibt ans Template ausschließlich Aggregate: <code>chart</code> (Labels + <code>fakturiert</code>/<code>eingang</code> je Monat), <code>summe_fakturiert</code>, <code>summe_eingang</code>, <code>op</code>, <code>teams</code>, <code>funnel</code>, <code>fristen</code>.</li>
+<li><strong>Aggregat-Helfer (alle in <code>views_controlling.py</code>):</strong> <code>_erloese_je_monat(jahr)</code> summiert fakturierte Rechnungen (<code>Rechnungsstatus.GESTELLT</code>/<code>BEZAHLT</code>, nach <code>datum.month</code>) und Zahlungen (<code>Zahlung</code>, nach <code>datum.month</code>) in 13er-Listen; <code>_op_stand()</code> über <code>Rechnung.offener_betrag</code> und <code>Rechnung.tage_ueberfaellig</code>; <code>_team_quoten(jahr)</code> iteriert <code>Team.objects.exclude(typ=Teamtyp.VERWALTUNG)</code> und ruft je Team <code>services.fachleistungsstunden(jahr, klienten=…)</code> (nur die aggregierte <code>summe</code>, nicht die Einzelzeilen); <code>_freigabe_funnel(jahr, monat)</code> zählt <code>Monatsfreigabe</code> je <code>Freigabestatus.choices</code> plus „ohne Nachweis" gegen <code>Klient.objects.filter(status=Status.BETREUUNG)</code>; <code>_fristen_stand()</code> über <code>services.bewilligung_fristen</code>, <code>services.berichte_faellig</code> und überfällige <code>Bericht</code>.</li>
+<li><strong>CSV-Export:</strong> <code>views_controlling.py</code> → <code>controlling_csv</code> (<code>@login_required</code>, gleiche Rechteprüfung), <code>HttpResponse</code> mit <code>text/csv; charset=utf-8-sig</code>, Semikolon-Trenner, Spalten <code>Monat</code>/<code>Fakturiert_EUR</code>/<code>Zahlungseingang_EUR</code> und <code>SUMME</code>-Zeile; Dateiname <code>Controlling_{jahr}.csv</code>.</li>
+<li><strong>Template:</strong> <code>nachweis/templates/nachweis/controlling.html</code> – KPI-Kacheln (<code>.kpi</code>, orange bei <code>op.n_ueberfaellig</code> bzw. kritischen Fristen), Balkendiagramm (Chart.js, lokal via <code>static 'nachweis/vendor/chartjs/chart.umd.min.js'</code>, <code>chart|json_script:"ctr-data"</code>), Team-Tabelle mit Quote-Badge (<code>b-bad</code> &gt; 105 %, <code>b-ok</code> ≥ 85 %, sonst <code>b-warn</code>) und Funnel-Steps.</li>
+<li><strong>DATEV-Export:</strong> <code>nachweis/views_abrechnung.py</code> → <code>datev_export</code> (<code>@login_required</code>, <code>services.darf_abrechnen</code>). Lädt <code>Rechnungssteller.load()</code>, filtert <code>Rechnung</code> nach <code>datum__gte/lte</code> und <code>status in [GESTELLT, BEZAHLT]</code>, <code>select_related("kostentraeger")</code>. Baut die EXTF-700-Kopfzeile (Kategorie 21, WJ-Beginn 1. Januar, Berater-/Mandanten-Nr.) und Buchungszeilen von Hand (kein <code>csv.writer</code>, DATEV-Quotes selbst gesetzt); Soll/Haben-Kennzeichen <code>S</code>/<code>H</code> je Vorzeichen des Betrags (<code>Rechnungstyp.GUTSCHRIFT</code> → Haben). Antwort <code>text/csv; charset=cp1252</code>, Zeilen mit <code>\r\n</code>.</li>
+<li><strong>Guards im DATEV-Export:</strong> fehlendes <code>kostentraeger.debitorenkonto</code> → Fehlermeldung mit Rechnungsnummern, Redirect <code>nachweis:rechnungen</code>; fehlendes <code>s.datev_erloeskonto</code> → Redirect <code>nachweis:rechnungssteller</code>. Zahlungen werden bewusst <strong>nicht</strong> exportiert (Kontoauszug beim Steuerbüro).</li>
+<li><strong>Stammdaten-Modelle:</strong> <code>nachweis/models.py</code> → <code>Kostentraeger.debitorenkonto</code> (DATEV-Debitor, max. 9 Zeichen) und <code>Rechnungssteller</code> (Singleton, <code>load()</code>) mit <code>datev_berater</code>, <code>datev_mandant</code>, <code>datev_erloeskonto</code> (Werte vom Steuerbüro). Weitere: <code>Freigabestatus</code>, <code>Rechnung</code>/<code>Rechnungsstatus</code>/<code>Rechnungstyp</code>, <code>Zahlung</code>, <code>Monatsfreigabe</code>, <code>Bericht</code>/<code>BerichtsStatus</code>, <code>Team</code>/<code>Teamtyp</code>, <code>Klient</code>/<code>Status</code>.</li>
+<li><strong>URLs:</strong> <code>nachweis/urls.py</code> → <code>nachweis:controlling</code> (<code>controlling/</code>), <code>nachweis:controlling_csv</code> (<code>controlling/csv/</code>), <code>nachweis:datev_export</code> (<code>datev/</code>).</li>
+<li><strong>Scoping/Rollen:</strong> <code>services.ist_leitung</code>, <code>services.ist_verwaltung</code>, <code>services.darf_abrechnen</code>. Das Cockpit aggregiert intern und gibt nie ein Klient-Objekt an die Seite – strukturelle Art-9-Datensparsamkeit, dieselbe Linie wie in der übrigen Verwaltungs-/Abrechnungsansicht.</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Verwandte Seiten</p>
+<ul>
+<li><a href="../rechnungen/">Abrechnung, Rechnungen &amp; XRechnung</a></li>
+<li><a href="../mahnwesen/">Mahnwesen &amp; offene Posten</a></li>
+<li><a href="../../fachliches/fls-kle/">Fachleistungsstunden (FLS) &amp; kLE</a></li>
+<li><a href="../../sicherheit/datenschutz/">Datenschutz</a></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Zurück zum Seitenanfang
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "navigation.instant", "navigation.indexes", "search.suggest", "search.highlight", "content.code.copy", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "In Zwischenablage kopiert", "clipboard.copy": "In Zwischenablage kopieren", "search.result.more.one": "1 weiteres Suchergebnis auf dieser Seite", "search.result.more.other": "# weitere Suchergebnisse auf dieser Seite", "search.result.none": "Keine Suchergebnisse", "search.result.one": "1 Suchergebnis", "search.result.other": "# Suchergebnisse", "search.result.placeholder": "Suchbegriff eingeben", "search.result.term.missing": "Es fehlt", "select.version": "Version ausw\u00e4hlen"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
