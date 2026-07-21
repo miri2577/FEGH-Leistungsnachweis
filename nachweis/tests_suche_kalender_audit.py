@@ -71,6 +71,14 @@ class KalenderTeamsitzungTests(TestCase):
         self.assertContains(resp, 'aria-modal="true"')
         self.assertContains(resp, 'aria-labelledby="mxp-title"')
 
+    def test_kein_template_kommentar_leak(self):
+        # Regression: ein mehrzeiliger {# #} wurde als Text gerendert (Django-Kommentare
+        # sind nur einzeilig) -> auf {% comment %} umgestellt; darf nirgends sichtbar sein.
+        self.client.force_login(self.u)
+        for ansicht in ("woche", "monat", "tag"):
+            resp = self.client.get(reverse("nachweis:kalender"), {"ansicht": ansicht, "jahr": 2026, "kw": 24})
+            self.assertNotContains(resp, "Schwebende Tages-Card")
+
 
 class ErfassungDialogTests(TestCase):
     def test_doku_modal_hat_dialog_semantik(self):
