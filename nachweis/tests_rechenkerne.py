@@ -192,6 +192,27 @@ class DruckUndFlsTests(TestCase):
         self.assertEqual(z["rest"], Decimal("118"))
 
 
+class ZeitreiheSerienKonsistenzTests(TestCase):
+    """P2: auslastung_zeitreihe zählt FLS-Serien mit -> Chart == Tabelle (Dashboard konsistent)."""
+    def setUp(self):
+        Parameter.objects.create(jahr=2026, teamsitzung_dauer_std=Decimal("0"))
+        self.team = Team.objects.create(name="TBEW")
+        self.ma = Mitarbeiter.objects.create(name="B", team=self.team, kuerzel="b")
+        self.k = Klient.objects.create(nachname="A", bezugsbetreuer=self.ma, team=self.team,
+                                       al=Decimal("10"), kle=Decimal("0"), status=Status.BETREUUNG)
+        WiederkehrendeLeistung.objects.create(
+            bezeichnung="Fallsupervision", leistungsart=Leistungsart.WFS,
+            rhythmus=Rhythmus.WOECHENTLICH, wochentag=1, dauer_std=Decimal("1.0"),
+            anrechnung=Anrechnung.FEST, wert_pro_klient=Decimal("1.0"), feiertage_aussparen=False)
+
+    def test_chart_gleich_tabelle(self):
+        qs = Klient.objects.filter(pk=self.k.pk)
+        _z, summe = services.fachleistungsstunden(2026, qs)
+        zr = services.auslastung_zeitreihe(2026, qs)
+        self.assertGreater(float(summe["ist"]), 0)                # Serie zählt in der Tabelle
+        self.assertAlmostEqual(float(summe["ist"]), zr["jahr"]["ist"], places=1)   # Chart == Tabelle
+
+
 class KasseTests(TestCase):
     def setUp(self):
         self.team = Team.objects.create(name="TBEW")

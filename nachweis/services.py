@@ -556,8 +556,9 @@ def fachleistungsstunden(jahr: int, klienten=None):
 
 
 def auslastung_zeitreihe(jahr: int, klienten):
-    """Ist-FLS & Auslastung je Kalenderwoche / Monat / Jahr für die (gefilterten) Klient*innen.
-    Berücksichtigt manuelle Leistungen, Gruppen-Anteile und Teamsitzung – auf deren echten Daten."""
+    """Ist-AL & Auslastung je Kalenderwoche / Monat / Jahr für die (gefilterten) Klient*innen.
+    Zählt die Fachleistungsstunden (manuell + Gruppen-Anteile + FLS-Serien); kLE und
+    Teamsitzung bleiben außen vor – konsistent zu fachleistungsstunden/wochenauslastung."""
     kl_ids = set(klienten.values_list("id", flat=True))
     kl_list = list(klienten)
     kont_monat = sum((k.al or Decimal("0") for k in kl_list), Decimal("0"))   # AL-Soll (kLE separat)
@@ -591,6 +592,14 @@ def auslastung_zeitreihe(jahr: int, klienten):
         n = sum(1 for k in g.teilnehmer.all() if k.id in kl_ids)
         if n:
             add(g.datum, anteil * n)
+
+    # Wiederkehrende FLS-Serien (z. B. Fallsupervision) mitzählen – wie in
+    # fachleistungsstunden/wochenauslastung, sonst widerspricht der Chart der Tabelle.
+    _serien, _tc, _gc = aktive_serien(), _team_betreuung_counts(), anzahl_klienten()
+    for k in kl_list:
+        for b in serien_beitraege(k, von, bis, _serien, _tc, _gc):
+            if b["leistungsart"] in FLS_ARTEN:
+                add(b["datum"], b["stunden"])
 
     def pct(ist, kont):
         return round(float(ist / kont * 100), 1) if kont else 0.0
