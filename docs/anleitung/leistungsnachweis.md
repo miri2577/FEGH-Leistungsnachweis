@@ -1,5 +1,10 @@
 # Leistung erfassen (Grid)
 
+![Das Erfassungs-Grid – direkt in der Tabelle tippen, die Dauer rechnet der Server, 📝 öffnet die Dokumentation je Zeile.](../assets/screenshots/erfassung.png)
+
+*Das Erfassungs-Grid – direkt in der Tabelle tippen, die Dauer rechnet der Server, 📝 öffnet die Dokumentation je Zeile.*
+
+
 Auf der Seite **Erfassung** trägst du deine erbrachten Leistungen direkt in eine Tabelle ("Grid") ein. Die Tabelle funktioniert wie eine Tabellenkalkulation: Du klickst in eine Zelle, tippst, und die Zeile wird **automatisch gespeichert**. Diese Erfassung ist die Grundlage für die spätere Rechnungsstellung und den amtlichen Druck-Nachweis.
 
 !!! info "Wer sieht welche Klient*innen?"

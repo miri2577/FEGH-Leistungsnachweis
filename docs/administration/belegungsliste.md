@@ -1,5 +1,10 @@
 # Belegungsliste pflegen
 
+![Belegungsliste mit Sofortsuche, AL/kLE, HBG, KÜ-Ende und Status je Klient*in.](../assets/screenshots/belegungsliste.png)
+
+*Belegungsliste mit Sofortsuche, AL/kLE, HBG, KÜ-Ende und Status je Klient*in.*
+
+
 Die **Belegungsliste** ist das Stammdaten-Verzeichnis aller betreuten Klient*innen des Teams. Sie ist die fachliche Grundlage für den Leistungsnachweis und die Rechnungsstellung: Aus den hier hinterlegten bewilligten Fachleistungsstunden (FLS) ergibt sich, wie viel Betreuungszeit pro Monat abgerechnet werden darf.
 
 !!! info "Wer pflegt die Belegungsliste?"

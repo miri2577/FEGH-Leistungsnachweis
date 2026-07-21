@@ -1,5 +1,10 @@
 # Kalender & Planungsbrett
 
+![Team-Kalender – Termine je Mitarbeiter*in, Tag anklicken öffnet die Tages-Card zum Anlegen/Bearbeiten.](../assets/screenshots/kalender.png)
+
+*Team-Kalender – Termine je Mitarbeiter*in, Tag anklicken öffnet die Tages-Card zum Anlegen/Bearbeiten.*
+
+
 Kalender und Dienstplan sind in dieser App **ein einziges Werkzeug**. Wer ambulant arbeitet, plant Klient*innen-Termine; wer stationär arbeitet, plant Schichtdienste – beides passiert auf demselben Planungsbrett, nur der Inhalt einer Tages-Zelle unterscheidet sich. Die Standardansicht ist der **Monat**: eine Matrix aus Mitarbeiter*innen (Zeilen) und Tagen (Spalten), in der Termine und Dienste nebeneinander stehen. Zusätzlich gibt es die Ansichten **Tag** und **Woche** für den Feinschliff. Die eigentliche Leistungserfassung (Fachleistungsstunden, Dokumentation) passiert weiterhin im Leistungsnachweis – das Planungsbrett dient der Übersicht und der voraus­schauenden Planung.
 
 !!! note "Wer sieht das Planungsbrett?"

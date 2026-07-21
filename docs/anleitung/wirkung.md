@@ -1,5 +1,10 @@
 # Wirkungsmessung
 
+![Wirkungsmessung über die Berliner acht Dimensionen.](../assets/screenshots/wirkung.png)
+
+*Wirkungsmessung über die Berliner acht Dimensionen.*
+
+
 Zu jeder Klient*in kannst du die **Wirkung** der Hilfe dokumentieren – auf **Wirkungsdimensionen**, die du auf einer **7er-Skala** einstufst. Die App bildet die Berliner Systematik der **AV Hilfeplanung** ab: Zu jeder ausgewählten Dimension hältst du einen **Ist-** und einen **Soll-Wert** fest, jeweils zu einem **Anlass** (Hilfebeginn, Fortschreibung, Ende) und aus einer **Perspektive** (partizipativ – Fachkraft, Klient*in, Familie, Jugendamt/THFD). Eine **Verlaufs-Matrix** stellt die Entwicklung je Dimension mit einem **Delta seit Hilfebeginn** dar, sodass Wirksamkeit sichtbar wird.
 
 Du erreichst die Seite über die Fallakte einer Klient*in: Reiter **Teilhabe → Wirkung**. Daneben liegen dort die Reiter **Ziele (ZLP)** und **Bedarf (ICF/TIB)**.

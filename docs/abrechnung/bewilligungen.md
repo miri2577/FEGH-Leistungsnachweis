@@ -1,5 +1,10 @@
 # Bewilligungen & Kontingent
 
+![Bewilligungen je Klient*in – FLS/Woche, kLE/Tag, Gültigkeitszeitraum, Kontingent.](../assets/screenshots/bewilligungen.png)
+
+*Bewilligungen je Klient*in – FLS/Woche, kLE/Tag, Gültigkeitszeitraum, Kontingent.*
+
+
 Die **Bewilligung** ist in der App die *führende Kostenzusage* je Klient*in: Sie hält fest, **wer** (Kostenträger) **was** (Leistungstyp) in **welchem Zeitraum** und **welchem Kontingent** bewilligt hat. Aus ihr fließen die bewilligten Stunden automatisch in die Belegungsliste und in die Abrechnung. Diese Seite erklärt, wie du eine Bewilligung anlegst, fortschreibst, wie das Kontingent aus **FLS/Woche** und **kLE/Tag** entsteht, wie die App auslaufende oder fehlende Kostenzusagen überwacht und wie du die 12 Berliner Bezirke als Kostenträger anlegst.
 
 !!! info "Wer darf Bewilligungen pflegen?"

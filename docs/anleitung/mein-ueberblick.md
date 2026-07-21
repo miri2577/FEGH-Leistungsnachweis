@@ -1,5 +1,10 @@
 # Mein Überblick (Startseite)
 
+![Startseite „Mein Überblick“: Wochen-Auslastung, Arbeitszeit, Urlaubskonto, Fälligkeiten und die eigene Klient*innen-Liste.](../assets/screenshots/mein-ueberblick.png)
+
+*Startseite „Mein Überblick“: Wochen-Auslastung, Arbeitszeit, Urlaubskonto, Fälligkeiten und die eigene Klient*innen-Liste.*
+
+
 *Mein Überblick* ist Ihre persönliche Startseite und der erste Bildschirm nach der Anmeldung. Sie bündelt auf einen Blick, was für Sie heute und diesen Monat wichtig ist: offene Aufgaben, Ihre Arbeitszeit, Ihr Urlaubskonto, der Wochenkalender und die Auslastung Ihrer Klient\*innen. Sie erreichen die Seite jederzeit über **Mein Überblick** ganz oben in der Seitenleiste.
 
 !!! note "Ohne Mitarbeiter-Profil"

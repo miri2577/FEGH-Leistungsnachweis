@@ -1,5 +1,10 @@
 # Controlling & DATEV-Export
 
+![Controlling: Erlöse je Monat (fakturiert vs. Zahlungseingang), FLS-Erbringungsquote je Team, Abrechnungs-Funnel.](../assets/screenshots/controlling.png)
+
+*Controlling: Erlöse je Monat (fakturiert vs. Zahlungseingang), FLS-Erbringungsquote je Team, Abrechnungs-Funnel.*
+
+
 Leitung und Verwaltung brauchen den Überblick über das Geld, aber ausdrücklich **ohne** in die Fallakten zu schauen. Genau dafür gibt es das **Controlling**: ein Kennzahlen-Cockpit, das nur mit **Aggregaten** arbeitet – Erlöse je Monat, Stand der offenen Posten, FLS-Erbringungsquote je Team (mit Ampel), der Abrechnungs-Funnel des Monats und die kritischen Fristen. Kein einziger Klientenname, kein Betrag pro Person, keine Dokumentation. Diese Seite erklärt, was du im Cockpit siehst, wie du die Zahlen als CSV herausziehst und wie aus den gestellten Rechnungen ein **DATEV-Buchungsstapel (EXTF-700)** für das Steuerbüro wird.
 
 !!! warning "Nur Aggregate – kein Klientenbezug"

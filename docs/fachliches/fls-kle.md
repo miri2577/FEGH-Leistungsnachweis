@@ -1,5 +1,10 @@
 # Fachleistungsstunden (FLS) & kalkulatorische Leistungseinheit (kLE)
 
+![Fachleistungsstunden-Dashboard: AL-Auslastung (Ist gegen anteiliges Jahres-Soll) je Klient*in.](../assets/screenshots/dashboard-fls.png)
+
+*Fachleistungsstunden-Dashboard: AL-Auslastung (Ist gegen anteiliges Jahres-Soll) je Klient*in.*
+
+
 Diese Seite erklärt die zentrale Abrechnungslogik der App: Was zählt als **Fachleistungsstunde (FLS)**, wie sich die **bewilligte Leistung** aus **AL** und **kLE** zusammensetzt, wie der **kLE-Anteil** berechnet wird und wie die **Auslastung** (Ist gegen Kontingent) ermittelt wird.
 
 !!! info "Fachliche Grundlage"

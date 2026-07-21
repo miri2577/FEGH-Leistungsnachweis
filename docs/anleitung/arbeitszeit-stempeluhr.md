@@ -1,5 +1,10 @@
 # Arbeitszeit & Stempeluhr
 
+![Arbeitszeit-Erfassung mit Stempeluhr und Monatsübersicht.](../assets/screenshots/arbeitszeit.png)
+
+*Arbeitszeit-Erfassung mit Stempeluhr und Monatsübersicht.*
+
+
 Neben den Leistungsnachweisen erfasst die App deine **eigene Arbeitszeit** (Selfservice). Für Mitarbeitende der **Verwaltung** gibt es zusätzlich eine **Kommen/Gehen-Stempeluhr** auf der Startseite. Beide Wege dienen der Übersicht über Ist- und Soll-Stunden – nicht der Leistungsabrechnung.
 
 ## Arbeitszeit erfassen

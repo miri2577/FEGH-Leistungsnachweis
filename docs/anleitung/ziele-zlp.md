@@ -1,5 +1,10 @@
 # Ziele der Ziel- und Leistungsplanung (ZLP)
 
+![Ziele (Zielleistungsplanung) mit Status und Zielbezug für die Dokumentation.](../assets/screenshots/ziele.png)
+
+*Ziele (Zielleistungsplanung) mit Status und Zielbezug für die Dokumentation.*
+
+
 Zu jeder Klient*in kannst du die vereinbarten Ziele aus der **Ziel- und Leistungsplanung (ZLP)** pflegen – die fachliche Grundlage der Betreuung in der Berliner Eingliederungshilfe (§ 11 BRV EGH, Gesamtplan §§ 117 ff. SGB IX). Die App bildet die Berliner Systematik ab: **Leitziele** (die Richtung, im O-Ton der Person) mit darunter hängenden, operationalen **Teilhabezielen**, jeweils mit einem **Indikator der Zielerreichung**, einem **Status** und – für den Bericht – einem **Zielerreichungsgrad in Prozent**. Deine Verlaufsdokumentation kann sich später gezielt auf diese Ziele beziehen, sodass sichtbar wird, an welchen Zielen tatsächlich gearbeitet wurde.
 
 Du erreichst die Seite über die Fallakte einer Klient*in: Reiter **Teilhabe → Ziele (ZLP)**. Daneben liegen dort die Reiter **Wirkung** und **Bedarf (ICF/TIB)**.

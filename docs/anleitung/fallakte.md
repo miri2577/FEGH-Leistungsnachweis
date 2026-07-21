@@ -1,5 +1,10 @@
 # Fallakte & Belegungsliste
 
+![Fallakte: alles zur Person unter Reitern (Übersicht · Kostenzusage · Teilhabe · Berichte · Dokumente · Verlauf).](../assets/screenshots/fallakte.png)
+
+*Fallakte: alles zur Person unter Reitern (Übersicht · Kostenzusage · Teilhabe · Berichte · Dokumente · Verlauf).*
+
+
 Die **Fallakte** ist die zentrale Detailseite je Klient*in: von hier aus erreichst du alles zu einer Person – Kennzahlen, Kostenzusage, Teilhabeziele, Berichte, Dokumente und den Verlauf – über eine einheitliche Reiter-Leiste. Der Einstieg in die Fallakte läuft über die **Belegungsliste**: eine schlanke Tabelle aller Klient*innen deiner Team(s), aus der du mit **„Öffnen ›“** in die jeweilige Akte springst. Diese Seite erklärt beide Ansichten und wie sie zusammenspielen.
 
 !!! info "Wer sieht welche Klient*innen?"

@@ -1,5 +1,10 @@
 # Abrechnung, Rechnungen & XRechnung
 
+![Rechnungen: freigegebene Nachweise je Kostenträger bündeln, Sammelrechnung erstellen, Suchfeld über der Rechnungsliste.](../assets/screenshots/rechnungen.png)
+
+*Rechnungen: freigegebene Nachweise je Kostenträger bündeln, Sammelrechnung erstellen, Suchfeld über der Rechnungsliste.*
+
+
 Am Monatsende werden aus den erfassten Leistungen echte Rechnungen an die Kostenträger. Damit dabei nichts Halbfertiges abgerechnet wird, läuft jeder Monatsnachweis (eine Klient*in × ein Monat) durch einen dreistufigen Freigabe-Workflow: **Die/der Mitarbeiter*in meldet den Monat fertig, die Leitung gibt ihn frei, die Verwaltung rechnet ihn ab.** Erst freigegebene Nachweise landen in einer Rechnung. Diese Seite erklärt den Workflow, wie die Verwaltung freigegebene Nachweise je Kostenträger zu Sammelrechnungen bündelt, wie daraus PDF, CSV und die elektronische **XRechnung 3.0** für Berlin (OZG-RE) entstehen und welche Stammdaten du dafür einmalig pflegst.
 
 !!! warning "Strikte Datentrennung: Verwaltung sieht keine Doku"

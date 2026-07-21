@@ -1,5 +1,10 @@
 # Teams & Mitarbeitende verwalten
 
+![Mitarbeitendenverwaltung: Rollen, Teams, 2FA-Status.](../assets/screenshots/mitarbeiter.png)
+
+*Mitarbeitendenverwaltung: Rollen, Teams, 2FA-Status.*
+
+
 Diese Seite richtet sich an die Rolle **Administration**. Sie legt die organisatorische Struktur an: **Teams**, **Mitarbeitende**, deren **Rollen/Rechte** sowie die Selfservice-Vorgaben **Wochenstunden** und **Urlaubstage**. Außerdem beschreibt sie, wie eine Administration einem Nutzer die **Zwei-Faktor-Authentisierung (2FA) zurücksetzt**.
 
 !!! info "Rollentrennung"

@@ -1,5 +1,10 @@
 # ICF-Bedarfsermittlung (TIB)
 
+![ICF-Bedarfsermittlung nach dem TIB – narrativ über zwölf Lebensbereiche.](../assets/screenshots/bedarf.png)
+
+*ICF-Bedarfsermittlung nach dem TIB – narrativ über zwölf Lebensbereiche.*
+
+
 Zu jeder Klient*in kannst du die **ICF-Bedarfsermittlung nach dem Teilhabeinstrument Berlin (TIB, § 118 SGB IX)** pflegen – die strukturierte, fachliche Bestandsaufnahme, aus der später die Ziel- und Leistungsplanung (ZLP) erwächst. Die App bildet die Berliner Systematik bewusst **narrativ-dialogisch** ab: zwölf Lebensbereiche nach der ICF-Domänenordnung (d1–d9), je Bereich vier Freitext-Leitfragen und eine kategoriale Teilhabe-Einschätzung. Es gibt **keine Punkte-Skala** – kein „Grad der Beeinträchtigung von 0 bis 4“ –, sondern beschreibende Sätze über Ressourcen, Barrieren und Kontext. Jede Bedarfsermittlung ist als eigener Stichtag **versioniert**, sodass Erst- und Folgeerhebungen nebeneinander stehen bleiben und die Entwicklung nachvollziehbar wird.
 
 Du erreichst die Seite über die Fallakte einer Klient*in: Reiter **Teilhabe → Bedarf (ICF/TIB)**. Daneben liegen dort die Reiter **Ziele (ZLP)** und **Wirkung**.

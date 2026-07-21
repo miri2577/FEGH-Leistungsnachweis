@@ -1,5 +1,10 @@
 # Team-Parameter (Teamsitzung & FLS-Preis)
 
+![Team-Parameter je Jahr: Teamsitzung (Wochentag, Dauer) und FLS-Preis.](../assets/screenshots/parameter.png)
+
+*Team-Parameter je Jahr: Teamsitzung (Wochentag, Dauer) und FLS-Preis.*
+
+
 Über die **Team-Parameter** stellt die Leitung/Administration die jahresbezogenen Rechengrößen ein, die in die Auswertung einfließen: die **Teamsitzung** (Wochentag und Dauer) sowie den **FLS-Preis**. Es gibt einen Parametersatz **pro Jahr**.
 
 ## Die Felder

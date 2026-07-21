@@ -1,5 +1,10 @@
 # Kasse (Kassenbuch & Zaehlprotokoll)
 
+![Kassenbuch mit Buchungen und Zählprotokoll.](../assets/screenshots/kasse.png)
+
+*Kassenbuch mit Buchungen und Zählprotokoll.*
+
+
 Die **Kasse** bildet die Barkasse (Handkasse) eines Teams ab. Sie besteht aus zwei
 zusammengehoerenden Teilen:
 
